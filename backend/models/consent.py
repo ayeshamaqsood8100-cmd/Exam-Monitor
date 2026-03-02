@@ -1,9 +1,7 @@
-from pydantic import BaseModel
-from datetime import datetime
+from pydantic import BaseModel, AwareDatetime
 from uuid import UUID
 
 class ConsentModel(BaseModel):
     session_id: UUID
-    timestamp: datetime
-
-
+    agent_version: str
+    timestamp: AwareDatetime
