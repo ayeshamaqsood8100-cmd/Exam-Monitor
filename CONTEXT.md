@@ -7,11 +7,11 @@ A consent-based, visible desktop monitoring agent and backend system designed to
 - **Desktop Agent:** Python 3.12 (pynput, pygetwindow, psutil)
 - **Backend API:** FastAPI (Python), Supabase SDK
 - **Database:** Supabase (PostgreSQL)
-- **Frontend Dashboard:** React/Next.js (Vercel)
+- **Frontend Dashboard:** React (Vercel)
 
 ## 3. Current Status
 - **Phase 1 (Environment Setup):** 100% Complete. Python 3.12 `venv` built, architecture established (`agent/`, `backend/`, `dashboard/`), libraries installed, Supabase `.env` keys securely configured.
-- **Phase 2 (Database Design):** 100% Complete. All 10 SQL tables built, Row Level Security (RLS) enabled, 160 participants imported via CSV, relationships mathematically verified via Supabase Schema Visualizer.
+- **Phase 2 (Database Design):** 100% Complete. All 10 SQL tables built, Row Level Security (RLS) enabled, 140 participants imported via CSV, relationships mathematically verified via Supabase Schema Visualizer.
 - **Phase 3 (Backend API):** Pending.
 - **Phase 4+ (Agent, Capture, Dashboard):** Pending.
 
