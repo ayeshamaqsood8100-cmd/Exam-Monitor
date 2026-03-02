@@ -1,8 +1,6 @@
-from pydantic import BaseModel
-from datetime import datetime
+from pydantic import BaseModel, AwareDatetime
 from uuid import UUID
 
 class HeartbeatModel(BaseModel):
     session_id: UUID
-    timestamp: datetime
-
+    timestamp: AwareDatetime
