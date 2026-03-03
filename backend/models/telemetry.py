@@ -27,13 +27,33 @@ class OfflinePeriodEntry(BaseModel):
     disconnected_at: AwareDatetime
     reconnected_at: AwareDatetime
 
-class TelemetrySyncModel(BaseModel):
+# Staggered sync models — one per endpoint
+class KeystrokeSyncModel(BaseModel):
     session_id: UUID
     sync_number: int
     synced_at: AwareDatetime
     keystrokes: List[KeystrokeEntry] = []
-    windows: List[WindowEntry] = []
-    clipboard: List[ClipboardEntry] = []
-    processes: List[ProcessEntry] = []
-    offline_periods: List[OfflinePeriodEntry] = []
 
+class WindowSyncModel(BaseModel):
+    session_id: UUID
+    sync_number: int
+    synced_at: AwareDatetime
+    windows: List[WindowEntry] = []
+
+class ClipboardSyncModel(BaseModel):
+    session_id: UUID
+    sync_number: int
+    synced_at: AwareDatetime
+    clipboard: List[ClipboardEntry] = []
+
+class ProcessSyncModel(BaseModel):
+    session_id: UUID
+    sync_number: int
+    synced_at: AwareDatetime
+    processes: List[ProcessEntry] = []
+
+class OfflineSyncModel(BaseModel):
+    session_id: UUID
+    sync_number: int
+    synced_at: AwareDatetime
+    offline_periods: List[OfflinePeriodEntry] = []
