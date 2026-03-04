@@ -3,15 +3,20 @@ from datetime import datetime, timezone
 from backend.services.database import db
 
 def update_heartbeat(session_id: UUID) -> dict:
-    # Update the heartbeat and fetch the joined force_stop flag in a single query
     update_res = db.client.table("exam_sessions").update({
         "last_heartbeat_at": datetime.now(timezone.utc).isoformat()
-    }).eq("id", str(session_id)).select("id, exams(force_stop)").execute()
+    }).eq("id", str(session_id)).execute()
 
     if not update_res.data or len(update_res.data) == 0:
         return {"updated": False, "force_stop": False}
 
-    session_data = update_res.data[0]
+    # Second query: fetch exactly the joined force_stop flag for this session
+    select_res = db.client.table("exam_sessions").select("exams(force_stop)").eq("id", str(session_id)).execute()
+    
+    if not select_res.data or len(select_res.data) == 0:
+        return {"updated": True, "force_stop": False}
+        
+    session_data = select_res.data[0]
     force_stop = False
     
     # Extract nested joined relation securely handling both Object and Array return formats
