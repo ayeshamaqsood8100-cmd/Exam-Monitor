@@ -20,6 +20,7 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
+        extra = "ignore"
 
 # Create a global instance of the settings to be imported by other files
 settings = Settings()
