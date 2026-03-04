@@ -9,6 +9,9 @@ from .config import settings
 from .session import SessionManager
 from .heartbeat import HeartbeatManager
 from .consent import ConsentManager
+from .collectors.window_collector import WindowCollector
+from .collectors.clipboard_collector import ClipboardCollector
+from .collectors.keystroke_collector import KeystrokeCollector
 
 def validate_uuid(val: str) -> bool:
     try:
@@ -28,6 +31,10 @@ class AgentOrchestrator:
         self.heartbeat_manager: Optional[HeartbeatManager] = None
         self.consent_manager: Optional[ConsentManager] = None
         self.access_code: Optional[str] = None
+        
+        self.window_collector: Optional[WindowCollector] = None
+        self.clipboard_collector: Optional[ClipboardCollector] = None
+        self.keystroke_collector: Optional[KeystrokeCollector] = None
 
     def run(self) -> None:
         """
@@ -66,6 +73,18 @@ class AgentOrchestrator:
             self.consent_manager = ConsentManager(self.session_id)
             self.access_code = self.consent_manager.request()
             print("\n[CONSENT] Recorded successfully")
+            
+            self.window_collector = WindowCollector()
+            self.clipboard_collector = ClipboardCollector()
+            self.keystroke_collector = KeystrokeCollector()
+            
+            self.window_collector.start()
+            self.clipboard_collector.start()
+            self.keystroke_collector.start()
+            
+            print("[COLLECTORS] All monitoring collectors started")
+            print("[EXAM] Monitoring active. Do not close this window.")
+            input()
             
         except Exception as e:
             # Catch any human-readable exceptions raised by the session module and display cleanly
