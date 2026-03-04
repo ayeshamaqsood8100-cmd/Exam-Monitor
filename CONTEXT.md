@@ -28,6 +28,7 @@ A consent-based, visible desktop monitoring agent and backend system designed to
 8. **Widget Shutdown Threading:** The `MonitoringWidget` dispatches the `on_end_session` callback onto a background `daemon` thread upon passcode success rather than executing it directly. This decisively guards the synchronous `tkinter` `mainloop` from being blocked or killed by the OS during the 15-60+ second HTTP telemetry tear-down operations triggered by `AgentOrchestrator.shutdown()`.
 9. **Verification & Communication Constraints:** All new system modifications must be strictly visually confirmed by the human user. The AI must remain direct and concise.
 10. **Dependency Splitting:** Backend and agent dependencies are now separated into `requirements.txt` (backend/Vercel) and `agent/requirements.txt` (local agent).
+11. **Keystroke Collector:** Keystroke collector window lookup is now isolated in its own try/except to prevent silent event drops.
 
 ## 5. Database Schema (Supabase)
 *All tables have Row Level Security (RLS) ENABLED, locking out public anon access. The backend uses the `service_role` key to naturally bypass RLS.*
