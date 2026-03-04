@@ -26,12 +26,15 @@ class WindowCollector:
         """Signals the background polling loop to stop and exit cleanly."""
         self._stop_event.set()
         
-    def flush(self) -> list[dict]:
-        """Atomically returns and clears the current buffer."""
+    def peek(self, limit: int = 500) -> list[dict]:
+        """Atomically returns up to `limit` items from the front of the buffer."""
         with self._lock:
-            data = self._buffer.copy()
-            self._buffer.clear()
-            return data
+            return self._buffer[:limit]
+        
+    def pop(self, count: int) -> None:
+        """Atomically removes `count` items from the front of the buffer."""
+        with self._lock:
+            del self._buffer[:count]
             
     def _loop(self) -> None:
         """Continuously polls the active window every 2 seconds until stopped."""

