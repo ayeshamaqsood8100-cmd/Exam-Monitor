@@ -19,10 +19,6 @@ class ClipboardEntry(BaseModel):
     destination_application: Optional[str] = None
     captured_at: AwareDatetime
 
-class ProcessEntry(BaseModel):
-    process_name: str
-    captured_at: AwareDatetime
-
 class OfflinePeriodEntry(BaseModel):
     disconnected_at: AwareDatetime
     reconnected_at: AwareDatetime
@@ -45,12 +41,6 @@ class ClipboardSyncModel(BaseModel):
     sync_number: int
     synced_at: AwareDatetime
     clipboard: List[ClipboardEntry] = []
-
-class ProcessSyncModel(BaseModel):
-    session_id: UUID
-    sync_number: int
-    synced_at: AwareDatetime
-    processes: List[ProcessEntry] = []
 
 class OfflineSyncModel(BaseModel):
     session_id: UUID

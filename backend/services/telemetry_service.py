@@ -2,7 +2,7 @@ from typing import List
 from uuid import UUID
 from backend.services.database import db
 from backend.models.telemetry import (
-    KeystrokeEntry, WindowEntry, ClipboardEntry, ProcessEntry, OfflinePeriodEntry
+    KeystrokeEntry, WindowEntry, ClipboardEntry, OfflinePeriodEntry
 )
 
 def create_or_get_sync(session_id: UUID, sync_number: int, synced_at: str) -> str:
@@ -85,22 +85,6 @@ def insert_clipboard(session_id: UUID, sync_id: str, clipboard: List[ClipboardEn
         } for c in clipboard
     ]
     db.client.table("clipboard_logs").insert(clipboard_rows).execute()
-
-
-def insert_processes(session_id: UUID, sync_id: str, processes: List[ProcessEntry]) -> None:
-    if not processes:
-        return
-        
-    session_id_str = str(session_id)
-    process_rows = [
-        {
-            "session_id": session_id_str,
-            "telemetry_sync_id": sync_id,
-            "process_name": p.process_name,
-            "captured_at": p.captured_at.isoformat()
-        } for p in processes
-    ]
-    db.client.table("process_logs").insert(process_rows).execute()
 
 
 def insert_offline_periods(session_id: UUID, sync_number: int, offline_periods: List[OfflinePeriodEntry]) -> None:

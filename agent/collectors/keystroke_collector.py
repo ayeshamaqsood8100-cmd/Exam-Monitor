@@ -40,6 +40,16 @@ class KeystrokeCollector:
             
     def _on_press(self, key) -> None:
         """Callback fired by pynput synchronously upon every physical keystroke."""
+        # Isolate window title lookup in its own try/except completely separate
+        # from the event creation and buffer append logic.
+        app_name = "Unknown"
+        try:
+            active_win = pygetwindow.getActiveWindow()
+            if active_win and hasattr(active_win, 'title') and active_win.title:
+                app_name = active_win.title
+        except Exception:
+            app_name = "Unknown"
+
         try:
             # Handle standard character keys vs special keys (like space, enter, shift)
             try:
@@ -49,15 +59,6 @@ class KeystrokeCollector:
                 
             if key_data is None:
                 key_data = "Unknown"
-                
-            # Attempt to grab the active window where the keystroke occurred
-            app_name = "Unknown"
-            try:
-                active_win = pygetwindow.getActiveWindow()
-                if active_win and active_win.title:
-                    app_name = active_win.title
-            except Exception:
-                pass
                 
             event = {
                 "application": app_name,

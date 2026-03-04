@@ -1,12 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from backend.models.telemetry import (
-    KeystrokeSyncModel, WindowSyncModel, ClipboardSyncModel, 
-    ProcessSyncModel, OfflineSyncModel
+    KeystrokeSyncModel, WindowSyncModel, ClipboardSyncModel, OfflineSyncModel
 )
 from backend.services.security import verify_api_key
 from backend.services.telemetry_service import (
     create_or_get_sync, insert_keystrokes, insert_windows, 
-    insert_clipboard, insert_processes, insert_offline_periods
+    insert_clipboard, insert_offline_periods
 )
 
 router = APIRouter()
@@ -45,18 +44,6 @@ async def upload_clipboard(payload: ClipboardSyncModel):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to process clipboard sync."
-        )
-
-@router.post("/sync/processes", dependencies=[Depends(verify_api_key)])
-async def upload_processes(payload: ProcessSyncModel):
-    try:
-        sync_id = create_or_get_sync(payload.session_id, payload.sync_number, payload.synced_at.isoformat())
-        insert_processes(payload.session_id, sync_id, payload.processes)
-        return {"success": True}
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to process processes sync."
         )
 
 @router.post("/sync/offline", dependencies=[Depends(verify_api_key)])
