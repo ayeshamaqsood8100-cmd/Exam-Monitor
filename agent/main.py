@@ -8,6 +8,7 @@ from typing import Optional
 from .config import settings
 from .session import SessionManager
 from .heartbeat import HeartbeatManager
+from .consent import ConsentManager
 
 def validate_uuid(val: str) -> bool:
     try:
@@ -25,6 +26,8 @@ class AgentOrchestrator:
     def __init__(self) -> None:
         self.session_id: Optional[str] = None
         self.heartbeat_manager: Optional[HeartbeatManager] = None
+        self.consent_manager: Optional[ConsentManager] = None
+        self.access_code: Optional[str] = None
 
     def run(self) -> None:
         """
@@ -60,8 +63,9 @@ class AgentOrchestrator:
             self.heartbeat_manager.start()
             print("[HEARTBEAT] Started — pinging every 30 seconds\n")
             
-            print("Agent ready. Monitoring will begin after consent.")
-            input("Press Enter to continue...")
+            self.consent_manager = ConsentManager(self.session_id)
+            self.access_code = self.consent_manager.request()
+            print("\n[CONSENT] Recorded successfully")
             
         except Exception as e:
             # Catch any human-readable exceptions raised by the session module and display cleanly
