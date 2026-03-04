@@ -7,3 +7,4 @@ __pycache__/
 commit_log.txt
 fix_encoding.py
 git_files.txt
+.env*.local
