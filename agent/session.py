@@ -3,7 +3,7 @@ Session management module for the Markaz Exam Monitor agent.
 Handles initiating the exam session with the remote backend over HTTP.
 """
 import httpx
-from typing import Dict, Any
+from typing import Dict, Any, Tuple
 from .config import settings
 
 class SessionManager:
@@ -11,7 +11,7 @@ class SessionManager:
     Manages the lifecycle of an exam session with the remote backend.
     """
     
-    def start(self, erp: str) -> str:
+    def start(self, erp: str) -> Tuple[str, str]:
         """
         Initiates an exam session for the given student ERP by calling the backend API.
         Raises clear, human-readable exceptions on any failure condition.
@@ -20,7 +20,7 @@ class SessionManager:
             erp: The student's ERP number (e.g., '24501').
             
         Returns:
-            The session ID (UUID string) returned by the backend.
+            The session ID (UUID string) and student name returned by the backend.
         """
         # Defensive URL joining to prevent double slashes
         url = f"{settings.BACKEND_URL.rstrip('/')}/session/start"
@@ -53,7 +53,9 @@ class SessionManager:
                     f"Backend responded with success, but 'session_id' was missing from the response body. Payload received: {data}"
                 )
                 
-            return str(session_id)
+            student_name = data.get("student_name", "Student")
+            
+            return str(session_id), str(student_name)
             
         except httpx.ConnectError as e:
             raise ConnectionError(f"Network error: Failed to connect to the backend at {settings.BACKEND_URL}. Please check your internet connection.") from e

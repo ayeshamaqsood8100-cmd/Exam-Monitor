@@ -11,14 +11,16 @@ class HeartbeatManager:
     """
     Manages the background heartbeat thread that periodically pings the backend.
     """
-    def __init__(self, session_id: str) -> None:
+    def __init__(self, session_id: str, on_force_stop: callable = None) -> None:
         self.session_id = session_id
+        self._on_force_stop = on_force_stop
         self._stop_event = threading.Event()
-        self._thread = threading.Thread(target=self._loop, daemon=True)
+        self._thread = None
         
     def start(self) -> None:
         """Starts the background heartbeat loop."""
         self._stop_event.clear()
+        self._thread = threading.Thread(target=self._loop, daemon=True)
         self._thread.start()
         
     def stop(self) -> None:
@@ -53,6 +55,13 @@ class HeartbeatManager:
             with httpx.Client(timeout=10.0) as client:
                 response = client.post(url, headers=headers, json=payload)
             response.raise_for_status()
+            
+            # Safe JSON parse after confirming 200 HTTP success
+            data = response.json()
+            if data.get("force_stop", False) is True:
+                if self._on_force_stop:
+                    self._on_force_stop()
+                    
         except Exception as e:
             # Silent failure for the daemon, so it never crashes the main agent loop.
             print(f"[HEARTBEAT] Warning: ping failed — {str(e)}")

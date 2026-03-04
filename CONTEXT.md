@@ -14,7 +14,7 @@ A consent-based, visible desktop monitoring agent and backend system designed to
 - **Phase 1 (Environment Setup):** 100% Complete.
 - **Phase 2 (Database Design):** 100% Complete. 
 - **Phase 3 (Backend API):** 100% Complete. Deployed successfully to Vercel.
-- **Phase 4 (Desktop Agent):** In Progress (Steps 1 through 5 complete, Step 6 in progress).
+- **Phase 4 (Desktop Agent):** 100% Complete.
 - **Phase 5 (Dashboard):** Pending.
 
 ## 4. Key Architectural Decisions (From DECISIONS.md)
@@ -62,10 +62,11 @@ A consent-based, visible desktop monitoring agent and backend system designed to
 - ✅ **Step 5 Complete: Staggered sync engine**
   - `agent/sync.py` — `SyncEngine` class. Implements 55-65s interval randomized jitter cycles. Extracts slices from all collectors, uploads simultaneously through a single `httpx.Client` cache, populates and securely manages offline tracking arrays securely natively.
 
-- ⏳ **Step 6: Graceful shutdown (In Progress)**
+- ✅ **Step 6 Complete: Graceful shutdown**
   - `backend/models/heartbeat.py` & `backend/services/heartbeat_service.py` & `backend/routes/heartbeat.py` updated to return the dynamic `force_stop` flag from the database upon every heartbeat tick. 
   - `backend/routes/session.py` expanded with `POST /session/end` architecture to logically lock an active session locally to 'completed'.
   - `agent/widget.py` — Created `MonitoringWidget` running a strictly bound `tkinter` daemon overlay securely clamped to the desktop viewport, managing student consent payload state and passcode shutdown authentication.
+  - `agent/heartbeat.py` & `agent/main.py` — Implemented thread-safe `AgentOrchestrator.shutdown()` bounded sequence executing strict HTTP timeouts, forcing a final synchronous telemetry buffer pop before issuing a clean `tk.destroy()` to safely exit the main thread.
 
 ## 7. Next Immediate Task
-- **Begin Phase 4 Step 6 Piece 3 — Wire graceful shutdown into `agent/main.py` and `agent/heartbeat.py`:** heartbeat reads `force_stop` flag and triggers shutdown, shutdown sequence runs final sync, calls `/session/end`, stops all modules, then exits cleanly.
+- **Begin Phase 5 — Dashboard:** Initialize the React/Next.js dashboard to visualize telemetry, sessions, and flagged events.

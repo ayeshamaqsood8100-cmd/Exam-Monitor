@@ -4,11 +4,12 @@ from backend.services.database import db
 
 def start_session(student_erp: str, exam_id: UUID) -> dict:
     # 1. Look up student by ERP
-    student_response = db.client.table("students").select("id").eq("erp", student_erp).execute()
+    student_response = db.client.table("students").select("id, name").eq("erp", student_erp).execute()
     if not student_response.data:
         raise ValueError("Student not found")
     
     student_id = student_response.data[0]["id"]
+    student_name = student_response.data[0].get("name", "Unknown Student")
     now_utc = datetime.now(timezone.utc).isoformat()
     
     # 2. Check for existing session
@@ -26,7 +27,7 @@ def start_session(student_erp: str, exam_id: UUID) -> dict:
                 "session_end": None,
                 "last_heartbeat_at": now_utc
             }).eq("id", existing_session["id"]).execute()
-            return {"session_id": existing_session["id"], "student_id": student_id}
+            return {"session_id": existing_session["id"], "student_id": student_id, "student_name": student_name}
             
     # 4. Insert entirely new session
     insert_res = db.client.table("exam_sessions").insert({
@@ -38,7 +39,7 @@ def start_session(student_erp: str, exam_id: UUID) -> dict:
     }).execute()
     
     new_session_id = insert_res.data[0]["id"]
-    return {"session_id": new_session_id, "student_id": student_id}
+    return {"session_id": new_session_id, "student_id": student_id, "student_name": student_name}
 
 def end_session(session_id: UUID) -> bool:
     now_utc = datetime.now(timezone.utc).isoformat()
