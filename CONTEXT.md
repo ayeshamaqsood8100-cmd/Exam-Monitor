@@ -4,39 +4,67 @@
 A consent-based, visible desktop monitoring agent and backend system designed to detect cheating during online Moodle examinations. Phones are banned from the physical exam hall and human invigilators supervise students locally; this automated system specifically detects on-device tampering (e.g., hidden virtual machines, copy-pasting from forbidden documents, excessive alt-tabbing).
 
 ## 2. Tech Stack
-- **Desktop Agent:** Python 3.12 (pynput, pygetwindow, psutil)
+
+- **Desktop Agent:** Python 3.12 (pynput, pygetwindow, psutil, tkinter)
 - **Backend API:** FastAPI (Python), Supabase SDK
 - **Database:** Supabase (PostgreSQL)
 - **Frontend Dashboard:** React (Vercel)
 
 ## 3. Current Status
-- **Phase 1 (Environment Setup):** 100% Complete. Python 3.12 `venv` built, architecture established (`agent/`, `backend/`, `dashboard/`), libraries installed, Supabase `.env` keys securely configured.
-- **Phase 2 (Database Design):** 100% Complete. All 10 SQL tables built, Row Level Security (RLS) enabled, 140 participants imported via CSV, relationships mathematically verified via Supabase Schema Visualizer.
-- **Phase 3 (Backend API):** Pending.
-- **Phase 4+ (Agent, Capture, Dashboard):** Pending.
+- **Phase 1 (Environment Setup):** 100% Complete.
+- **Phase 2 (Database Design):** 100% Complete. 
+- **Phase 3 (Backend API):** 100% Complete. Deployed successfully to Vercel.
+- **Phase 4 (Desktop Agent):** In Progress (Steps 1 through 5 complete, Step 6 in progress).
+- **Phase 5 (Dashboard):** Pending.
 
 ## 4. Key Architectural Decisions (From DECISIONS.md)
 1. **Heartbeat Design (Option 3):** No standalone `heartbeats` table. Agent pings every 30s to update `last_heartbeat_at` in `exam_sessions`. Agent maintains a local "offline log" and uploads it every 60s within the telemetry batch.
 2. **Sync Jitter:** Telemetry upload interval randomized between 55–65s to prevent massive simultaneous connection spikes on the Supabase free tier database.
-3. **UUIDs:** All primary keys uniformly use PostgreSQL `uuid_generate_v4()`.
-4. **Session Linking:** Telemetry logs reference `session_id` directly, structurally replacing standalone `student_id` & `exam_id` logic. 
-5. **Verification Rule:** Every single creation, modification, or structural connection in this project must be explicitly and visually verified by the human user before the AI is permitted to generate instructions for the next task.
-6. **Communication Rule:** The AI must only output clean, direct instructions and never expose its internal thought processes or filler text.
+3. **Session Linking:** Telemetry logs reference `session_id` directly, structurally replacing standalone `student_id` & `exam_id` logic. 
+4. **Peek-then-Pop Sync Architecture:** Collectors never `flush()` blindly. `SyncEngine` explicitly executes `peek(limit=500)` to extract a safe bounded slice, attempts the HTTP upload, and solely executes `.pop(count)` upon receiving a confirmed HTTP 200 success. This natively solves unbounded cache bloat and concurrent data loss.
+5. **Connection Pooling:** `SyncEngine` utilizes a single `httpx.Client()` context manager per sync cycle to upload all four endpoints securely and rapidly, mitigating overhead.
+6. **Graceful Shutdown (`force_stop`):** Heartbeat dynamically returns a `force_stop` boolean flag derived from the `exams` table. The SyncEngine can process this flag to safely invoke the agent's shutdown routine. Global and per-student session end triggers from the dashboard utilize this. This is fetched efficiently via a single joined Supabase query `select("..., exams(force_stop)")` during the heartbeat update to halve database round trips.
+7. **Session End Pipeline:** The agent interface features a passcode-protected 'End Session' button alongside an access code display. Selecting it triggers the `/session/end` backend endpoint, stamping the `exam_sessions` row with a UTC `session_end` timestamp and locking the status to `"completed"`.
+8. **Verification & Communication Constraints:** All new system modifications must be strictly visually confirmed by the human user. The AI must remain direct and concise.
 
 ## 5. Database Schema (Supabase)
 *All tables have Row Level Security (RLS) ENABLED, locking out public anon access. The backend uses the `service_role` key to naturally bypass RLS.*
 
 1. **`students`**: `id` UUID(PK), `name` TEXT, `erp` TEXT, `created_at` TIMESTAMPTZ
-2. **`exams`**: `id` UUID(PK), `exam_name` TEXT, `class_number` TEXT, `start_time` TIMESTAMPTZ, `end_time` TIMESTAMPTZ, `created_at` TIMESTAMPTZ
+2. **`exams`**: `id` UUID(PK), `exam_name` TEXT, `class_number` TEXT, `start_time` TIMESTAMPTZ, `end_time` TIMESTAMPTZ, `created_at` TIMESTAMPTZ, `access_code` TEXT, `force_stop` BOOLEAN
 3. **`exam_sessions`**: `id` UUID(PK), `student_id` UUID(FK), `exam_id` UUID(FK), `session_start` TIMESTAMPTZ, `session_end` TIMESTAMPTZ, `status` TEXT, `last_heartbeat_at` TIMESTAMPTZ, `created_at` TIMESTAMPTZ (Unique Contraint on student_id + exam_id).
 4. **`consent_logs`**: `id` UUID(PK), `session_id` UUID(FK), `consented_at` TIMESTAMPTZ, `agent_version` TEXT
 5. **`telemetry_syncs`**: `id` UUID(PK), `session_id` UUID(FK), `sync_number` INTEGER, `synced_at` TIMESTAMPTZ, `offline_periods` JSONB
 6. **`keystroke_logs`**: `id` UUID(PK), `session_id` UUID(FK), `telemetry_sync_id` UUID(FK), `captured_at` TIMESTAMPTZ, `application` TEXT, `key_data` TEXT
 7. **`window_logs`**: `id` UUID(PK), `session_id` UUID(FK), `telemetry_sync_id` UUID(FK), `switched_at` TIMESTAMPTZ, `window_title` TEXT, `application_name` TEXT
 8. **`clipboard_logs`**: `id` UUID(PK), `session_id` UUID(FK), `telemetry_sync_id` UUID(FK), `event_type` TEXT, `content` TEXT, `source_application` TEXT, `destination_application` TEXT, `captured_at` TIMESTAMPTZ
-9. **`process_logs`**: `id` UUID(PK), `session_id` UUID(FK), `telemetry_sync_id` UUID(FK), `captured_at` TIMESTAMPTZ, `process_name` TEXT
-10. **`flagged_events`**: `id` UUID(PK), `session_id` UUID(FK), `flag_type` TEXT, `description` TEXT, `evidence` TEXT, `severity` TEXT, `flagged_at` TIMESTAMPTZ, `reviewed` BOOLEAN
+9. **`flagged_events`**: `id` UUID(PK), `session_id` UUID(FK), `flag_type` TEXT, `description` TEXT, `evidence` TEXT, `severity` TEXT, `flagged_at` TIMESTAMPTZ, `reviewed` BOOLEAN
 
-## 6. Unresolved Issues / Next Steps
-- **Next Immediate Task:** Begin "Phase 3: Backend API" to map FastAPI endpoints directly to the completed Supabase architecture above.
-- **Frontend Dashboard RLS Policies:** If the React dashboard utilizes client-side Supabase authentication instead of routing through the FastAPI backend, distinct RLS `SELECT` policies will need to be drafted later for teacher accounts.
+## 6. Phase 4 — Desktop Agent (In Progress)
+
+- ✅ **Step 1 Complete: Agent skeleton**
+  - `agent/__init__.py` — formalizes agent as Python package
+  - `agent/config.py` — `Settings` class, reads `BACKEND_URL`, `API_KEY`, `EXAM_ID` from `.env`
+  - `agent/session.py` — `SessionManager` class, `start(erp)` method, POSTs to `/session/start`, returns `session_id`
+  - `agent/main.py` — `AgentOrchestrator` class, validates config, collects ERP, stores `session_id`, coordinates all modules
+
+- ✅ **Step 2 Complete: Heartbeat**
+  - `agent/heartbeat.py` — `HeartbeatManager` class, daemon thread, pings `/heartbeat` every 30 seconds, updates `last_heartbeat_at` in Supabase. Awaits `force_stop` responses.
+
+- ✅ **Step 3 Complete: Consent flow**
+  - `agent/consent.py` — `ConsentManager` class, displays IBA honour pledge, records consent via `/consent`, returns exam access code
+  - `backend/routes/consent.py` — updated to fetch and return `access_code` from `exams` table after recording consent
+
+- ✅ **Step 4 Complete: Collectors** 
+  - `agent/collectors/window_collector.py`, `clipboard_collector.py`, `keystroke_collector.py`. 
+  - Single-responsibility daemon background threads buffering hardware events natively with strict threading locks and atomic `.peek()` and `.pop()` capacity logic.
+
+- ✅ **Step 5 Complete: Staggered sync engine**
+  - `agent/sync.py` — `SyncEngine` class. Implements 55-65s interval randomized jitter cycles. Extracts slices from all collectors, uploads simultaneously through a single `httpx.Client` cache, populates and securely manages offline tracking arrays securely natively.
+
+- ⏳ **Step 6: Graceful shutdown (In Progress)**
+  - `backend/models/heartbeat.py` & `backend/services/heartbeat_service.py` & `backend/routes/heartbeat.py` updated to return the dynamic `force_stop` flag from the database upon every heartbeat tick. 
+  - `backend/routes/session.py` expanded with `POST /session/end` architecture to logically lock an active session locally to 'completed'.
+
+## 7. Next Immediate Task
+- **Begin Phase 4 Step 6 (Piece 2) - Building the On-Screen Widget:** Develop the persistent `tkinter` visual widget UI displaying the `access_code`. Include the "End Session" interactive interface equipped with structural passcode protection capabilities to physically complete the agent runtime.

@@ -7,4 +7,3 @@ class SessionStartModel(BaseModel):
 
 class SessionEndModel(BaseModel):
     session_id: UUID
-    timestamp: AwareDatetime

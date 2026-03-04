@@ -37,7 +37,7 @@ async def process_session_end(payload: SessionEndModel):
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Exam session not found."
             )
-        return {"success": True}
+        return {"status": "ok"}
         
     except HTTPException:
         raise
