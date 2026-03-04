@@ -65,6 +65,7 @@ A consent-based, visible desktop monitoring agent and backend system designed to
 - ⏳ **Step 6: Graceful shutdown (In Progress)**
   - `backend/models/heartbeat.py` & `backend/services/heartbeat_service.py` & `backend/routes/heartbeat.py` updated to return the dynamic `force_stop` flag from the database upon every heartbeat tick. 
   - `backend/routes/session.py` expanded with `POST /session/end` architecture to logically lock an active session locally to 'completed'.
+  - `agent/widget.py` — Created `MonitoringWidget` running a strictly bound `tkinter` daemon overlay securely clamped to the desktop viewport, managing student consent payload state and passcode shutdown authentication.
 
 ## 7. Next Immediate Task
-- **Begin Phase 4 Step 6 (Piece 2) - Building the On-Screen Widget:** Develop the persistent `tkinter` visual widget UI displaying the `access_code`. Include the "End Session" interactive interface equipped with structural passcode protection capabilities to physically complete the agent runtime.
+- **Begin Phase 4 Step 6 Piece 3 — Wire graceful shutdown into `agent/main.py` and `agent/heartbeat.py`:** heartbeat reads `force_stop` flag and triggers shutdown, shutdown sequence runs final sync, calls `/session/end`, stops all modules, then exits cleanly.
