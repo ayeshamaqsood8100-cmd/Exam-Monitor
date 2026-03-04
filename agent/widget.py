@@ -142,10 +142,9 @@ class MonitoringWidget:
                 
             if entry.get().strip() == self.access_code:
                 dialog.destroy()
-                # Run the provided callback synchronously inside the safe GUI thread
-                self.on_end_session()
-                # Schedule safe destruction of main widget
-                self.root.after(0, self.root.destroy)
+                # Run the provided callback asynchronously to prevent locking the GUI thread
+                if self.on_end_session:
+                    threading.Thread(target=self.on_end_session, daemon=True).start()
             else:
                 error_label.config(text="Incorrect passcode!")
                 entry.delete(0, tk.END)
