@@ -7,6 +7,7 @@ import uuid
 from typing import Optional
 from .config import settings
 from .session import SessionManager
+from .heartbeat import HeartbeatManager
 
 def validate_uuid(val: str) -> bool:
     try:
@@ -23,6 +24,7 @@ class AgentOrchestrator:
     
     def __init__(self) -> None:
         self.session_id: Optional[str] = None
+        self.heartbeat_manager: Optional[HeartbeatManager] = None
 
     def run(self) -> None:
         """
@@ -53,6 +55,10 @@ class AgentOrchestrator:
             
             print("\nSession started successfully.")
             print(f"Session ID: {self.session_id}\n")
+            
+            self.heartbeat_manager = HeartbeatManager(self.session_id)
+            self.heartbeat_manager.start()
+            print("[HEARTBEAT] Started — pinging every 30 seconds\n")
             
             print("Agent ready. Monitoring will begin after consent.")
             input("Press Enter to continue...")
