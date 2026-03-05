@@ -15,7 +15,7 @@ A consent-based, visible desktop monitoring agent and backend system designed to
 - **Phase 2 (Database Design):** 100% Complete. 
 - **Phase 3 (Backend API):** 100% Complete. Deployed successfully to Vercel.
 - **Phase 4 (Desktop Agent):** 100% Complete.
-- **Phase 5 (Dashboard):** Pending.
+- **Phase 5-9 (Dashboard):** 100% Complete (Scaffold, Exams List, Live Sessions, Session Summary).
 
 ## 4. Key Architectural Decisions (From DECISIONS.md)
 1. **Heartbeat Design (Option 3):** No standalone `heartbeats` table. Agent pings every 30s to update `last_heartbeat_at` in `exam_sessions`. Agent maintains a local "offline log" and uploads it every 60s within the telemetry batch.
@@ -71,5 +71,11 @@ A consent-based, visible desktop monitoring agent and backend system designed to
   - `agent/widget.py` — Created `MonitoringWidget` running a strictly bound `tkinter` daemon overlay securely clamped to the desktop viewport, managing student consent payload state and passcode shutdown authentication.
   - `agent/heartbeat.py` & `agent/main.py` — Implemented thread-safe `AgentOrchestrator.shutdown()` bounded sequence executing strict HTTP timeouts, forcing a final synchronous telemetry buffer pop before issuing a clean `tk.destroy()` to safely exit the main thread.
 
-## 7. Next Immediate Task
-- **Begin Phase 5 — Dashboard:** Initialize the React/Next.js dashboard to visualize telemetry, sessions, and flagged events.
+## 7. Phase 5-9 — Dashboard (Complete)
+- ✅ **Setup:** Next.js 14 App Router, strict design language, and Supabase integration logic.
+- ✅ **Exams View:** Server/Client paginated table components showing total sessions per exam with modal creation capabilities.
+- ✅ **Live Dashboard:** Polling engine for heartbeats assessing "active" vs "heartbeat lost" states and dynamic force-stop logic.
+- ✅ **Session Summary:** Telemetry chronology overlay detailing keystrokes, clipboard copies, off-screen tracking, sync gaps, and high/med/low flag distribution.
+
+## 8. Next Immediate Task
+- **Pending Direction:** Awaiting user instruction on the next phase, final testing, or any remaining unbuilt administration routes/components.
