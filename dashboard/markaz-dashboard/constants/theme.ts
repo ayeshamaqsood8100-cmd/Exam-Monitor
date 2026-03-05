@@ -4,6 +4,7 @@ export const THEME = {
   pink: "#f72585",
   purple: "#7209b7",
   yellow: "#ffd166",
+  blue: "#60a5fa",
   cardBg: "rgba(255,255,255,0.03)",
   cardBorder: "rgba(255,255,255,0.07)",
   textPrimary: "#e2e8f0",
