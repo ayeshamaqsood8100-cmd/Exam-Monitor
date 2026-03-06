@@ -2,6 +2,7 @@
 import { supabase } from "@/lib/supabase";
 
 export interface SessionSummaryData {
+    exam_id: string;
     student: {
         name: string;
         erp: string;
@@ -41,6 +42,11 @@ export interface SessionSummaryData {
         app_name: string;
         window_title: string;
     }[];
+    keystrokes: {
+        id: string;
+        captured_at: string;
+        application: string;
+    }[];
     clipboard: {
         id: string;
         captured_at: string;
@@ -62,12 +68,13 @@ export async function getSessionSummary(sessionId: string): Promise<SessionSumma
         consentRes,
         telemetryRes,
         keystrokesRes,
+        keystrokesDataRes,
         windowsRes,
         clipboardRes,
         flagsRes
     ] = await Promise.all([
         supabase.from("exam_sessions").select(`
-      session_start, session_end, status, last_heartbeat_at,
+      session_start, session_end, status, last_heartbeat_at, exam_id,
       students (name, erp),
       exams (exam_name, class_number)
     `).eq("id", sessionId).single(),
@@ -75,6 +82,7 @@ export async function getSessionSummary(sessionId: string): Promise<SessionSumma
         supabase.from("consent_logs").select("consented_at, agent_version").eq("session_id", sessionId).maybeSingle(),
         supabase.from("telemetry_syncs").select("offline_periods").eq("session_id", sessionId),
         supabase.from("keystroke_logs").select("id", { count: "exact", head: true }).eq("session_id", sessionId),
+        supabase.from("keystroke_logs").select("id, captured_at, application").eq("session_id", sessionId).order("captured_at", { ascending: true }),
         supabase.from("window_logs").select("switched_at, application_name, window_title").eq("session_id", sessionId).order("switched_at", { ascending: true }),
         supabase.from("clipboard_logs").select("id, captured_at, event_type, source_application, destination_application, content").eq("session_id", sessionId).order("captured_at", { ascending: true }),
         supabase.from("flagged_events").select("id, severity, flag_type, flagged_at, description, evidence").eq("session_id", sessionId).order("flagged_at", { ascending: true })
@@ -83,6 +91,7 @@ export async function getSessionSummary(sessionId: string): Promise<SessionSumma
     if (sessionRes.error || !sessionRes.data) return null;
 
     type JoinedSessionData = {
+        exam_id: string;
         session_start: string | null;
         session_end: string | null;
         status: string;
@@ -106,6 +115,7 @@ export async function getSessionSummary(sessionId: string): Promise<SessionSumma
     }
 
     return {
+        exam_id: data.exam_id,
         student: {
             name: student?.name || "Unknown",
             erp: student?.erp || "Unknown"
@@ -144,6 +154,11 @@ export async function getSessionSummary(sessionId: string): Promise<SessionSumma
             switched_at: formatDateToKarachi(row.switched_at),
             app_name: row.application_name,
             window_title: row.window_title
+        })),
+        keystrokes: (keystrokesDataRes.data || []).map(row => ({
+            id: row.id,
+            captured_at: formatDateToKarachi(row.captured_at),
+            application: row.application || "Unknown"
         })),
         clipboard: (clipboardRes.data || []).map(row => ({
             id: row.id,

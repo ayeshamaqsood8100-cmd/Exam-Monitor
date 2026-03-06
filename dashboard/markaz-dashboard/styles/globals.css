@@ -1,26 +1,27 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
 
-* { 
-  box-sizing: border-box; 
-  margin: 0; 
-  padding: 0; 
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-body { 
-  background: #080c14; 
+body {
+  background: #080c14;
 }
 
-::-webkit-scrollbar { 
-  width: 3px; 
+::-webkit-scrollbar {
+  width: 3px;
 }
-::-webkit-scrollbar-thumb { 
-  background: #1e2d40; 
-  border-radius: 4px; 
+
+::-webkit-scrollbar-thumb {
+  background: #1e2d40;
+  border-radius: 4px;
 }
 
 .card {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.07);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
   backdrop-filter: blur(8px);
   border-radius: 12px;
 }
@@ -43,8 +44,8 @@ body {
 }
 
 .tab-btn.active {
-  background: rgba(255,255,255,0.05);
-  border-color: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
   color: #e2e8f0;
 }
 
@@ -63,7 +64,27 @@ body {
 }
 
 @keyframes breathe {
-  0% { opacity: 0.6; transform: scale(0.95); }
-  50% { opacity: 1; transform: scale(1.05); }
-  100% { opacity: 0.6; transform: scale(0.95); }
+  0% {
+    opacity: 0.6;
+    transform: scale(0.95);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+
+  100% {
+    opacity: 0.6;
+    transform: scale(0.95);
+  }
+}
+
+.back-link {
+  color: #334155;
+  transition: color 0.2s ease;
+}
+
+.back-link:hover {
+  color: #00f5d4;
 }

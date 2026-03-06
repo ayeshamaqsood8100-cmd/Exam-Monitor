@@ -35,5 +35,26 @@ export default async function SessionSummaryPage({ params }: { params: { session
         );
     }
 
-    return <SessionSummaryClient data={data} />;
+    return (
+        <div>
+            <div style={{ padding: "24px 24px 0", maxWidth: "1200px", margin: "0 auto" }}>
+                <Link
+                    href={`/sessions?exam_id=${data.exam_id}`}
+                    className="back-link"
+                    style={{
+                        display: "inline-block",
+                        fontFamily: THEME.fontMono,
+                        fontSize: "12px",
+                        textDecoration: "none",
+                        marginBottom: "24px",
+                        background: "transparent",
+                        border: "none",
+                    }}
+                >
+                    &larr; Back to Sessions
+                </Link>
+            </div>
+            <SessionSummaryClient data={data} />
+        </div>
+    );
 }

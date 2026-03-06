@@ -7,13 +7,14 @@ import StatCard from "./StatCard";
 import FlagCard from "./FlagCard";
 import WindowRow from "./WindowRow";
 import ClipboardEvent from "./ClipboardEvent";
+import KeystrokeRow from "./KeystrokeRow";
 
 interface SessionSummaryClientProps {
     data: SessionSummaryData;
 }
 
 export default function SessionSummaryClient({ data }: SessionSummaryClientProps): React.JSX.Element {
-    const [tab, setTab] = useState<"overview" | "flags" | "windows" | "clipboard">("overview");
+    const [tab, setTab] = useState<"overview" | "flags" | "windows" | "clipboard" | "keystrokes">("overview");
 
     // Format Helper avoiding hydration errors by extracting raw strings from DB cleanly
     const extractTime = (dateString: string) => {
@@ -146,7 +147,7 @@ export default function SessionSummaryClient({ data }: SessionSummaryClientProps
                 borderRadius: "10px", padding: "4px", width: "fit-content",
                 overflowX: "auto", maxWidth: "100%"
             }}>
-                {(["overview", "flags", "windows", "clipboard"] as const).map(t => (
+                {(["overview", "flags", "windows", "clipboard", "keystrokes"] as const).map(t => (
                     <button
                         key={t}
                         onClick={() => setTab(t)}
@@ -282,6 +283,35 @@ export default function SessionSummaryClient({ data }: SessionSummaryClientProps
                                 content={c.content}
                             />
                         ))
+                    )}
+                </div>
+            )}
+
+            {/* Keystrokes Tab */}
+            {tab === "keystrokes" && (
+                <div style={{ background: THEME.cardBg, border: `1px solid ${THEME.cardBorder}`, borderRadius: "16px", padding: "24px" }}>
+                    <div style={{ fontSize: "11px", color: THEME.textSecondary, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "16px" }}>
+                        Keystroke Log · {data.keystrokes.length} entries · key data hidden
+                    </div>
+                    {data.keystrokes.length === 0 ? (
+                        <div style={{ padding: "32px 0", textAlign: "center", color: THEME.textMuted }}>
+                            No keystrokes recorded.
+                        </div>
+                    ) : (
+                        <div style={{
+                            // We construct a specific wrapper CSS to remove the bottom border on the very last row,
+                            // rather than passing an prop into KeystrokeRow since we have to wrap it somehow anyway.
+                            // The easier fix since we can't do :last-child inline dynamically easily is just map the index.
+                        }}>
+                            {data.keystrokes.map((k, i) => (
+                                <div key={k.id} style={{ borderBottom: i === data.keystrokes.length - 1 ? "none" : undefined }}>
+                                    <KeystrokeRow
+                                        time={extractTime(k.captured_at)}
+                                        application={k.application}
+                                    />
+                                </div>
+                            ))}
+                        </div>
                     )}
                 </div>
             )}
