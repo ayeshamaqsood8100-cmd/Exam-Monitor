@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getSessionSummary } from "@/lib/sessionSummary";
 import SessionSummaryClient from "@/components/sessionSummary/SessionSummaryClient";
 import Card from "@/components/ui/Card";
+import Breadcrumb from "@/components/ui/Breadcrumb";
 import { THEME } from "@/constants/theme";
 
 export default async function SessionSummaryPage({ params }: { params: { sessionId: string } }): Promise<React.JSX.Element> {
@@ -38,23 +39,16 @@ export default async function SessionSummaryPage({ params }: { params: { session
     return (
         <div>
             <div style={{ padding: "24px 24px 0", maxWidth: "1200px", margin: "0 auto" }}>
-                <Link
-                    href={`/sessions?exam_id=${data.exam_id}`}
-                    className="back-link"
-                    style={{
-                        display: "inline-block",
-                        fontFamily: THEME.fontMono,
-                        fontSize: "12px",
-                        textDecoration: "none",
-                        marginBottom: "24px",
-                        background: "transparent",
-                        border: "none",
-                    }}
-                >
-                    &larr; Back to Sessions
-                </Link>
+                <Breadcrumb
+                    segments={[
+                        { label: "Exams", href: "/exams" },
+                        { label: data.exam.name, href: `/sessions?exam_id=${data.exam_id}` },
+                        { label: data.student.name, href: undefined }
+                    ]}
+                />
             </div>
             <SessionSummaryClient data={data} />
         </div>
     );
+
 }

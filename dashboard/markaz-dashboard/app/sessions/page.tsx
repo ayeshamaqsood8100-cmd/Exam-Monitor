@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getExamById, getSessionsForExam } from "@/lib/sessions";
 import SessionsPageClient from "@/components/sessions/SessionsPageClient";
 import Card from "@/components/ui/Card";
+import Breadcrumb from "@/components/ui/Breadcrumb";
 import { THEME } from "@/constants/theme";
 import { forceStopSessionAction } from "@/app/sessions/actions";
 
@@ -42,12 +43,22 @@ export default async function SessionsPage({ searchParams }: { searchParams: { e
         ]);
 
         return (
-            <SessionsPageClient
-                examId={examId}
-                initialSessions={initialSessions}
-                exam={exam}
-                onForceStopSession={forceStopSessionAction}
-            />
+            <div>
+                <div style={{ padding: "24px 24px 0", maxWidth: "1200px", margin: "0 auto" }}>
+                    <Breadcrumb
+                        segments={[
+                            { label: "Exams", href: "/exams" },
+                            { label: exam.exam_name, href: undefined }
+                        ]}
+                    />
+                </div>
+                <SessionsPageClient
+                    examId={examId}
+                    initialSessions={initialSessions}
+                    exam={exam}
+                    onForceStopSession={forceStopSessionAction}
+                />
+            </div>
         );
     } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : "Unknown error";
