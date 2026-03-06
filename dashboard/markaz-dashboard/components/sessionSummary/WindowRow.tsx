@@ -11,11 +11,14 @@ export interface WindowRowProps {
 
 export default function WindowRow({ time, app, title }: WindowRowProps): React.JSX.Element {
 
-    // Dynamic badges per design doc: Chrome = Blue, Others = Yellow
-    const isChrome = app.toLowerCase().includes("chrome");
-    const badgeColor = isChrome ? THEME.blue : THEME.yellow;
-    const badgeBg = isChrome ? `${THEME.blue}1A` : `${THEME.yellow}1A`;
-    const badgeBorder = isChrome ? `${THEME.blue}33` : `${THEME.yellow}33`;
+    // Dynamic badges per design doc: Chrome = Blue, Others = Yellow, Unknown = System (gray)
+    const isUnknown = !app || app === "Unknown";
+    const displayApp = isUnknown ? "System" : app;
+    const isChrome = !isUnknown && app.toLowerCase().includes("chrome");
+
+    const badgeColor = isUnknown ? THEME.textSecondary : (isChrome ? THEME.blue : THEME.yellow);
+    const badgeBg = isUnknown ? "rgba(255,255,255,0.05)" : (isChrome ? `${THEME.blue}1A` : `${THEME.yellow}1A`);
+    const badgeBorder = isUnknown ? "rgba(255,255,255,0.1)" : (isChrome ? `${THEME.blue}33` : `${THEME.yellow}33`);
 
     return (
         <div
@@ -44,7 +47,7 @@ export default function WindowRow({ time, app, title }: WindowRowProps): React.J
                     textAlign: "center"
                 }}
             >
-                {app}
+                {displayApp}
             </span>
             <span style={{ color: THEME.textSecondary, fontSize: "13px", flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {title}

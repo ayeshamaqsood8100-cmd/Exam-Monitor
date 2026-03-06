@@ -7,7 +7,7 @@ import StatCard from "./StatCard";
 import FlagCard from "./FlagCard";
 import WindowRow from "./WindowRow";
 import ClipboardEvent from "./ClipboardEvent";
-import KeystrokeRow from "./KeystrokeRow";
+import KeystrokeGroup from "./KeystrokeGroup";
 
 interface SessionSummaryClientProps {
     data: SessionSummaryData;
@@ -290,26 +290,38 @@ export default function SessionSummaryClient({ data }: SessionSummaryClientProps
             {/* Keystrokes Tab */}
             {tab === "keystrokes" && (
                 <div style={{ background: THEME.cardBg, border: `1px solid ${THEME.cardBorder}`, borderRadius: "16px", padding: "24px" }}>
-                    <div style={{ fontSize: "11px", color: THEME.textSecondary, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "16px" }}>
-                        Keystroke Log · {data.keystrokes.length} entries · key data hidden
+                    <div style={{ fontSize: "11px", color: THEME.textSecondary, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "8px" }}>
+                        Keystroke Log · {data.keystrokeGroups.length} groups
                     </div>
-                    {data.keystrokes.length === 0 ? (
+                    {/* Legend */}
+                    <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginBottom: "16px", paddingBottom: "16px", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                        {[
+                            { symbol: "[ENTER]", desc: "Enter key" },
+                            { symbol: "[BS]", desc: "Backspace" },
+                            { symbol: "[TAB]", desc: "Tab" },
+                            { symbol: "[DEL]", desc: "Delete" },
+                            { symbol: "[ESC]", desc: "Escape" }
+                        ].map(legend => (
+                            <div key={legend.symbol} style={{ fontSize: "11px", fontFamily: THEME.fontMono }}>
+                                <span style={{ color: THEME.cyan }}>{legend.symbol}</span>
+                                <span style={{ color: THEME.textMuted }}> = {legend.desc}</span>
+                            </div>
+                        ))}
+                    </div>
+                    {data.keystrokeGroups.length === 0 ? (
                         <div style={{ padding: "32px 0", textAlign: "center", color: THEME.textMuted }}>
                             No keystrokes recorded.
                         </div>
                     ) : (
-                        <div style={{
-                            // We construct a specific wrapper CSS to remove the bottom border on the very last row,
-                            // rather than passing an prop into KeystrokeRow since we have to wrap it somehow anyway.
-                            // The easier fix since we can't do :last-child inline dynamically easily is just map the index.
-                        }}>
-                            {data.keystrokes.map((k, i) => (
-                                <div key={k.id} style={{ borderBottom: i === data.keystrokes.length - 1 ? "none" : undefined }}>
-                                    <KeystrokeRow
-                                        time={extractTime(k.captured_at)}
-                                        application={k.application}
-                                    />
-                                </div>
+                        <div>
+                            {data.keystrokeGroups.map((k, i) => (
+                                <KeystrokeGroup
+                                    key={i}
+                                    startTime={k.startTime}
+                                    endTime={k.endTime}
+                                    application={k.application}
+                                    text={k.text}
+                                />
                             ))}
                         </div>
                     )}

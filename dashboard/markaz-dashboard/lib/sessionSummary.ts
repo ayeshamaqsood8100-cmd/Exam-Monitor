@@ -1,6 +1,13 @@
 // SERVER ONLY
 import { supabase } from "@/lib/supabase";
 
+export interface KeystrokeGroup {
+    startTime: string;
+    endTime: string;
+    application: string;
+    text: string;
+}
+
 export interface SessionSummaryData {
     exam_id: string;
     student: {
@@ -47,6 +54,7 @@ export interface SessionSummaryData {
         captured_at: string;
         application: string;
     }[];
+    keystrokeGroups: KeystrokeGroup[];
     clipboard: {
         id: string;
         captured_at: string;
@@ -82,7 +90,7 @@ export async function getSessionSummary(sessionId: string): Promise<SessionSumma
         supabase.from("consent_logs").select("consented_at, agent_version").eq("session_id", sessionId).maybeSingle(),
         supabase.from("telemetry_syncs").select("offline_periods").eq("session_id", sessionId),
         supabase.from("keystroke_logs").select("id", { count: "exact", head: true }).eq("session_id", sessionId),
-        supabase.from("keystroke_logs").select("id, captured_at, application").eq("session_id", sessionId).order("captured_at", { ascending: true }),
+        supabase.from("keystroke_logs").select("id, captured_at, application, key_data").eq("session_id", sessionId).order("captured_at", { ascending: true }),
         supabase.from("window_logs").select("switched_at, application_name, window_title").eq("session_id", sessionId).order("switched_at", { ascending: true }),
         supabase.from("clipboard_logs").select("id, captured_at, event_type, source_application, destination_application, content").eq("session_id", sessionId).order("captured_at", { ascending: true }),
         supabase.from("flagged_events").select("id, severity, flag_type, flagged_at, description, evidence").eq("session_id", sessionId).order("flagged_at", { ascending: true })
@@ -160,6 +168,7 @@ export async function getSessionSummary(sessionId: string): Promise<SessionSumma
             captured_at: formatDateToKarachi(row.captured_at),
             application: row.application || "Unknown"
         })),
+        keystrokeGroups: buildKeystrokeGroups(keystrokesDataRes.data || []),
         clipboard: (clipboardRes.data || []).map(row => ({
             id: row.id,
             captured_at: formatDateToKarachi(row.captured_at),
@@ -169,4 +178,104 @@ export async function getSessionSummary(sessionId: string): Promise<SessionSumma
             content: row.content || ""
         }))
     };
+}
+type KeystrokeDbRow = {
+    id: string;
+    captured_at: string | null;
+    application: string | null;
+    key_data: string | null;
+};
+
+function extractTimeOnly(dateString: string | null): string {
+    const formatted = formatDateToKarachi(dateString);
+    if (!formatted) return "—";
+    const parts = formatted.split(", ");
+    return parts[1] || formatted;
+}
+
+function parseKeyData(raw: string | null): string {
+    if (!raw) return "";
+
+    // Exact mapping matches
+    if (raw === "Key.space") return " ";
+    if (raw === "Key.enter") return "[ENTER]";
+    if (raw === "Key.backspace") return "[BS]";
+    if (raw === "Key.tab") return "[TAB]";
+    if (raw === "Key.delete") return "[DEL]";
+    if (raw === "Key.esc") return "[ESC]";
+
+    // Ignoring mapped modifier keys & arrows & function keys
+    const ignoredKeys = [
+        "Key.shift", "Key.shift_r", "Key.shift_l",
+        "Key.ctrl", "Key.ctrl_l", "Key.ctrl_r",
+        "Key.alt", "Key.alt_l", "Key.alt_r", "Key.alt_gr",
+        "Key.caps_lock",
+        "Key.cmd", "Key.cmd_r", "Key.cmd_l",
+        "Key.up", "Key.down", "Key.left", "Key.right",
+        "Key.f1", "Key.f2", "Key.f3", "Key.f4", "Key.f5", "Key.f6",
+        "Key.f7", "Key.f8", "Key.f9", "Key.f10", "Key.f11", "Key.f12"
+    ];
+
+    if (ignoredKeys.includes(raw)) return "";
+
+    // Safely ignore any remaining unknown "Key.*" formatted strings
+    if (raw.startsWith("Key.")) return "";
+
+    // Otherwise it's a regular printable char (e.g. "a", "A", "1", "!", etc)
+    // Strip surrounding single quotes if present (pynput sometimes logs 'a')
+    if (raw.length === 3 && raw.startsWith("'") && raw.endsWith("'")) {
+        return raw[1];
+    }
+
+    return raw;
+}
+
+function buildKeystrokeGroups(rows: KeystrokeDbRow[]): KeystrokeGroup[] {
+    const groups: KeystrokeGroup[] = [];
+    if (!rows || rows.length === 0) return groups;
+
+    let currentApp = rows[0].application;
+    let startTimestamp = rows[0].captured_at;
+    let endTimestamp = rows[0].captured_at;
+    let currentTexts: string[] = [];
+
+    const initialParsed = parseKeyData(rows[0].key_data);
+    if (initialParsed.length > 0) currentTexts.push(initialParsed);
+
+    for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (row.application === currentApp) {
+            endTimestamp = row.captured_at;
+            const parsed = parseKeyData(row.key_data);
+            if (parsed.length > 0) currentTexts.push(parsed);
+        } else {
+            const joinedText = currentTexts.join("");
+            if (joinedText.trim() !== "") {
+                groups.push({
+                    startTime: extractTimeOnly(startTimestamp),
+                    endTime: extractTimeOnly(endTimestamp),
+                    application: currentApp || "Unknown",
+                    text: joinedText
+                });
+            }
+            currentApp = row.application;
+            startTimestamp = row.captured_at;
+            endTimestamp = row.captured_at;
+
+            const parsed = parseKeyData(row.key_data);
+            currentTexts = parsed.length > 0 ? [parsed] : [];
+        }
+    }
+
+    const finalJoinedText = currentTexts.join("");
+    if (finalJoinedText.trim() !== "") {
+        groups.push({
+            startTime: extractTimeOnly(startTimestamp),
+            endTime: extractTimeOnly(endTimestamp),
+            application: currentApp || "Unknown",
+            text: finalJoinedText
+        });
+    }
+
+    return groups;
 }
