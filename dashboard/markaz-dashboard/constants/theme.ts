@@ -11,5 +11,5 @@ export const THEME = {
   textSecondary: "#64748b",
   textMuted: "#334155",
   fontSans: "'DM Sans', 'Segoe UI', sans-serif",
-  fontMono: "'DM Mono', monospace"
+  fontMono: "'DM Mono', 'Noto Sans Mono', monospace"
 };

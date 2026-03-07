@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&family=Noto+Sans:wght@400&family=Noto+Sans+Mono:wght@400&display=swap');
 
 * {
   box-sizing: border-box;
@@ -8,6 +8,7 @@
 
 body {
   background: #080c14;
+  font-family: 'DM Sans', 'Noto Sans', sans-serif;
 }
 
 ::-webkit-scrollbar {
@@ -87,4 +88,8 @@ body {
 
 .back-link:hover {
   color: #00f5d4;
+}
+
+.mono-text {
+  font-family: 'DM Mono', 'Noto Sans Mono', monospace;
 }

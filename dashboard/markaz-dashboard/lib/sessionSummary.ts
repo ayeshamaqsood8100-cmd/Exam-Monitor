@@ -193,6 +193,34 @@ function extractTimeOnly(dateString: string | null): string {
     return parts[1] || formatted;
 }
 
+function normalizeAppName(app: string | null): string {
+    if (!app) return "Unknown";
+    const lower = app.toLowerCase();
+    if (lower.includes("google chrome") || lower.includes("chrome")) return "Chrome";
+    if (lower.includes("microsoft edge") || lower.includes("edge")) return "Edge";
+    if (lower.includes("firefox")) return "Firefox";
+    if (lower.includes("excel")) return "Excel";
+    if (lower.includes("word")) return "Word";
+    if (lower.includes("whatsapp")) return "WhatsApp";
+    if (lower.includes("notepad")) return "Notepad";
+    if (lower.includes("visual studio code") || lower.includes("code")) return "VS Code";
+    return app;
+}
+
+function applyBackspaces(texts: string[]): string[] {
+    const result: string[] = [];
+    for (const char of texts) {
+        if (char === "[BS]") {
+            if (result.length > 0) {
+                result.pop();
+            }
+        } else {
+            result.push(char);
+        }
+    }
+    return result;
+}
+
 function parseKeyData(raw: string | null): string {
     if (!raw) return "";
 
@@ -223,18 +251,21 @@ function parseKeyData(raw: string | null): string {
 
     // Otherwise it's a regular printable char (e.g. "a", "A", "1", "!", etc)
     // Strip surrounding single quotes if present (pynput sometimes logs 'a')
-    if (raw.length === 3 && raw.startsWith("'") && raw.endsWith("'")) {
-        return raw[1];
+    let processedRaw = raw;
+    if (processedRaw.length === 3 && processedRaw.startsWith("'") && processedRaw.endsWith("'")) {
+        processedRaw = processedRaw[1];
     }
 
-    return raw;
+    if (processedRaw.length === 1 && (processedRaw.charCodeAt(0) < 32 || processedRaw.charCodeAt(0) > 126)) return "";
+
+    return processedRaw;
 }
 
 function buildKeystrokeGroups(rows: KeystrokeDbRow[]): KeystrokeGroup[] {
     const groups: KeystrokeGroup[] = [];
     if (!rows || rows.length === 0) return groups;
 
-    let currentApp = rows[0].application;
+    let currentApp = normalizeAppName(rows[0].application);
     let startTimestamp = rows[0].captured_at;
     let endTimestamp = rows[0].captured_at;
     let currentTexts: string[] = [];
@@ -244,21 +275,22 @@ function buildKeystrokeGroups(rows: KeystrokeDbRow[]): KeystrokeGroup[] {
 
     for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
-        if (row.application === currentApp) {
+        const normalizedApp = normalizeAppName(row.application);
+        if (normalizedApp === currentApp) {
             endTimestamp = row.captured_at;
             const parsed = parseKeyData(row.key_data);
             if (parsed.length > 0) currentTexts.push(parsed);
         } else {
-            const joinedText = currentTexts.join("");
+            const joinedText = applyBackspaces(currentTexts).join("");
             if (joinedText.trim() !== "") {
                 groups.push({
                     startTime: extractTimeOnly(startTimestamp),
                     endTime: extractTimeOnly(endTimestamp),
-                    application: currentApp || "Unknown",
+                    application: currentApp,
                     text: joinedText
                 });
             }
-            currentApp = row.application;
+            currentApp = normalizedApp;
             startTimestamp = row.captured_at;
             endTimestamp = row.captured_at;
 
@@ -267,12 +299,12 @@ function buildKeystrokeGroups(rows: KeystrokeDbRow[]): KeystrokeGroup[] {
         }
     }
 
-    const finalJoinedText = currentTexts.join("");
+    const finalJoinedText = applyBackspaces(currentTexts).join("");
     if (finalJoinedText.trim() !== "") {
         groups.push({
             startTime: extractTimeOnly(startTimestamp),
             endTime: extractTimeOnly(endTimestamp),
-            application: currentApp || "Unknown",
+            application: currentApp,
             text: finalJoinedText
         });
     }

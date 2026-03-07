@@ -30,7 +30,7 @@ export default function KeystrokeGroup({ startTime, endTime, application, text }
                 color: THEME.textMuted,
                 minWidth: "140px"
             }}>
-                {startTime} — {endTime}
+                {startTime} – {endTime}
             </span>
             <div>
                 <span style={{
@@ -53,7 +53,7 @@ export default function KeystrokeGroup({ startTime, endTime, application, text }
                 flex: 1,
                 wordBreak: "break-word"
             }}>
-                "{text}"
+                &ldquo;{text}&rdquo;
             </span>
         </div>
     );
