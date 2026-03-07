@@ -8,6 +8,9 @@ class Settings(BaseSettings):
     # API Security
     API_KEY: str
 
+    # Gemini API
+    GEMINI_API_KEY: str
+
     # CORS settings
     FRONTEND_URL: str
 

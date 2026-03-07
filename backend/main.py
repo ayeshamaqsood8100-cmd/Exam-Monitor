@@ -7,6 +7,7 @@ from backend.routes.heartbeat import router as heartbeat_router
 from backend.routes.consent import router as consent_router
 from backend.routes.session import router as session_router
 from backend.routes.sync import router as sync_router
+from backend.routes.analyze import router as analyze_router
 
 # Initialize the main FastAPI application instance
 app = FastAPI(title="Markaz Backend API")
@@ -28,6 +29,7 @@ app.include_router(heartbeat_router)
 app.include_router(consent_router)
 app.include_router(session_router)
 app.include_router(sync_router)
+app.include_router(analyze_router)
 
 # Root/Health endpoint
 # This is attached directly to the main 'app' instance, bypassing the protected routers

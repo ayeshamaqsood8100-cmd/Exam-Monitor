@@ -6,6 +6,8 @@ import Card from "@/components/ui/Card";
 import Breadcrumb from "@/components/ui/Breadcrumb";
 import { THEME } from "@/constants/theme";
 import { forceStopSessionAction } from "@/app/sessions/actions";
+import { analyzeSessionsAction } from "@/app/sessions/actions";
+import AnalyzeButton from "@/components/sessions/AnalyzeButton";
 
 export default async function SessionsPage({ searchParams }: { searchParams: { exam_id?: string } }): Promise<React.JSX.Element> {
     const examId = searchParams.exam_id;
@@ -44,13 +46,14 @@ export default async function SessionsPage({ searchParams }: { searchParams: { e
 
         return (
             <div>
-                <div style={{ padding: "24px 24px 0", maxWidth: "1200px", margin: "0 auto" }}>
+                <div style={{ padding: "24px 24px 0", maxWidth: "1200px", margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <Breadcrumb
                         segments={[
                             { label: "Exams", href: "/exams" },
                             { label: exam.exam_name, href: undefined }
                         ]}
                     />
+                    <AnalyzeButton examId={examId} analyzeAction={analyzeSessionsAction} />
                 </div>
                 <SessionsPageClient
                     examId={examId}
