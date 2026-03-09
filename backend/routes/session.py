@@ -1,7 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from backend.models.session import SessionStartModel, SessionEndModel
+from pydantic import BaseModel
+from backend.models.session import SessionStartModel, SessionEndModel, SessionPauseModel, SessionRestartModel, SessionEventModel
 from backend.services.security import verify_api_key
-from backend.services.session_service import start_session, end_session
+from backend.services.session_service import start_session, end_session, pause_session, restart_session, TransientSessionError
+from backend.services.alert_service import create_system_alert
+from backend.services.database import db
 
 router = APIRouter()
 
@@ -15,10 +18,14 @@ async def process_session_start(payload: SessionStartModel):
         error_msg = str(e)
         if error_msg == "Student not found":
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error_msg)
-        elif error_msg == "Session already active":
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=error_msg)
         else:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid request.")
+
+    except TransientSessionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(e)
+        )
             
     except HTTPException:
         raise
@@ -31,7 +38,7 @@ async def process_session_start(payload: SessionStartModel):
 @router.post("/session/end", dependencies=[Depends(verify_api_key)])
 async def process_session_end(payload: SessionEndModel):
     try:
-        updated = end_session(payload.session_id)
+        updated = end_session(payload.session_id, source=payload.source)
         if not updated:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -39,6 +46,11 @@ async def process_session_end(payload: SessionEndModel):
             )
         return {"status": "ok"}
         
+    except TransientSessionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(e)
+        )
     except HTTPException:
         raise
     except Exception:
@@ -46,3 +58,91 @@ async def process_session_end(payload: SessionEndModel):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An unexpected error occurred while ending the session."
         )
+
+
+@router.post("/session/event", dependencies=[Depends(verify_api_key)])
+async def process_session_event(payload: SessionEventModel):
+    try:
+        event_type = payload.event_type.strip().lower()
+        create_system_alert(
+            str(payload.session_id),
+            event_type if event_type.startswith("system_") else f"system_{event_type}",
+            payload.description,
+            evidence=payload.evidence,
+            severity=payload.severity,
+        )
+        return {"status": "ok"}
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred while recording the session event."
+        )
+
+
+@router.post("/session/pause", dependencies=[Depends(verify_api_key)])
+async def process_session_pause(payload: SessionPauseModel):
+    try:
+        updated = pause_session(payload.session_id)
+        if not updated:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Exam session not found or can no longer be paused."
+            )
+        return {"status": "ok"}
+
+    except TransientSessionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(e)
+        )
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred while pausing the session."
+        )
+
+
+@router.post("/session/restart", dependencies=[Depends(verify_api_key)])
+async def process_session_restart(payload: SessionRestartModel):
+    try:
+        updated = restart_session(payload.session_id)
+        if not updated:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Exam session not found or can no longer be resumed."
+            )
+        return {"status": "ok"}
+
+    except TransientSessionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(e)
+        )
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred while restarting the session."
+        )
+
+
+class SessionStatusModel(BaseModel):
+    session_id: str
+
+@router.post("/session/status", dependencies=[Depends(verify_api_key)])
+async def check_session_status(payload: SessionStatusModel):
+    """Check if a session is still active (used by agent for crash recovery)."""
+    try:
+        result = db.client.table("exam_sessions").select("status").eq("id", payload.session_id).execute()
+        if result.data and len(result.data) > 0:
+            return {"status": result.data[0].get("status", "unknown")}
+        return {"status": "not_found"}
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to check session status."
+        )
+

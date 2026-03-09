@@ -1,9 +1,18 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { forceStopSession } from "@/lib/sessions";
+import { postToBackend } from "@/lib/backendApi";
+
+interface AnalyzeSessionsResponse {
+    sessions_total?: number;
+    sessions_analyzed: number;
+    sessions_failed?: number;
+    failed_session_ids?: string[];
+    flags_inserted: number;
+}
+
 export async function forceStopSessionAction(sessionId: string): Promise<{ error?: string }> {
     try {
-        await forceStopSession(sessionId);
+        await postToBackend<{ status: string }>("/session/pause", { session_id: sessionId });
         revalidatePath("/sessions");
         return {};
     } catch (error: unknown) {
@@ -12,21 +21,17 @@ export async function forceStopSessionAction(sessionId: string): Promise<{ error
     }
 }
 
-export async function analyzeSessionsAction(examId: string): Promise<{ sessions_analyzed: number; flags_inserted: number }> {
-    const backendUrl = process.env.BACKEND_URL || "http://localhost:8000";
-    const apiKey = process.env.API_KEY || "";
-
-    const res = await fetch(`${backendUrl}/analyze/${examId}`, {
-        method: "POST",
-        headers: {
-            "API-KEY": apiKey,
-            "Content-Type": "application/json"
-        }
-    });
-
-    if (!res.ok) {
-        throw new Error(`Failed to analyze sessions: ${res.statusText}`);
+export async function restartSessionAction(sessionId: string): Promise<{ error?: string }> {
+    try {
+        await postToBackend<{ status: string }>("/session/restart", { session_id: sessionId });
+        revalidatePath("/sessions");
+        return {};
+    } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : "Unknown error occurred";
+        return { error: msg };
     }
+}
 
-    return await res.json();
+export async function analyzeSessionsAction(examId: string): Promise<AnalyzeSessionsResponse> {
+    return await postToBackend<AnalyzeSessionsResponse>(`/analyze/${examId}`);
 }

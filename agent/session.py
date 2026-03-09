@@ -26,7 +26,7 @@ class SessionManager:
         url = f"{settings.BACKEND_URL.rstrip('/')}/session/start"
         
         headers = {
-            "X-API-Key": settings.API_KEY,
+            "X-API-Key": settings.BACKEND_API_KEY,
             "Content-Type": "application/json"
         }
         

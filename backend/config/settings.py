@@ -1,29 +1,25 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 class Settings(BaseSettings):
-    # Supabase connection variables
     SUPABASE_URL: str
-    SUPABASE_SERVICE_KEY: str
-    
-    # API Security
-    API_KEY: str
-
-    # Gemini API
+    SUPABASE_SERVICE_ROLE_KEY: str
+    BACKEND_API_KEY: str
     GEMINI_API_KEY: str
-
-    # CORS settings
     FRONTEND_URL: str
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        extra="ignore",
+        populate_by_name=True,
+    )
 
     @property
     def ALLOWED_ORIGINS(self) -> list[str]:
         return [
             "http://localhost:3000",
-            self.FRONTEND_URL
+            self.FRONTEND_URL,
         ]
 
-    class Config:
-        env_file = ".env"
-        extra = "ignore"
 
-# Create a global instance of the settings to be imported by other files
 settings = Settings()

@@ -1,4 +1,5 @@
 // SERVER ONLY
+import { unstable_noStore as noStore } from "next/cache";
 import { supabase } from "@/lib/supabase";
 
 export interface SessionWithStudent {
@@ -15,7 +16,7 @@ export interface SessionWithStudent {
         erp: string;
     };
     flag_count: number;
-    heartbeat_status: "active" | "heartbeat_lost" | "completed";
+    heartbeat_status: "active" | "paused" | "heartbeat_lost" | "completed";
 }
 
 export interface ExamSummary {
@@ -41,6 +42,7 @@ interface RawSessionRow {
 }
 
 export async function getExamById(examId: string): Promise<ExamSummary> {
+    noStore();
     const { data, error } = await supabase
         .from("exams")
         .select("id, exam_name, class_number, start_time, end_time, force_stop")
@@ -54,6 +56,7 @@ export async function getExamById(examId: string): Promise<ExamSummary> {
 }
 
 export async function getSessionsForExam(examId: string): Promise<SessionWithStudent[]> {
+    noStore();
     const { data, error } = await supabase
         .from("exam_sessions")
         .select(`
@@ -67,23 +70,25 @@ export async function getSessionsForExam(examId: string): Promise<SessionWithStu
     if (error) throw new Error(`Failed to fetch sessions: ${error.message}`);
 
     const now = new Date();
-    const sixtySecondsAgo = new Date(now.getTime() - 60000);
+    const heartbeatCutoff = new Date(now.getTime() - 12000);
 
     const mappedData: SessionWithStudent[] = (data || []).map((row: RawSessionRow) => {
         // Typecast from joined arrays to single object/count
         const student = Array.isArray(row.student) ? row.student[0] : row.student;
         const flag_count = row.flagged_events ? row.flagged_events.length : 0;
 
-        let heartbeat_status: "active" | "heartbeat_lost" | "completed" = "active";
+        let heartbeat_status: "active" | "paused" | "heartbeat_lost" | "completed" = "active";
 
         if (row.status === "completed") {
             heartbeat_status = "completed";
+        } else if (row.status === "paused") {
+            heartbeat_status = "paused";
         } else {
             if (!row.last_heartbeat_at) {
                 heartbeat_status = "heartbeat_lost";
             } else {
                 const lastHb = new Date(row.last_heartbeat_at);
-                if (lastHb < sixtySecondsAgo) {
+                if (lastHb < heartbeatCutoff) {
                     heartbeat_status = "heartbeat_lost";
                 }
             }
@@ -105,18 +110,4 @@ export async function getSessionsForExam(examId: string): Promise<SessionWithStu
     });
 
     return mappedData;
-}
-
-export async function forceStopSession(sessionId: string): Promise<void> {
-    const nowStr = new Date().toISOString();
-
-    const { error } = await supabase
-        .from("exam_sessions")
-        .update({
-            status: "completed",
-            session_end: nowStr
-        })
-        .eq("id", sessionId);
-
-    if (error) throw new Error(`Failed to force stop session: ${error.message}`);
 }

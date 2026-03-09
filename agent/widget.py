@@ -13,7 +13,8 @@ class MonitoringWidget:
         self.access_code = access_code
         self.on_end_session = on_end_session
         self.root = None
-        self._thread = None
+        self._thread: threading.Thread | None = None
+        self._ready_event = threading.Event()
         
         # Dragging state coordinates
         self._start_x = 0
@@ -30,9 +31,31 @@ class MonitoringWidget:
         return cvs.create_polygon(pts, smooth=True, **kwargs)
 
     def start(self) -> None:
-        """Starts the tkinter mainloop on a separate background daemon thread."""
+        """Starts the widget in its own UI thread if it is not already running."""
+        if self._thread and self._thread.is_alive():
+            self.show()
+            return
+
+        self._ready_event.clear()
         self._thread = threading.Thread(target=self._run_app, daemon=True)
         self._thread.start()
+        self._ready_event.wait(timeout=5.0)
+
+    def show(self) -> None:
+        """Shows the widget again after a remote resume."""
+        if self.root:
+            try:
+                self.root.after(0, self.root.deiconify)
+            except Exception:
+                pass
+
+    def hide(self) -> None:
+        """Hides the widget without tearing down the whole agent."""
+        if self.root:
+            try:
+                self.root.after(0, self.root.withdraw)
+            except Exception:
+                pass
 
     def stop(self) -> None:
         """Safely destroys the widget from outside the main thread."""
@@ -41,6 +64,8 @@ class MonitoringWidget:
                 self.root.after(0, self.root.destroy)
             except Exception:
                 pass
+        if self._thread and self._thread.is_alive() and threading.current_thread() is not self._thread:
+            self._thread.join(timeout=2.5)
 
     def _run_app(self) -> None:
         self.root = tk.Tk()
@@ -121,9 +146,11 @@ class MonitoringWidget:
         # Position in top-right corner safely
         sw = self.root.winfo_screenwidth()
         self.root.geometry(f"{target_width}x{target_height}+{sw - target_width - 20}+20")
+        self._ready_event.set()
         
         # Block this daemon thread in the GUI event loop indefinitely
         self.root.mainloop()
+        self.root = None
 
     def _on_drag_start(self, event) -> None:
         self._start_x = event.x_root

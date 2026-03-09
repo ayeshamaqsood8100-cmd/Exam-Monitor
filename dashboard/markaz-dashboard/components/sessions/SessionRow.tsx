@@ -7,8 +7,10 @@ interface SessionRowProps {
     session: SessionWithStudent;
     onForceStop: (sessionId: string) => void;
     isStopping: boolean;
+    onRestart: (sessionId: string) => void;
+    isRestarting: boolean;
 }
-export default function SessionRow({ session, onForceStop, isStopping }: SessionRowProps): React.JSX.Element {
+export default function SessionRow({ session, onForceStop, isStopping, onRestart, isRestarting }: SessionRowProps): React.JSX.Element {
     const { heartbeat_status, flag_count, student } = session;
     const formatDate = (dateString: string | null): string => {
         if (!dateString) return "Never";
@@ -28,6 +30,10 @@ export default function SessionRow({ session, onForceStop, isStopping }: Session
         dotAnimation = "breathe 2s infinite";
         badgeColor = THEME.cyan;
         badgeLabel = "ACTIVE";
+    } else if (heartbeat_status === "paused") {
+        dotColor = THEME.yellow;
+        badgeColor = THEME.yellow;
+        badgeLabel = "PAUSED";
     } else if (heartbeat_status === "heartbeat_lost") {
         dotColor = THEME.pink;
         badgeColor = THEME.pink;
@@ -93,15 +99,43 @@ export default function SessionRow({ session, onForceStop, isStopping }: Session
                     <Link href={`/sessions/${session.id}`} style={{ color: THEME.cyan, fontFamily: THEME.fontMono, fontSize: "12px", textDecoration: "none" }}>
                         View
                     </Link>
-                    {session.status !== "completed" && (
+                    {session.status === "active" ? (
                         <button
                             onClick={() => onForceStop(session.id)}
-                            disabled={isStopping}
-                            style={{ background: "transparent", border: `1px solid ${THEME.pink}`, color: THEME.pink, padding: "4px 10px", borderRadius: "6px", fontSize: "11px", fontWeight: 600, cursor: isStopping ? "wait" : "pointer", opacity: isStopping ? 0.5 : 1 }}
-                            onMouseEnter={(e) => { if (!isStopping) e.currentTarget.style.background = `${THEME.pink}15`; }}
+                            disabled={isStopping || isRestarting}
+                            style={{ background: "transparent", border: `1px solid ${THEME.pink}`, color: THEME.pink, padding: "4px 10px", borderRadius: "6px", fontSize: "11px", fontWeight: 600, cursor: (isStopping || isRestarting) ? "wait" : "pointer", opacity: (isStopping || isRestarting) ? 0.5 : 1 }}
+                            onMouseEnter={(e) => { if (!isStopping && !isRestarting) e.currentTarget.style.background = `${THEME.pink}15`; }}
                             onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
                         >
-                            Force Stop
+                            {isStopping ? "Pausing..." : "Pause"}
+                        </button>
+                    ) : session.status === "paused" ? (
+                        <button
+                            onClick={async () => {
+                                if (confirm("Resume this student's monitoring now?")) {
+                                    onRestart(session.id);
+                                }
+                            }}
+                            disabled={isRestarting || isStopping}
+                            style={{ background: "transparent", border: `1px solid ${THEME.cyan}`, color: THEME.cyan, padding: "4px 10px", borderRadius: "6px", fontSize: "11px", fontWeight: 600, cursor: (isRestarting || isStopping) ? "wait" : "pointer", opacity: (isRestarting || isStopping) ? 0.5 : 1 }}
+                            onMouseEnter={(e) => { if (!isRestarting && !isStopping) e.currentTarget.style.background = `${THEME.cyan}15`; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                        >
+                            {isRestarting ? "Resuming..." : "Resume"}
+                        </button>
+                    ) : (
+                        <button
+                            onClick={async () => {
+                                if (confirm("Reopen this completed session?")) {
+                                    onRestart(session.id);
+                                }
+                            }}
+                            disabled={isRestarting || isStopping}
+                            style={{ background: "transparent", border: `1px solid ${THEME.cyan}`, color: THEME.cyan, padding: "4px 10px", borderRadius: "6px", fontSize: "11px", fontWeight: 600, cursor: (isRestarting || isStopping) ? "wait" : "pointer", opacity: (isRestarting || isStopping) ? 0.5 : 1 }}
+                            onMouseEnter={(e) => { if (!isRestarting && !isStopping) e.currentTarget.style.background = `${THEME.cyan}15`; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                        >
+                            {isRestarting ? "Restarting..." : "Restart"}
                         </button>
                     )}
                 </div>

@@ -11,11 +11,13 @@ interface SessionsPageClientProps {
     initialSessions: SessionWithStudent[];
     exam: ExamSummary;
     onForceStopSession: (sessionId: string) => Promise<{ error?: string }>;
+    onRestartSession: (sessionId: string) => Promise<{ error?: string }>;
 }
 
-export default function SessionsPageClient({ examId, initialSessions, exam, onForceStopSession }: SessionsPageClientProps): React.JSX.Element {
-    const { sessions, lastRefreshed } = useSessionPolling(examId, initialSessions, 30000);
+export default function SessionsPageClient({ examId, initialSessions, exam, onForceStopSession, onRestartSession }: SessionsPageClientProps): React.JSX.Element {
+    const { sessions, setSessions, lastRefreshed } = useSessionPolling(examId, initialSessions, 5000);
     const [stoppingIds, setStoppingIds] = useState<Set<string>>(new Set());
+    const [restartingIds, setRestartingIds] = useState<Set<string>>(new Set());
     const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
@@ -23,6 +25,7 @@ export default function SessionsPageClient({ examId, initialSessions, exam, onFo
     }, []);
 
     const activeCount = sessions.filter(s => s.heartbeat_status === "active").length;
+    const pausedCount = sessions.filter(s => s.heartbeat_status === "paused").length;
     const lostCount = sessions.filter(s => s.heartbeat_status === "heartbeat_lost").length;
 
     const handleForceStop = async (sessionId: string) => {
@@ -32,9 +35,37 @@ export default function SessionsPageClient({ examId, initialSessions, exam, onFo
             return next;
         });
 
+        // Optimistic UI update
+        setSessions(prev => prev.map(s =>
+            s.id === sessionId ?
+                { ...s, status: "paused", heartbeat_status: "paused" } : s
+        ));
+
         await onForceStopSession(sessionId);
 
         setStoppingIds(prev => {
+            const next = new Set(prev);
+            next.delete(sessionId);
+            return next;
+        });
+    };
+
+    const handleRestart = async (sessionId: string) => {
+        setRestartingIds(prev => {
+            const next = new Set(prev);
+            next.add(sessionId);
+            return next;
+        });
+
+        // Optimistic UI update
+        setSessions(prev => prev.map(s =>
+            s.id === sessionId ?
+                { ...s, status: "active", heartbeat_status: "active" } : s
+        ));
+
+        await onRestartSession(sessionId);
+
+        setRestartingIds(prev => {
             const next = new Set(prev);
             next.delete(sessionId);
             return next;
@@ -127,6 +158,26 @@ export default function SessionsPageClient({ examId, initialSessions, exam, onFo
                             {lostCount} Lost
                         </div>
                     )}
+
+                    {pausedCount > 0 && (
+                        <div
+                            style={{
+                                background: `${THEME.yellow}1A`,
+                                border: `1px solid ${THEME.yellow}33`,
+                                color: THEME.yellow,
+                                padding: "6px 16px",
+                                borderRadius: "20px",
+                                fontSize: "14px",
+                                fontWeight: 600,
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "8px"
+                            }}
+                        >
+                            <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: THEME.yellow }} />
+                            {pausedCount} Paused
+                        </div>
+                    )}
                 </div>
 
             </div>
@@ -144,6 +195,8 @@ export default function SessionsPageClient({ examId, initialSessions, exam, onFo
                 sessions={sessions}
                 onForceStop={handleForceStop}
                 stoppingIds={stoppingIds}
+                onRestart={handleRestart}
+                restartingIds={restartingIds}
             />
         </div>
     );

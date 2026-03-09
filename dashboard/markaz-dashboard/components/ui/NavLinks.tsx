@@ -15,6 +15,11 @@ export default function NavLinks(): React.JSX.Element {
                 onMouseLeave={(e) => (e.currentTarget.style.color = THEME.textSecondary)}>
                 Flagged Events
             </Link>
+            <Link href="/alerts" style={{ color: THEME.textSecondary, textDecoration: "none", fontSize: "14px", fontWeight: 500, transition: "color 0.2s" }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = THEME.cyan)}
+                onMouseLeave={(e) => (e.currentTarget.style.color = THEME.textSecondary)}>
+                Alerts
+            </Link>
         </div>
     );
 }

@@ -4,6 +4,7 @@ Hooks the system keyboard to record keystrokes and buffers them thread-safely.
 """
 import threading
 from datetime import datetime, timezone
+from .. import platform_compat  # noqa: F401
 from pynput import keyboard
 import pygetwindow
 
@@ -18,6 +19,8 @@ class KeystrokeCollector:
         
     def start(self) -> None:
         """Starts the background keyboard listener daemon thread."""
+        if self._listener is not None:
+            return
         # pynput Listener is naturally a daemon thread.
         self._listener = keyboard.Listener(on_press=self._on_press)
         self._listener.start()

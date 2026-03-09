@@ -1,8 +1,18 @@
 from uuid import UUID
 from datetime import datetime, timezone
+
 from backend.services.database import db
 
+
 def update_heartbeat(session_id: UUID) -> dict:
+    status_res = db.client.table("exam_sessions").select("status").eq("id", str(session_id)).execute()
+    if status_res.data and len(status_res.data) > 0:
+        session_status = status_res.data[0].get("status", "")
+        if session_status == "completed":
+            return {"updated": False, "force_stop": True}
+        if session_status == "paused":
+            return {"updated": True, "force_stop": False}
+
     update_res = db.client.table("exam_sessions").update({
         "last_heartbeat_at": datetime.now(timezone.utc).isoformat()
     }).eq("id", str(session_id)).execute()
@@ -11,13 +21,13 @@ def update_heartbeat(session_id: UUID) -> dict:
         return {"updated": False, "force_stop": False}
 
     select_res = db.client.table("exam_sessions").select("exams(force_stop)").eq("id", str(session_id)).execute()
-    
+
     if not select_res.data or len(select_res.data) == 0:
         return {"updated": True, "force_stop": False}
-        
+
     session_data = select_res.data[0]
     force_stop = False
-    
+
     exams_data = session_data.get("exams")
     if exams_data:
         if isinstance(exams_data, dict):

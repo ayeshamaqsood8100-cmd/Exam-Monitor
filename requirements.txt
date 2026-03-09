@@ -42,3 +42,4 @@ pycparser==3.0
 multidict==6.7.1
 yarl==1.22.0
 propcache==0.4.1
+httpx

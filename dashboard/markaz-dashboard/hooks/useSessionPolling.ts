@@ -35,5 +35,5 @@ export function useSessionPolling(
             clearInterval(intervalId);
         };
     }, [examId, intervalMs]);
-    return { sessions, isRefreshing, lastRefreshed };
+    return { sessions, setSessions, isRefreshing, lastRefreshed };
 }

@@ -1,4 +1,5 @@
 // SERVER ONLY — never import in client components
+import { unstable_noStore as noStore } from "next/cache";
 import { supabase } from "@/lib/supabase";
 
 export interface Exam {
@@ -21,6 +22,7 @@ export interface CreateExamPayload {
 }
 
 export async function getAllExams(): Promise<Exam[]> {
+    noStore();
     const { data, error } = await supabase
         .from("exams")
         .select("*")
@@ -34,6 +36,7 @@ export async function getAllExams(): Promise<Exam[]> {
 }
 
 export async function createExam(payload: CreateExamPayload): Promise<Exam> {
+    noStore();
     const { data, error } = await supabase
         .from("exams")
         .insert([{ ...payload, force_stop: false }])
@@ -48,6 +51,7 @@ export async function createExam(payload: CreateExamPayload): Promise<Exam> {
 }
 
 export async function toggleForceStop(id: string, current: boolean): Promise<void> {
+    noStore();
     const { error } = await supabase
         .from("exams")
         .update({ force_stop: !current })

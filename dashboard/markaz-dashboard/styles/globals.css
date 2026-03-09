@@ -93,3 +93,9 @@ body {
 .mono-text {
   font-family: 'DM Mono', 'Noto Sans Mono', monospace;
 }
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

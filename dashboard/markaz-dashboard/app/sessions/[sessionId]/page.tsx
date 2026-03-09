@@ -6,6 +6,8 @@ import Card from "@/components/ui/Card";
 import Breadcrumb from "@/components/ui/Breadcrumb";
 import { THEME } from "@/constants/theme";
 
+export const dynamic = "force-dynamic";
+
 export default async function SessionSummaryPage({ params }: { params: { sessionId: string } }): Promise<React.JSX.Element> {
     const data = await getSessionSummary(params.sessionId);
 

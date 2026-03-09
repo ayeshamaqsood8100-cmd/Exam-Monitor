@@ -53,7 +53,7 @@ class ConsentManager:
         # Send consent to backend
         url = f"{settings.BACKEND_URL.rstrip('/')}/consent"
         headers = {
-            "X-API-Key": settings.API_KEY,
+            "X-API-Key": settings.BACKEND_API_KEY,
             "Content-Type": "application/json"
         }
         

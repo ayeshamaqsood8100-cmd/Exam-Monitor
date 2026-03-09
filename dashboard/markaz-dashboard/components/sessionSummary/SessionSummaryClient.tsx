@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { type SessionSummaryData } from "@/lib/sessionSummary";
 import { THEME } from "@/constants/theme";
 import StatCard from "./StatCard";
@@ -14,13 +15,59 @@ interface SessionSummaryClientProps {
 }
 
 export default function SessionSummaryClient({ data }: SessionSummaryClientProps): React.JSX.Element {
+    const router = useRouter();
     const [tab, setTab] = useState<"overview" | "flags" | "windows" | "clipboard" | "keystrokes">("overview");
+    const [analyzing, setAnalyzing] = useState(false);
+    const [analyzeResult, setAnalyzeResult] = useState<string | null>(null);
+    const [stopping, setStopping] = useState(false);
+    const [stopResult, setStopResult] = useState<string | null>(null);
 
     // Format Helper avoiding hydration errors by extracting raw strings from DB cleanly
     const extractTime = (dateString: string) => {
         if (!dateString || dateString.includes("Unknown")) return "—";
         const parts = dateString.split(" ");
         return parts[1] || dateString;
+    };
+
+    const handleAnalyze = async () => {
+        setAnalyzing(true);
+        setAnalyzeResult(null);
+        try {
+            const res = await fetch(`/api/analyze/${data.sessionId}`, { method: "POST" });
+            if (!res.ok) {
+                const err = await res.json();
+                setAnalyzeResult(`Error: ${err.error || "Unknown error"}`);
+            } else {
+                const result = await res.json();
+                setAnalyzeResult(`✓ ${result.flags_inserted} flag${result.flags_inserted !== 1 ? "s" : ""} detected`);
+                // Refresh the page to show new flags
+                setTimeout(() => router.refresh(), 500);
+            }
+        } catch {
+            setAnalyzeResult("Error: Network error");
+        } finally {
+            setAnalyzing(false);
+        }
+    };
+
+    const handleStop = async () => {
+        if (!confirm("Pause this student's monitoring now? The widget should disappear almost immediately.")) return;
+        setStopping(true);
+        setStopResult(null);
+        try {
+            const res = await fetch(`/api/stop/${data.sessionId}`, { method: "POST" });
+            if (!res.ok) {
+                const err = await res.json();
+                setStopResult(`Error: ${err.error || "Unknown error"}`);
+            } else {
+                setStopResult("✓ Session paused");
+                setTimeout(() => router.refresh(), 1000);
+            }
+        } catch {
+            setStopResult("Error: Network error");
+        } finally {
+            setStopping(false);
+        }
     };
 
     const highFlags = data.flags.filter(f => f.severity === "HIGH").length;
@@ -79,7 +126,7 @@ export default function SessionSummaryClient({ data }: SessionSummaryClientProps
                     {data.exam.name}
                 </h1>
 
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "24px" }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "24px", alignItems: "flex-end" }}>
                     {[
                         { label: "Student", value: data.student.name },
                         { label: "ERP", value: data.student.erp },
@@ -95,7 +142,99 @@ export default function SessionSummaryClient({ data }: SessionSummaryClientProps
                             </div>
                         </div>
                     ))}
+
+                    {/* Analyze with AI button */}
+                    <button
+                        onClick={handleAnalyze}
+                        disabled={analyzing}
+                        style={{
+                            display: "flex", alignItems: "center", gap: "8px",
+                            background: analyzing ? "rgba(255,255,255,0.05)" : `linear-gradient(135deg, ${THEME.purple}40, ${THEME.cyan}40)`,
+                            border: `1px solid ${analyzing ? "rgba(255,255,255,0.1)" : `${THEME.purple}60`}`,
+                            color: analyzing ? THEME.textMuted : THEME.textPrimary,
+                            padding: "10px 20px", borderRadius: "10px",
+                            fontSize: "13px", fontWeight: 600,
+                            cursor: analyzing ? "not-allowed" : "pointer",
+                            transition: "all 0.2s ease",
+                            marginLeft: "auto"
+                        }}
+                        onMouseEnter={(e) => { if (!analyzing) e.currentTarget.style.boxShadow = `0 0 20px ${THEME.purple}30`; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "none"; }}
+                    >
+                        {analyzing ? (
+                            <>
+                                <span style={{ display: "inline-block", width: "14px", height: "14px", border: "2px solid rgba(255,255,255,0.2)", borderTopColor: THEME.cyan, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                                Analyzing...
+                            </>
+                        ) : (
+                            <>🔍 Analyze with AI</>
+                        )}
+                    </button>
+
+                    {/* Pause Session button — only for active sessions */}
+                    {data.session.status === "active" && (
+                        <button
+                            onClick={handleStop}
+                            disabled={stopping}
+                            style={{
+                                display: "flex", alignItems: "center", gap: "8px",
+                                background: stopping ? "rgba(255,255,255,0.05)" : `${THEME.pink}15`,
+                                border: `1px solid ${stopping ? "rgba(255,255,255,0.1)" : `${THEME.pink}40`}`,
+                                color: stopping ? THEME.textMuted : THEME.pink,
+                                padding: "10px 20px", borderRadius: "10px",
+                                fontSize: "13px", fontWeight: 600,
+                                cursor: stopping ? "not-allowed" : "pointer",
+                                transition: "all 0.2s ease"
+                            }}
+                            onMouseEnter={(e) => { if (!stopping) e.currentTarget.style.boxShadow = `0 0 20px ${THEME.pink}20`; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "none"; }}
+                        >
+                            {stopping ? (
+                                <>
+                                    <span style={{ display: "inline-block", width: "14px", height: "14px", border: "2px solid rgba(255,255,255,0.2)", borderTopColor: THEME.pink, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                                    Pausing...
+                                </>
+                            ) : (
+                                <>⛔ Pause Session</>
+                            )}
+                        </button>
+                    )}
                 </div>
+
+                {/* Analysis result message */}
+                {analyzeResult && (
+                    <div style={{
+                        marginTop: "12px",
+                        fontSize: "13px",
+                        fontWeight: 500,
+                        color: analyzeResult.startsWith("✓") ? THEME.cyan : THEME.pink,
+                        padding: "8px 14px",
+                        background: analyzeResult.startsWith("✓") ? `${THEME.cyan}10` : `${THEME.pink}10`,
+                        border: `1px solid ${analyzeResult.startsWith("✓") ? `${THEME.cyan}30` : `${THEME.pink}30`}`,
+                        borderRadius: "8px",
+                        display: "inline-block",
+                        marginRight: "8px"
+                    }}>
+                        {analyzeResult}
+                    </div>
+                )}
+
+                {/* Stop result message */}
+                {stopResult && (
+                    <div style={{
+                        marginTop: "12px",
+                        fontSize: "13px",
+                        fontWeight: 500,
+                        color: stopResult.startsWith("✓") ? THEME.cyan : THEME.pink,
+                        padding: "8px 14px",
+                        background: stopResult.startsWith("✓") ? `${THEME.cyan}10` : `${THEME.pink}10`,
+                        border: `1px solid ${stopResult.startsWith("✓") ? `${THEME.cyan}30` : `${THEME.pink}30`}`,
+                        borderRadius: "8px",
+                        display: "inline-block"
+                    }}>
+                        {stopResult}
+                    </div>
+                )}
             </div>
 
             {/* Alert banner */}

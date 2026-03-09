@@ -5,7 +5,13 @@ import { THEME } from "@/constants/theme";
 
 interface AnalyzeButtonProps {
     examId: string;
-    analyzeAction: (examId: string) => Promise<{ sessions_analyzed: number; flags_inserted: number }>;
+    analyzeAction: (examId: string) => Promise<{
+        sessions_total?: number;
+        sessions_analyzed: number;
+        sessions_failed?: number;
+        failed_session_ids?: string[];
+        flags_inserted: number;
+    }>;
 }
 
 export default function AnalyzeButton({ examId, analyzeAction }: AnalyzeButtonProps): React.JSX.Element {
@@ -16,7 +22,10 @@ export default function AnalyzeButton({ examId, analyzeAction }: AnalyzeButtonPr
         setStatus("loading");
         try {
             const res = await analyzeAction(examId);
-            setResult(`${res.flags_inserted} flags found across ${res.sessions_analyzed} sessions`);
+            const failureSuffix = res.sessions_failed && res.sessions_failed > 0
+                ? ` (${res.sessions_failed} failed)`
+                : "";
+            setResult(`${res.flags_inserted} flags found across ${res.sessions_analyzed} sessions${failureSuffix}`);
             setStatus("done");
         } catch (error) {
             console.error("Analysis failed:", error);

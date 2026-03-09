@@ -1,3 +1,4 @@
+import { unstable_noStore as noStore } from "next/cache";
 import { supabase } from "@/lib/supabase";
 export interface FlaggedEventWithContext {
     id: string;
@@ -20,9 +21,10 @@ type JoinedFlagResponse = {
     } | { students: { name: string; erp: string } | { name: string; erp: string }[] | null; exams: { exam_name: string; class_number: string } | { exam_name: string; class_number: string }[] | null; }[] | null;
 }
 export async function getAllFlaggedEvents(): Promise<FlaggedEventWithContext[]> {
+    noStore();
     const { data, error } = await supabase
         .from("flagged_events")
-        .select(`id, session_id, flag_type, description, evidence, severity, flagged_at, reviewed, exam_sessions ( students (name, erp), exams (exam_name, class_number) )`)
+        .select(`id, session_id, flag_type, description, evidence, severity, flagged_at, reviewed, exam_sessions!flagged_events_session_id_fkey ( student_id, exam_id, students (name, erp), exams (exam_name, class_number) )`)
         .order("flagged_at", { ascending: false });
     if (error) throw new Error(`Failed to fetch flagged events: ${error.message}`);
     const rawData = (data as unknown) as JoinedFlagResponse[];

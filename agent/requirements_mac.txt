@@ -1,0 +1,7 @@
+# macOS dependencies for Markaz Sentinel
+# No pygetwindow or PyRect needed — macOS uses AppleScript via subprocess
+pynput==1.8.1
+pyperclip==1.11.0
+httpx
+python-dotenv==1.2.1
+pydantic-settings==2.2.1

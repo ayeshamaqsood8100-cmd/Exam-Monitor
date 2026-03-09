@@ -1,4 +1,5 @@
 // SERVER ONLY
+import { unstable_noStore as noStore } from "next/cache";
 import { supabase } from "@/lib/supabase";
 
 export interface KeystrokeGroup {
@@ -9,6 +10,7 @@ export interface KeystrokeGroup {
 }
 
 export interface SessionSummaryData {
+    sessionId: string;
     exam_id: string;
     student: {
         name: string;
@@ -71,6 +73,7 @@ function formatDateToKarachi(dateString: string | null): string {
 }
 
 export async function getSessionSummary(sessionId: string): Promise<SessionSummaryData | null> {
+    noStore();
     const [
         sessionRes,
         consentRes,
@@ -78,8 +81,7 @@ export async function getSessionSummary(sessionId: string): Promise<SessionSumma
         keystrokesRes,
         keystrokesDataRes,
         windowsRes,
-        clipboardRes,
-        flagsRes
+        clipboardRes
     ] = await Promise.all([
         supabase.from("exam_sessions").select(`
       session_start, session_end, status, last_heartbeat_at, exam_id,
@@ -92,9 +94,11 @@ export async function getSessionSummary(sessionId: string): Promise<SessionSumma
         supabase.from("keystroke_logs").select("id", { count: "exact", head: true }).eq("session_id", sessionId),
         supabase.from("keystroke_logs").select("id, captured_at, application, key_data").eq("session_id", sessionId).order("captured_at", { ascending: true }),
         supabase.from("window_logs").select("switched_at, application_name, window_title").eq("session_id", sessionId).order("switched_at", { ascending: true }),
-        supabase.from("clipboard_logs").select("id, captured_at, event_type, source_application, destination_application, content").eq("session_id", sessionId).order("captured_at", { ascending: true }),
-        supabase.from("flagged_events").select("id, severity, flag_type, flagged_at, description, evidence").eq("session_id", sessionId).order("flagged_at", { ascending: true })
+        supabase.from("clipboard_logs").select("id, captured_at, event_type, source_application, destination_application, content").eq("session_id", sessionId).order("captured_at", { ascending: true })
     ]);
+
+    // Queried separately to avoid Next.js fetch cache returning stale empty results
+    const flagsRes = await supabase.from("flagged_events").select("id, severity, flag_type, flagged_at, description, evidence").eq("session_id", sessionId).order("flagged_at", { ascending: true });
 
     if (sessionRes.error || !sessionRes.data) return null;
 
@@ -123,6 +127,7 @@ export async function getSessionSummary(sessionId: string): Promise<SessionSumma
     }
 
     return {
+        sessionId: sessionId,
         exam_id: data.exam_id,
         student: {
             name: student?.name || "Unknown",

@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     Agent settings loaded securely from the project root environment variables.
     """
     BACKEND_URL: str
-    API_KEY: str
+    BACKEND_API_KEY: str
     EXAM_ID: str  # Validated manually in main.py to provide a clean error message
 
     class Config:

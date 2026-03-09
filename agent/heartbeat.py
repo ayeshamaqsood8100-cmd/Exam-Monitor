@@ -28,18 +28,17 @@ class HeartbeatManager:
         self._stop_event.set()
         
     def _loop(self) -> None:
-        """Continuously pings the backend every 30 seconds until stopped."""
+        """Continuously pings the backend every 5 seconds until stopped."""
         while not self._stop_event.is_set():
             self._ping()
-            # Wait for 30 seconds; will exit wait early if stop() is called.
-            self._stop_event.wait(30.0)
+            self._stop_event.wait(5.0)
             
     def _ping(self) -> None:
         """Performs a single synchronous HTTP POST heartbeat ping."""
         url = f"{settings.BACKEND_URL.rstrip('/')}/heartbeat"
         
         headers = {
-            "X-API-Key": settings.API_KEY,
+            "X-API-Key": settings.BACKEND_API_KEY,
             "Content-Type": "application/json"
         }
         

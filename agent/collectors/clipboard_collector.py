@@ -15,17 +15,22 @@ class ClipboardCollector:
         self._buffer: list[dict] = []
         self._lock = threading.Lock()
         self._stop_event = threading.Event()
-        self._thread = threading.Thread(target=self._loop, daemon=True)
+        self._thread: threading.Thread | None = None
         self._last_content: str = ""
         
     def start(self) -> None:
         """Starts the background clipboard polling loop."""
+        if self._thread and self._thread.is_alive():
+            return
         self._stop_event.clear()
+        self._thread = threading.Thread(target=self._loop, daemon=True)
         self._thread.start()
         
     def stop(self) -> None:
         """Signals the background polling loop to stop and exit cleanly."""
         self._stop_event.set()
+        if self._thread and self._thread.is_alive() and threading.current_thread() is not self._thread:
+            self._thread.join(timeout=2.5)
         
     def peek(self, limit: int = 500) -> list[dict]:
         """Atomically returns up to `limit` items from the front of the buffer."""
