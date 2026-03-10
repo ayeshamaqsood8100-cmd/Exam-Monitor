@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { type Exam } from "@/lib/exams";
 import { THEME } from "@/constants/theme";
 import ExamCard from "@/components/exams/ExamCard";
@@ -14,6 +15,7 @@ interface ExamsPageClientProps {
 
 export default function ExamsPageClient({ exams: initialExams }: ExamsPageClientProps): React.JSX.Element {
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const router = useRouter();
 
     // Optimistic UI state locally to avoid needing immediate full page reload wait on toggle
     const [exams, setExams] = useState<Exam[]>(initialExams);
@@ -37,6 +39,15 @@ export default function ExamsPageClient({ exams: initialExams }: ExamsPageClient
                 )
             );
         }
+    };
+
+    const handleCreateExam = async (formData: FormData): Promise<{ error?: string; exam?: Exam }> => {
+        const result = await createExamAction(formData);
+        if (result.exam) {
+            setExams((prev) => [result.exam as Exam, ...prev]);
+            router.refresh();
+        }
+        return result;
     };
 
     return (
@@ -80,7 +91,7 @@ export default function ExamsPageClient({ exams: initialExams }: ExamsPageClient
             <CreateExamModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                onSubmit={createExamAction}
+                onSubmit={handleCreateExam}
             />
         </div>
     );

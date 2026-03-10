@@ -18,6 +18,7 @@ _WINDOWS_TASK_NAME = "MarkazSentinel"
 _WINDOWS_RUN_KEY = r"HKCU\Software\Microsoft\Windows\CurrentVersion\Run"
 _WINDOWS_HELPER_DIR = Path(os.environ.get("APPDATA", "")) / "MarkazSentinel"
 _WINDOWS_HELPER_BAT = _WINDOWS_HELPER_DIR / "launch_watchdog.bat"
+_WINDOWS_HELPER_VBS = _WINDOWS_HELPER_DIR / "launch_watchdog.vbs"
 
 
 def _get_working_directory():
@@ -34,6 +35,12 @@ def _write_windows_helper() -> None:
     python_path = sys.executable
     bat_content = f'@echo off\ncd /d "{cwd}"\n"{python_path}" -m agent.watchdog\n'
     _WINDOWS_HELPER_BAT.write_text(bat_content, encoding="utf-8")
+    vbs_content = (
+        'Set shell = CreateObject("WScript.Shell")\n'
+        f'shell.CurrentDirectory = "{cwd}"\n'
+        f'shell.Run Chr(34) & "{python_path}" & Chr(34) & " -m agent.watchdog", 0, False\n'
+    )
+    _WINDOWS_HELPER_VBS.write_text(vbs_content, encoding="utf-8")
 
 
 def _remove_windows_startup_bat() -> None:
@@ -57,7 +64,7 @@ def _install_windows():
                 "/TN",
                 _WINDOWS_TASK_NAME,
                 "/TR",
-                str(_WINDOWS_HELPER_BAT),
+                f'wscript.exe "{_WINDOWS_HELPER_VBS}"',
             ],
             check=False,
             capture_output=True,
@@ -74,7 +81,7 @@ def _install_windows():
                 0,
                 winreg.KEY_SET_VALUE,
             ) as key:
-                winreg.SetValueEx(key, _WINDOWS_TASK_NAME, 0, winreg.REG_SZ, str(_WINDOWS_HELPER_BAT))
+                winreg.SetValueEx(key, _WINDOWS_TASK_NAME, 0, winreg.REG_SZ, f'wscript.exe "{_WINDOWS_HELPER_VBS}"')
             print("[AUTOSTART] Scheduled task unavailable; registered HKCU Run fallback")
             return True
         except Exception as reg_error:
@@ -121,6 +128,8 @@ def _uninstall_windows():
         _remove_windows_startup_bat()
         if _WINDOWS_HELPER_BAT.exists():
             _WINDOWS_HELPER_BAT.unlink()
+        if _WINDOWS_HELPER_VBS.exists():
+            _WINDOWS_HELPER_VBS.unlink()
         if _WINDOWS_HELPER_DIR.exists() and not any(_WINDOWS_HELPER_DIR.iterdir()):
             _WINDOWS_HELPER_DIR.rmdir()
     except Exception as e:

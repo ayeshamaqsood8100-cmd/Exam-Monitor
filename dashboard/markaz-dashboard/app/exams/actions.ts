@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createExam, toggleForceStop, type CreateExamPayload } from "@/lib/exams";
 
-export async function createExamAction(formData: FormData): Promise<{ error?: string }> {
+export async function createExamAction(formData: FormData): Promise<{ error?: string; exam?: Awaited<ReturnType<typeof createExam>> }> {
     try {
         const payload: CreateExamPayload = {
             exam_name: formData.get("exam_name") as string,
@@ -17,9 +17,9 @@ export async function createExamAction(formData: FormData): Promise<{ error?: st
             return { error: "All fields are required." };
         }
 
-        await createExam(payload);
+        const exam = await createExam(payload);
         revalidatePath("/exams");
-        return {};
+        return { exam };
     } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : "Unknown error occurred";
         return { error: msg };

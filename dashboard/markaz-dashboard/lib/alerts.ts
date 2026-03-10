@@ -7,6 +7,9 @@ export interface StoredAgentAlert {
     flag_type: string;
     description: string;
     evidence: string;
+    occurrenceCount: number;
+    firstSeenAt: string;
+    lastSeenAt: string;
     severity: "HIGH" | "MED" | "LOW";
     flagged_at: string;
     reviewed: boolean;
@@ -56,6 +59,45 @@ type RawSessionAlert = {
     exams: { exam_name: string; class_number: string } | { exam_name: string; class_number: string }[] | null;
 };
 
+type ParsedEvidenceMeta = {
+    rawEvidence: string;
+    occurrenceCount: number;
+    firstSeenAt: string;
+    lastSeenAt: string;
+};
+
+function parseEvidenceMeta(evidence: string, flaggedAt: string): ParsedEvidenceMeta {
+    if (!evidence) {
+        return {
+            rawEvidence: "",
+            occurrenceCount: 1,
+            firstSeenAt: flaggedAt,
+            lastSeenAt: flaggedAt,
+        };
+    }
+
+    try {
+        const parsed: unknown = JSON.parse(evidence);
+        if (!parsed || typeof parsed !== "object") {
+            throw new Error("Invalid evidence payload");
+        }
+        const meta = parsed as Record<string, unknown>;
+        return {
+            rawEvidence: typeof meta.raw_evidence === "string" ? meta.raw_evidence : evidence,
+            occurrenceCount: typeof meta.occurrence_count === "number" && meta.occurrence_count > 0 ? meta.occurrence_count : 1,
+            firstSeenAt: typeof meta.first_seen_at === "string" && meta.first_seen_at ? meta.first_seen_at : flaggedAt,
+            lastSeenAt: typeof meta.last_seen_at === "string" && meta.last_seen_at ? meta.last_seen_at : flaggedAt,
+        };
+    } catch {
+        return {
+            rawEvidence: evidence,
+            occurrenceCount: 1,
+            firstSeenAt: flaggedAt,
+            lastSeenAt: flaggedAt,
+        };
+    }
+}
+
 export async function getStoredAgentAlerts(): Promise<StoredAgentAlert[]> {
     noStore();
     const { data, error } = await supabase
@@ -77,12 +119,16 @@ export async function getStoredAgentAlerts(): Promise<StoredAgentAlert[]> {
         const sessionJoin = Array.isArray(row.exam_sessions) ? row.exam_sessions[0] : row.exam_sessions;
         const studentJoin = sessionJoin ? (Array.isArray(sessionJoin.students) ? sessionJoin.students[0] : sessionJoin.students) : null;
         const examJoin = sessionJoin ? (Array.isArray(sessionJoin.exams) ? sessionJoin.exams[0] : sessionJoin.exams) : null;
+        const evidenceMeta = parseEvidenceMeta(row.evidence || "", row.flagged_at);
         return {
             id: row.id,
             session_id: row.session_id,
             flag_type: row.flag_type,
             description: row.description || "No description provided",
-            evidence: row.evidence || "",
+            evidence: evidenceMeta.rawEvidence,
+            occurrenceCount: evidenceMeta.occurrenceCount,
+            firstSeenAt: evidenceMeta.firstSeenAt,
+            lastSeenAt: evidenceMeta.lastSeenAt,
             severity: row.severity as "HIGH" | "MED" | "LOW",
             flagged_at: row.flagged_at,
             reviewed: row.reviewed,

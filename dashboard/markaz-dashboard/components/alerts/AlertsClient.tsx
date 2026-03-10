@@ -136,10 +136,14 @@ export default function AlertsClient({
                                         <div style={{ color: THEME.textSecondary, fontSize: "13px", marginTop: "4px" }}>{alert.exam.exam_name} · {alert.exam.class_number}</div>
                                     </div>
                                     <div style={{ color: THEME.textMuted, fontFamily: THEME.fontMono, fontSize: "12px" }}>
-                                        {formatTime(alert.flagged_at)}
+                                        Last seen: {formatTime(alert.lastSeenAt)}
                                     </div>
                                 </div>
                                 <div style={{ color: THEME.textSecondary, fontSize: "13px", lineHeight: 1.5 }}>{alert.description}</div>
+                                <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginTop: "10px", color: THEME.textMuted, fontFamily: THEME.fontMono, fontSize: "12px" }}>
+                                    <span>Occurred: {alert.occurrenceCount} time{alert.occurrenceCount === 1 ? "" : "s"}</span>
+                                    <span>First seen: {formatTime(alert.firstSeenAt)}</span>
+                                </div>
                                 {alert.evidence && (
                                     <div style={{ background: "rgba(0,0,0,0.3)", borderRadius: "8px", padding: "8px 12px", fontSize: "12px", fontFamily: THEME.fontMono, color: THEME.textMuted, marginTop: "8px", wordBreak: "break-all", whiteSpace: "pre-wrap" }}>
                                         {alert.evidence}

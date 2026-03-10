@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timezone
 from typing import Iterable
 
@@ -5,6 +6,63 @@ from backend.services.database import db
 
 
 SYSTEM_ALERT_PREFIX = "system_"
+MAX_OCCURRENCE_HISTORY = 10
+
+
+def _load_alert_meta(evidence: str) -> tuple[dict, str]:
+    if not evidence:
+        return {}, ""
+
+    try:
+        parsed = json.loads(evidence)
+    except json.JSONDecodeError:
+        return {}, evidence
+
+    if not isinstance(parsed, dict):
+        return {}, evidence
+
+    raw_evidence = parsed.get("raw_evidence", "")
+    if not isinstance(raw_evidence, str):
+        raw_evidence = evidence
+
+    return parsed, raw_evidence
+
+
+def _build_evidence_payload(
+    *,
+    existing_evidence: str,
+    description: str,
+    new_evidence: str,
+    flagged_at: str,
+) -> str:
+    meta, raw_evidence = _load_alert_meta(existing_evidence)
+    previous_count = meta.get("occurrence_count", 0)
+    if not isinstance(previous_count, int) or previous_count < 0:
+        previous_count = 0
+
+    first_seen_at = meta.get("first_seen_at", flagged_at)
+    if not isinstance(first_seen_at, str) or not first_seen_at:
+        first_seen_at = flagged_at
+
+    existing_occurrences = meta.get("occurrences", [])
+    if not isinstance(existing_occurrences, list):
+        existing_occurrences = []
+
+    occurrence = {
+        "at": flagged_at,
+        "description": description,
+        "evidence": new_evidence,
+    }
+    trimmed_occurrences = (existing_occurrences + [occurrence])[-MAX_OCCURRENCE_HISTORY:]
+
+    payload = {
+        "raw_evidence": new_evidence or raw_evidence,
+        "occurrence_count": previous_count + 1,
+        "first_seen_at": first_seen_at,
+        "last_seen_at": flagged_at,
+        "occurrences": trimmed_occurrences,
+    }
+    return json.dumps(payload)
 
 
 def create_system_alert(
@@ -18,15 +76,41 @@ def create_system_alert(
     if not flag_type.startswith(SYSTEM_ALERT_PREFIX):
         raise ValueError("System alert flag_type must start with 'system_'.")
 
-    db.client.table("flagged_events").insert({
+    flagged_at = datetime.now(timezone.utc).isoformat()
+    existing = (
+        db.client.table("flagged_events")
+        .select("id, evidence")
+        .eq("session_id", session_id)
+        .eq("flag_type", flag_type)
+        .order("flagged_at", desc=True)
+        .execute()
+    )
+
+    rows = existing.data or []
+    existing_evidence = rows[0].get("evidence", "") if rows else ""
+    payload = {
         "session_id": session_id,
         "flag_type": flag_type,
         "description": description,
-        "evidence": evidence,
+        "evidence": _build_evidence_payload(
+            existing_evidence=existing_evidence,
+            description=description,
+            new_evidence=evidence,
+            flagged_at=flagged_at,
+        ),
         "severity": severity,
-        "flagged_at": datetime.now(timezone.utc).isoformat(),
+        "flagged_at": flagged_at,
         "reviewed": False,
-    }).execute()
+    }
+
+    if rows:
+        keep_id = rows[0]["id"]
+        db.client.table("flagged_events").update(payload).eq("id", keep_id).execute()
+        for extra in rows[1:]:
+            db.client.table("flagged_events").delete().eq("id", extra["id"]).execute()
+        return
+
+    db.client.table("flagged_events").insert(payload).execute()
 
 
 def get_existing_system_alerts(session_id: str) -> list[dict]:

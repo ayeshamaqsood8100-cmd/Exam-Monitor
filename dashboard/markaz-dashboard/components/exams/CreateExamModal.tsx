@@ -4,10 +4,12 @@ import React, { useState } from "react";
 import { THEME } from "@/constants/theme";
 import Card from "@/components/ui/Card";
 
+import { type Exam } from "@/lib/exams";
+
 interface CreateExamModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSubmit: (formData: FormData) => Promise<{ error?: string }>;
+    onSubmit: (formData: FormData) => Promise<{ error?: string; exam?: Exam }>;
 }
 
 export default function CreateExamModal({ isOpen, onClose, onSubmit }: CreateExamModalProps): React.JSX.Element | null {
