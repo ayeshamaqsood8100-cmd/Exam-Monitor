@@ -17,7 +17,6 @@ export default function ExamsPageClient({ exams: initialExams }: ExamsPageClient
     const [isModalOpen, setIsModalOpen] = useState(false);
     const router = useRouter();
 
-    // Optimistic UI state locally to avoid needing immediate full page reload wait on toggle
     const [exams, setExams] = useState<Exam[]>(initialExams);
 
     const handleEndAndRemove = async (id: string) => {
@@ -52,9 +51,9 @@ export default function ExamsPageClient({ exams: initialExams }: ExamsPageClient
     };
 
     return (
-        <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px" }}>
-                <h1 style={{ color: THEME.textPrimary, fontSize: "26px", fontWeight: "bold", margin: 0 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+                <h1 style={{ color: THEME.textPrimary, fontSize: "28px", fontWeight: 600, letterSpacing: "-0.02em", margin: 0 }}>
                     Exams
                 </h1>
                 <button
@@ -63,22 +62,23 @@ export default function ExamsPageClient({ exams: initialExams }: ExamsPageClient
                         background: THEME.cyan,
                         color: THEME.bg,
                         border: "none",
-                        borderRadius: "8px",
-                        padding: "10px 20px",
-                        fontWeight: "bold",
+                        borderRadius: "10px",
+                        padding: "10px 18px",
+                        fontSize: "14px",
+                        fontWeight: 600,
                         cursor: "pointer",
                     }}
                 >
-                    New Exam +
+                    New Exam
                 </button>
             </div>
 
             {exams.length === 0 ? (
-                <Card style={{ padding: "48px", textAlign: "center", color: THEME.textMuted }}>
+                <Card style={{ padding: "44px", textAlign: "center", color: THEME.textSecondary, fontSize: "15px" }}>
                     No exams yet. Create your first exam to get started.
                 </Card>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     {exams.map((exam) => (
                         <ExamCard
                             key={exam.id}

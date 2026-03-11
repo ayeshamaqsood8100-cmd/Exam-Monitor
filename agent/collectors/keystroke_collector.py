@@ -3,6 +3,7 @@ Keystroke monitoring collector.
 Hooks the system keyboard to record keystrokes and buffers them thread-safely.
 """
 import threading
+import time
 from datetime import datetime, timezone
 from .. import platform_compat  # noqa: F401
 from pynput import keyboard
@@ -16,20 +17,41 @@ class KeystrokeCollector:
         self._buffer: list[dict] = []
         self._lock = threading.Lock()
         self._listener: keyboard.Listener | None = None
+        self._last_keypress_monotonic: float | None = None
+        self._listener_started_monotonic: float | None = None
         
     def start(self) -> None:
         """Starts the background keyboard listener daemon thread."""
-        if self._listener is not None:
+        if self._listener is not None and self._listener.is_alive():
             return
         # pynput Listener is naturally a daemon thread.
         self._listener = keyboard.Listener(on_press=self._on_press)
         self._listener.start()
+        self._listener_started_monotonic = time.monotonic()
         
     def stop(self) -> None:
         """Stops the underlying keyboard listener correctly."""
         if self._listener is not None:
             self._listener.stop()
             self._listener = None
+
+    def restart(self) -> None:
+        """Recreate the pynput listener if it becomes stale or dies silently."""
+        self.stop()
+        self.start()
+
+    def is_listener_alive(self) -> bool:
+        return bool(self._listener is not None and self._listener.is_alive())
+
+    def get_health_snapshot(self) -> dict[str, float | bool | None]:
+        now = time.monotonic()
+        return {
+            "listener_alive": self.is_listener_alive(),
+            "listener_started_monotonic": self._listener_started_monotonic,
+            "listener_uptime_seconds": None if self._listener_started_monotonic is None else now - self._listener_started_monotonic,
+            "seconds_since_last_keypress": None if self._last_keypress_monotonic is None else now - self._last_keypress_monotonic,
+            "last_keypress_monotonic": self._last_keypress_monotonic,
+        }
             
     def peek(self, limit: int = 500) -> list[dict]:
         """Atomically returns up to `limit` items from the front of the buffer."""
@@ -68,7 +90,9 @@ class KeystrokeCollector:
                 "key_data": key_data,
                 "captured_at": datetime.now(timezone.utc).isoformat()
             }
-            
+
+            self._last_keypress_monotonic = time.monotonic()
+
             with self._lock:
                 self._buffer.append(event)
                 

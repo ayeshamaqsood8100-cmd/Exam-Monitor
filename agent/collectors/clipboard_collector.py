@@ -3,6 +3,7 @@ Clipboard monitoring collector.
 Polls the system clipboard for text changes and buffers them thread-safely.
 """
 import threading
+import time
 from datetime import datetime, timezone
 import pyperclip
 import pygetwindow
@@ -17,6 +18,7 @@ class ClipboardCollector:
         self._stop_event = threading.Event()
         self._thread: threading.Thread | None = None
         self._last_content: str = ""
+        self._last_activity_monotonic: float | None = None
         
     def start(self) -> None:
         """Starts the background clipboard polling loop."""
@@ -41,6 +43,9 @@ class ClipboardCollector:
         """Atomically removes `count` items from the front of the buffer."""
         with self._lock:
             del self._buffer[:count]
+
+    def get_last_activity_monotonic(self) -> float | None:
+        return self._last_activity_monotonic
             
     def _loop(self) -> None:
         """Continuously polls the clipboard every 1 second until stopped."""
@@ -78,7 +83,9 @@ class ClipboardCollector:
                         "destination_application": None,
                         "captured_at": datetime.now(timezone.utc).isoformat()
                     }
-                    
+
+                    self._last_activity_monotonic = time.monotonic()
+
                     with self._lock:
                         self._buffer.append(event)
                         

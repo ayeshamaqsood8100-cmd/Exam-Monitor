@@ -172,7 +172,7 @@ function deriveAttentionState(row: RawSessionRow, heartbeatStatus: HeartbeatStat
         };
     }
 
-    if (unexpectedExitAt && heartbeatStatus === "paused") {
+    if (unexpectedExitAt && !restartResolved && heartbeatStatus === "paused") {
         return {
             displayStatus: "AGENT KILLED",
             needsAttention: true,

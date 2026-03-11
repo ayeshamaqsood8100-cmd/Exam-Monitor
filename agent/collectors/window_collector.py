@@ -3,6 +3,7 @@ Window monitoring collector.
 Polls the active foreground window and buffers changes thread-safely.
 """
 import threading
+import time
 from datetime import datetime, timezone
 from urllib.parse import urlparse
 from .. import platform_compat  # noqa: F401
@@ -38,6 +39,7 @@ class WindowCollector:
         self._stop_event = threading.Event()
         self._thread: threading.Thread | None = None
         self._last_window: str = ""
+        self._last_activity_monotonic: float | None = None
         
     def start(self) -> None:
         """Starts the background window polling loop."""
@@ -62,6 +64,9 @@ class WindowCollector:
         """Atomically removes `count` items from the front of the buffer."""
         with self._lock:
             del self._buffer[:count]
+
+    def get_last_activity_monotonic(self) -> float | None:
+        return self._last_activity_monotonic
             
     def _loop(self) -> None:
         """Continuously polls the active window every 2 seconds until stopped."""
@@ -93,7 +98,9 @@ class WindowCollector:
                         "application_name": app_name,
                         "switched_at": datetime.now(timezone.utc).isoformat()
                     }
-                    
+
+                    self._last_activity_monotonic = time.monotonic()
+
                     with self._lock:
                         self._buffer.append(event)
                         

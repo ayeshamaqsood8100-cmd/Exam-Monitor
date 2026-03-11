@@ -37,21 +37,34 @@ export default function CreateExamModal({ isOpen, onClose, onSubmit }: CreateExa
 
     const inputStyle: React.CSSProperties = {
         width: "100%",
-        background: "rgba(255,255,255,0.05)",
-        border: "1px solid rgba(255,255,255,0.1)",
-        borderRadius: "8px",
-        padding: "10px 14px",
+        background: "rgba(255,255,255,0.04)",
+        border: `1px solid ${THEME.cardBorder}`,
+        borderRadius: "10px",
+        padding: "11px 14px",
         color: THEME.textPrimary,
         fontFamily: THEME.fontSans,
+        fontSize: "14px",
         outline: "none",
-        marginBottom: "16px",
+        marginBottom: "18px",
     };
 
     const labelStyle: React.CSSProperties = {
         display: "block",
         color: THEME.textSecondary,
-        fontSize: "14px",
+        fontSize: "13px",
+        fontWeight: 500,
         marginBottom: "8px",
+    };
+
+    const secondaryButtonStyle: React.CSSProperties = {
+        minWidth: "110px",
+        background: "transparent",
+        border: `1px solid ${THEME.cardBorder}`,
+        color: THEME.textSecondary,
+        borderRadius: "10px",
+        padding: "11px 16px",
+        fontWeight: 600,
+        cursor: isSubmitting ? "not-allowed" : "pointer",
     };
 
     return (
@@ -62,12 +75,13 @@ export default function CreateExamModal({ isOpen, onClose, onSubmit }: CreateExa
                 left: 0,
                 right: 0,
                 bottom: 0,
-                background: "rgba(0,0,0,0.7)",
+                background: "rgba(0,0,0,0.72)",
                 backdropFilter: "blur(4px)",
                 zIndex: 100,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                padding: "20px",
             }}
             onClick={onClose}
         >
@@ -75,17 +89,17 @@ export default function CreateExamModal({ isOpen, onClose, onSubmit }: CreateExa
                 onClick={(e) => e.stopPropagation()}
                 style={{
                     width: "100%",
-                    maxWidth: "480px",
+                    maxWidth: "500px",
                     zIndex: 101,
                 }}
             >
-                <Card style={{ padding: "32px", display: "flex", flexDirection: "column", gap: "24px" }}>
-                    <h2 style={{ color: THEME.textPrimary, fontWeight: "bold", fontSize: "20px", margin: 0 }}>
+                <Card style={{ padding: "28px", display: "flex", flexDirection: "column", gap: "22px" }}>
+                    <h2 style={{ color: THEME.textPrimary, fontWeight: 600, fontSize: "21px", letterSpacing: "-0.01em", margin: 0 }}>
                         Create New Exam
                     </h2>
 
                     {errorMsg && (
-                        <div style={{ color: THEME.pink, fontSize: "14px", background: `${THEME.pink}1A`, padding: "12px", borderRadius: "8px" }}>
+                        <div style={{ color: THEME.pink, fontSize: "14px", background: `${THEME.pink}12`, border: `1px solid ${THEME.pink}30`, padding: "12px", borderRadius: "10px" }}>
                             {errorMsg}
                         </div>
                     )}
@@ -117,40 +131,31 @@ export default function CreateExamModal({ isOpen, onClose, onSubmit }: CreateExa
                             <input name="access_code" type="text" placeholder="e.g. SPRING25" required style={{ ...inputStyle, marginBottom: "24px" }} />
                         </div>
 
-                        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                        <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", flexWrap: "wrap" }}>
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                disabled={isSubmitting}
+                                style={secondaryButtonStyle}
+                            >
+                                Cancel
+                            </button>
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
                                 style={{
-                                    width: "100%",
+                                    minWidth: "140px",
                                     background: THEME.cyan,
                                     border: "none",
                                     color: THEME.bg,
-                                    borderRadius: "8px",
-                                    padding: "12px",
-                                    fontWeight: "bold",
+                                    borderRadius: "10px",
+                                    padding: "11px 16px",
+                                    fontWeight: 600,
                                     cursor: isSubmitting ? "wait" : "pointer",
                                     opacity: isSubmitting ? 0.7 : 1,
                                 }}
                             >
                                 {isSubmitting ? "Creating..." : "Create Exam"}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                disabled={isSubmitting}
-                                style={{
-                                    width: "100%",
-                                    background: "transparent",
-                                    border: `1px solid ${THEME.textMuted}`,
-                                    color: THEME.textSecondary,
-                                    borderRadius: "8px",
-                                    padding: "12px",
-                                    fontWeight: "bold",
-                                    cursor: isSubmitting ? "not-allowed" : "pointer",
-                                }}
-                            >
-                                Cancel
                             </button>
                         </div>
                     </form>

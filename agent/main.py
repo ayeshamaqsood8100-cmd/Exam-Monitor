@@ -3,6 +3,7 @@ Main entry point for the Markaz Exam Monitor desktop agent.
 Handles the basic interactive terminal interface for starting a session.
 """
 import sys
+import time
 import uuid
 import threading
 from typing import Optional
@@ -19,6 +20,11 @@ from .widget import MonitoringWidget
 from . import session_persist
 from . import autostart
 from .http_client import close_http_client, get_http_client
+
+KEYSTROKE_HEALTH_CHECK_INTERVAL_SECONDS = 15.0
+KEYSTROKE_HEALTH_STALE_AFTER_SECONDS = 90.0
+KEYSTROKE_HEALTH_INITIAL_GRACE_SECONDS = 30.0
+KEYSTROKE_HEALTH_ALERT_COOLDOWN_SECONDS = 300.0
 
 
 def validate_uuid(val: str) -> bool:
@@ -60,6 +66,11 @@ class AgentOrchestrator:
         self.widget: Optional[MonitoringWidget] = None
         self._resume_marker: dict | None = None
         self._saved_remote_status: Optional[str] = None
+        self._keystroke_health_thread: threading.Thread | None = None
+        self._keystroke_health_stop_event = threading.Event()
+        self._keystroke_alert_active = False
+        self._keystroke_last_alert_reason: Optional[str] = None
+        self._keystroke_last_alert_monotonic: float | None = None
 
     def _record_session_event(self, event_type: str, description: str, *, evidence: str = "", severity: str = "LOW") -> None:
         if not self.session_id:
@@ -287,6 +298,113 @@ class AgentOrchestrator:
         elif status == "terminated":
             self.shutdown(source="system")
 
+    def _start_keystroke_health_monitor(self) -> None:
+        if self._keystroke_health_thread and self._keystroke_health_thread.is_alive():
+            return
+
+        self._keystroke_health_stop_event.clear()
+        self._keystroke_health_thread = threading.Thread(target=self._keystroke_health_loop, daemon=True)
+        self._keystroke_health_thread.start()
+
+    def _stop_keystroke_health_monitor(self) -> None:
+        self._keystroke_health_stop_event.set()
+        if self._keystroke_health_thread and self._keystroke_health_thread.is_alive() and threading.current_thread() is not self._keystroke_health_thread:
+            self._keystroke_health_thread.join(timeout=2.5)
+        self._keystroke_health_thread = None
+
+    def _keystroke_health_loop(self) -> None:
+        while not self._keystroke_health_stop_event.wait(KEYSTROKE_HEALTH_CHECK_INTERVAL_SECONDS):
+            if self._is_shutting_down or not self._is_monitoring_active:
+                continue
+            self._check_keystroke_health()
+
+    def _check_keystroke_health(self) -> None:
+        collector = self.keystroke_collector
+        if collector is None:
+            return
+
+        snapshot = collector.get_health_snapshot()
+        reason = self._get_keystroke_unhealthy_reason(snapshot)
+
+        if reason is None:
+            if self._keystroke_alert_active:
+                self._record_session_event(
+                    "system_keystroke_collector_recovered",
+                    "The keystroke collector recovered after becoming unresponsive.",
+                    evidence=self._keystroke_last_alert_reason or "Recovered after a local listener restart.",
+                    severity="LOW",
+                )
+                self._keystroke_alert_active = False
+                self._keystroke_last_alert_reason = None
+                self._keystroke_last_alert_monotonic = None
+            return
+
+        now = time.monotonic()
+        should_emit_alert = (
+            not self._keystroke_alert_active
+            or self._keystroke_last_alert_monotonic is None
+            or (now - self._keystroke_last_alert_monotonic) >= KEYSTROKE_HEALTH_ALERT_COOLDOWN_SECONDS
+        )
+
+        if should_emit_alert:
+            self._record_session_event(
+                "system_keystroke_collector_unhealthy",
+                "The keystroke collector became unresponsive while other agent activity continued.",
+                evidence=reason,
+                severity="MED",
+            )
+            self._keystroke_alert_active = True
+            self._keystroke_last_alert_reason = reason
+            self._keystroke_last_alert_monotonic = now
+
+        self._restart_keystroke_collector(reason)
+
+    def _get_keystroke_unhealthy_reason(self, snapshot: dict[str, float | bool | None]) -> Optional[str]:
+        listener_alive = bool(snapshot.get("listener_alive"))
+        if not listener_alive:
+            return "pynput keyboard listener is no longer alive."
+
+        listener_started = snapshot.get("listener_started_monotonic")
+        listener_uptime = snapshot.get("listener_uptime_seconds")
+        if listener_uptime is None or listener_uptime < KEYSTROKE_HEALTH_INITIAL_GRACE_SECONDS:
+            return None
+
+        last_keypress = snapshot.get("last_keypress_monotonic")
+        last_window_activity = self.window_collector.get_last_activity_monotonic() if self.window_collector else None
+        last_clipboard_activity = self.clipboard_collector.get_last_activity_monotonic() if self.clipboard_collector else None
+        other_activity = max(
+            [value for value in (last_window_activity, last_clipboard_activity) if value is not None],
+            default=None,
+        )
+
+        if other_activity is None:
+            return None
+
+        if last_keypress is None:
+            if listener_started is not None and other_activity > listener_started:
+                return "No keystrokes were captured even though other local activity was recorded after the listener started."
+            return None
+
+        if other_activity > last_keypress and (other_activity - last_keypress) >= KEYSTROKE_HEALTH_STALE_AFTER_SECONDS:
+            seconds_since_last_keypress = snapshot.get("seconds_since_last_keypress")
+            if seconds_since_last_keypress is not None and seconds_since_last_keypress >= KEYSTROKE_HEALTH_STALE_AFTER_SECONDS:
+                return (
+                    f"Last keystroke was {int(seconds_since_last_keypress)}s ago while window or clipboard activity continued."
+                )
+
+        return None
+
+    def _restart_keystroke_collector(self, reason: str) -> None:
+        with self._monitoring_lock:
+            if not self._is_monitoring_active or self._is_shutting_down or self.keystroke_collector is None:
+                return
+
+            try:
+                self.keystroke_collector.restart()
+                print(f"[HEALTH] Keystroke collector restarted: {reason}")
+            except Exception as e:
+                print(f"[HEALTH] Warning: failed to restart keystroke collector - {e}")
+
     def _start_monitoring(self) -> None:
         with self._monitoring_lock:
             if self._is_monitoring_active or not self.session_id or not self.erp:
@@ -300,6 +418,10 @@ class AgentOrchestrator:
             self.clipboard_collector.start()
             self.keystroke_collector.start()
             print("[COLLECTORS] Monitoring collectors started")
+            self._keystroke_alert_active = False
+            self._keystroke_last_alert_reason = None
+            self._keystroke_last_alert_monotonic = None
+            self._start_keystroke_health_monitor()
 
             self.sync_engine = SyncEngine(
                 self.session_id,
@@ -334,6 +456,7 @@ class AgentOrchestrator:
                 return
 
             print("[CONTROL] Remote pause received")
+            self._stop_keystroke_health_monitor()
 
             if self.widget:
                 self.widget.hide()
