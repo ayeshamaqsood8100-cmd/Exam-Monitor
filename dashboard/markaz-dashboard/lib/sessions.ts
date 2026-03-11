@@ -101,6 +101,16 @@ interface HeartbeatRow {
     last_heartbeat_at: string | null;
 }
 
+function parseEventTime(value: string | null): number {
+    if (!value) return 0;
+    const timestamp = new Date(value).getTime();
+    return Number.isNaN(timestamp) ? 0 : timestamp;
+}
+
+function isResolvedByLaterRestart(unexpectedExitAt: string | null, rebootRestartAt: string | null): boolean {
+    return parseEventTime(rebootRestartAt) > parseEventTime(unexpectedExitAt);
+}
+
 function getHeartbeatStatus(row: HeartbeatRow, heartbeatCutoff: Date): HeartbeatStatus {
     if (row.status === "terminated") return "terminated";
     if (row.status === "completed") return "completed";
@@ -122,6 +132,7 @@ function deriveAttentionState(row: RawSessionRow, heartbeatStatus: HeartbeatStat
     const lateEndAt = newestUnreviewedEventAt(systemEvents, "system_session_ended_after_exam_end");
     const unexpectedExitAt = newestUnreviewedEventAt(systemEvents, "system_agent_process_exited_unexpectedly");
     const rebootRestartAt = newestUnreviewedEventAt(systemEvents, "system_agent_restarted_after_reboot");
+    const restartResolved = isResolvedByLaterRestart(unexpectedExitAt, rebootRestartAt);
 
     if (row.status === "completed") {
         if (earlyEndAt) {
@@ -218,6 +229,7 @@ function deriveAttentionStateFromSummary(
     const lateEndAt = row.late_end_at;
     const unexpectedExitAt = row.unexpected_exit_at;
     const rebootRestartAt = row.reboot_restart_at;
+    const restartResolved = isResolvedByLaterRestart(unexpectedExitAt, rebootRestartAt);
 
     if (row.status === "completed") {
         if (earlyEndAt) {
@@ -257,7 +269,7 @@ function deriveAttentionStateFromSummary(
         };
     }
 
-    if (unexpectedExitAt && heartbeatStatus === "paused") {
+    if (unexpectedExitAt && !restartResolved && heartbeatStatus === "paused") {
         return {
             displayStatus: "AGENT KILLED",
             needsAttention: true,
