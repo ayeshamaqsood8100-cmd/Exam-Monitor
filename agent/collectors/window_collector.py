@@ -4,8 +4,29 @@ Polls the active foreground window and buffers changes thread-safely.
 """
 import threading
 from datetime import datetime, timezone
+from urllib.parse import urlparse
 from .. import platform_compat  # noqa: F401
 import pygetwindow
+
+
+def _pick_title(active_win, fallback_title: str) -> str:
+    """Prefer focused page metadata on macOS when it is available."""
+    tab_title = getattr(active_win, "tab_title", None) if active_win is not None else None
+    tab_url = getattr(active_win, "tab_url", None) if active_win is not None else None
+    app_name = getattr(active_win, "app_name", None) if active_win is not None else None
+
+    if tab_title:
+        return str(tab_title).strip()
+
+    if tab_url:
+        parsed = urlparse(str(tab_url).strip())
+        compact_url = parsed.netloc + parsed.path if parsed.netloc else parsed.path or str(tab_url).strip()
+        compact_url = compact_url[:140]
+        if app_name:
+            return f"{compact_url} - {app_name}"
+        return compact_url
+
+    return fallback_title
 
 class WindowCollector:
     """
@@ -47,8 +68,13 @@ class WindowCollector:
         while not self._stop_event.is_set():
             try:
                 active_win = pygetwindow.getActiveWindow()
+                app_name = "Unknown"
                 if active_win is not None:
-                    current_title = active_win.title
+                    fallback_title = active_win.title
+                    current_title = _pick_title(active_win, fallback_title)
+                    explicit_app_name = getattr(active_win, "app_name", None)
+                    if explicit_app_name:
+                        app_name = explicit_app_name
                 else:
                     current_title = "Unknown"
                     
@@ -56,11 +82,10 @@ class WindowCollector:
                 if current_title != self._last_window:
                     self._last_window = current_title
                     
-                    # Attempt crude extraction of application name (often after final dash in Windows)
-                    app_name = "Unknown"
-                    if " - " in current_title:
+                    # Fall back to a title split only when the window shim did not provide an app name.
+                    if app_name == "Unknown" and " - " in current_title:
                         app_name = current_title.split(" - ")[-1].strip()
-                    elif current_title:
+                    elif app_name == "Unknown" and current_title:
                         app_name = current_title
 
                     event = {
