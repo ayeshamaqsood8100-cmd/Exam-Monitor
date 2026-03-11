@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
-from backend.models.session import SessionStartModel, SessionEndModel, SessionPauseModel, SessionRestartModel, SessionEventModel
+from backend.models.session import SessionStartModel, SessionEndModel, SessionPauseModel, SessionRestartModel, SessionEventModel, ExamTerminateModel
 from backend.services.security import verify_api_key
-from backend.services.session_service import start_session, end_session, pause_session, restart_session, TransientSessionError
+from backend.services.session_service import start_session, end_session, pause_session, restart_session, terminate_exam_sessions, TransientSessionError
 from backend.services.alert_service import create_system_alert
 from backend.services.database import db
 
@@ -126,6 +126,26 @@ async def process_session_restart(payload: SessionRestartModel):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An unexpected error occurred while restarting the session."
+        )
+
+
+@router.post("/exam/terminate", dependencies=[Depends(verify_api_key)])
+async def process_exam_terminate(payload: ExamTerminateModel):
+    try:
+        terminated = terminate_exam_sessions(payload.exam_id)
+        return {"status": "ok", "sessions_terminated": terminated}
+
+    except TransientSessionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(e)
+        )
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred while terminating the exam."
         )
 
 

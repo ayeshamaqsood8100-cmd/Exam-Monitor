@@ -25,3 +25,7 @@ class SessionEventModel(BaseModel):
     description: str
     evidence: str = ""
     severity: Literal["HIGH", "MED", "LOW"] = "LOW"
+
+class ExamTerminateModel(BaseModel):
+    exam_id: UUID
+

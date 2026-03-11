@@ -1,7 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createExam, toggleForceStop, type CreateExamPayload } from "@/lib/exams";
+import { createExam, type CreateExamPayload } from "@/lib/exams";
+import { postToBackend } from "@/lib/backendApi";
 
 export async function createExamAction(formData: FormData): Promise<{ error?: string; exam?: Awaited<ReturnType<typeof createExam>> }> {
     try {
@@ -26,9 +27,9 @@ export async function createExamAction(formData: FormData): Promise<{ error?: st
     }
 }
 
-export async function toggleForceStopAction(id: string, current: boolean): Promise<{ error?: string }> {
+export async function endAndRemoveExamAction(id: string): Promise<{ error?: string }> {
     try {
-        await toggleForceStop(id, current);
+        await postToBackend<{ status: string }>("/exam/terminate", { exam_id: id });
         revalidatePath("/exams");
         return {};
     } catch (error: unknown) {

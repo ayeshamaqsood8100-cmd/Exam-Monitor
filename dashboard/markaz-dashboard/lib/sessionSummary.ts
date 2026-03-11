@@ -24,6 +24,7 @@ export interface SessionSummaryData {
         start: string;
         end: string | null;
         status: string;
+        display_status: string;
         last_heartbeat: string | null;
     };
     stats: {
@@ -31,6 +32,7 @@ export interface SessionSummaryData {
         windows: number;
         clipboard: number;
         flags: number;
+        agent_events: number;
         syncs: number;
         offline_periods: number;
     };
@@ -45,6 +47,15 @@ export interface SessionSummaryData {
         flagged_at: string;
         description: string | null;
         evidence: string | null;
+    }[];
+    agentEvents: {
+        id: string;
+        severity: "HIGH" | "MED" | "LOW";
+        flag_type: string;
+        flagged_at: string;
+        description: string | null;
+        evidence: string | null;
+        reviewed: boolean;
     }[];
     windows: {
         switched_at: string;
@@ -70,6 +81,22 @@ export interface SessionSummaryData {
 function formatDateToKarachi(dateString: string | null): string {
     if (!dateString) return "";
     return new Date(dateString).toLocaleString("en-US", { timeZone: "Asia/Karachi" });
+}
+
+function deriveSessionDisplayStatus(status: string, lastHeartbeatAt: string | null, agentEvents: { flag_type: string; reviewed: boolean }[]): string {
+    const hasUnreviewedEarlyEnd = agentEvents.some((event) => event.flag_type === "system_session_ended_before_exam_end" && !event.reviewed);
+    const hasUnreviewedKill = agentEvents.some((event) => event.flag_type === "system_agent_process_exited_unexpectedly" && !event.reviewed);
+    const hasUnreviewedReboot = agentEvents.some((event) => event.flag_type === "system_agent_restarted_after_reboot" && !event.reviewed);
+    const heartbeatLost = status === "active" && (!lastHeartbeatAt || new Date(lastHeartbeatAt).getTime() < Date.now() - 12000);
+
+    if (status === "completed" && hasUnreviewedEarlyEnd) return "COMPLETED - ENDED EARLY";
+    if (status === "terminated") return "TERMINATED";
+    if (status === "completed") return "COMPLETED";
+    if (status === "paused" && hasUnreviewedKill) return "AGENT KILLED";
+    if (heartbeatLost) return "AGENT LOST";
+    if (status === "active" && hasUnreviewedReboot) return "RESTARTED AFTER REBOOT";
+    if (status === "paused") return "PAUSED";
+    return "ACTIVE";
 }
 
 export async function getSessionSummary(sessionId: string): Promise<SessionSummaryData | null> {
@@ -98,7 +125,7 @@ export async function getSessionSummary(sessionId: string): Promise<SessionSumma
     ]);
 
     // Queried separately to avoid Next.js fetch cache returning stale empty results
-    const flagsRes = await supabase.from("flagged_events").select("id, severity, flag_type, flagged_at, description, evidence").eq("session_id", sessionId).order("flagged_at", { ascending: true });
+    const flagsRes = await supabase.from("flagged_events").select("id, severity, flag_type, flagged_at, description, evidence, reviewed").eq("session_id", sessionId).order("flagged_at", { ascending: true });
 
     if (sessionRes.error || !sessionRes.data) return null;
 
@@ -126,6 +153,11 @@ export async function getSessionSummary(sessionId: string): Promise<SessionSumma
         }
     }
 
+    const allFlags = flagsRes.data || [];
+    const cheatingFlags = allFlags.filter((row) => !row.flag_type.startsWith("system_"));
+    const agentEvents = allFlags.filter((row) => row.flag_type.startsWith("system_"));
+    const displayStatus = deriveSessionDisplayStatus(data.status, data.last_heartbeat_at, agentEvents);
+
     return {
         sessionId: sessionId,
         exam_id: data.exam_id,
@@ -141,13 +173,15 @@ export async function getSessionSummary(sessionId: string): Promise<SessionSumma
             start: formatDateToKarachi(data.session_start),
             end: formatDateToKarachi(data.session_end),
             status: data.status,
+            display_status: displayStatus,
             last_heartbeat: formatDateToKarachi(data.last_heartbeat_at)
         },
         stats: {
             keystrokes: keystrokesRes.count || 0,
             windows: windowsRes.data?.length || 0,
             clipboard: clipboardRes.data?.length || 0,
-            flags: flagsRes.data?.length || 0,
+            flags: cheatingFlags.length,
+            agent_events: agentEvents.length,
             syncs: telemetryRes.data?.length || 0,
             offline_periods: offlinePeriodsCount
         },
@@ -155,13 +189,22 @@ export async function getSessionSummary(sessionId: string): Promise<SessionSumma
             agent_version: consentRes.data?.agent_version || "Unknown",
             consented_at: formatDateToKarachi(consentRes.data?.consented_at || null)
         },
-        flags: (flagsRes.data || []).map(row => ({
+        flags: cheatingFlags.map(row => ({
             id: row.id,
             severity: row.severity as "HIGH" | "MED" | "LOW",
             flag_type: row.flag_type,
             flagged_at: formatDateToKarachi(row.flagged_at),
             description: row.description,
             evidence: row.evidence
+        })),
+        agentEvents: agentEvents.map(row => ({
+            id: row.id,
+            severity: row.severity as "HIGH" | "MED" | "LOW",
+            flag_type: row.flag_type,
+            flagged_at: formatDateToKarachi(row.flagged_at),
+            description: row.description,
+            evidence: row.evidence,
+            reviewed: row.reviewed
         })),
         windows: (windowsRes.data || []).map(row => ({
             switched_at: formatDateToKarachi(row.switched_at),

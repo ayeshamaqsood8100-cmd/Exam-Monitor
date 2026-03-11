@@ -8,8 +8,8 @@ def update_heartbeat(session_id: UUID) -> dict:
     status_res = db.client.table("exam_sessions").select("status").eq("id", str(session_id)).execute()
     if status_res.data and len(status_res.data) > 0:
         session_status = status_res.data[0].get("status", "")
-        if session_status == "completed":
-            return {"updated": False, "force_stop": True}
+        if session_status in {"completed", "terminated"}:
+            return {"updated": True, "force_stop": True}
         if session_status == "paused":
             return {"updated": True, "force_stop": False}
 

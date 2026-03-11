@@ -5,6 +5,7 @@ Saves the active session_id to a local JSON file so the agent can
 resume the same session after a crash, kill, or laptop reboot.
 """
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, Dict, Any
 
@@ -13,6 +14,8 @@ import httpx
 from .config import settings
 
 _SESSION_FILE = Path.home() / ".markaz_session.json"
+_BLOCK_FILE = Path.home() / ".markaz_blocked"
+_RESTART_FILE = Path.home() / ".markaz_restart.json"
 
 
 def save_session(
@@ -74,9 +77,66 @@ def clear_session() -> None:
             _SESSION_FILE.unlink()
     except Exception as e:
         print(f"[PERSIST] Warning: could not delete session file - {e}")
+    clear_restart_marker()
 
 
-def check_session_active(session_id: str) -> bool:
+def is_device_blocked() -> bool:
+    return _BLOCK_FILE.exists()
+
+
+def block_device(reason: str = "Exam ended") -> None:
+    payload = {
+        "blocked_at": datetime.now(timezone.utc).isoformat(),
+        "reason": reason,
+    }
+    try:
+        _BLOCK_FILE.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    except Exception as e:
+        print(f"[PERSIST] Warning: could not write device block file - {e}")
+
+
+def clear_device_block() -> None:
+    try:
+        if _BLOCK_FILE.exists():
+            _BLOCK_FILE.unlink()
+    except Exception as e:
+        print(f"[PERSIST] Warning: could not delete device block file - {e}")
+
+
+def save_restart_marker(session_id: str, reason: str, *, evidence: str = "") -> None:
+    payload = {
+        "session_id": session_id,
+        "reason": reason,
+        "evidence": evidence,
+        "recorded_at": datetime.now(timezone.utc).isoformat(),
+    }
+    try:
+        _RESTART_FILE.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    except Exception as e:
+        print(f"[PERSIST] Warning: could not write restart marker - {e}")
+
+
+def load_restart_marker() -> Optional[Dict[str, Any]]:
+    if not _RESTART_FILE.exists():
+        return None
+    try:
+        data = json.loads(_RESTART_FILE.read_text(encoding="utf-8"))
+        if data.get("session_id") and data.get("reason"):
+            return data
+    except Exception:
+        return None
+    return None
+
+
+def clear_restart_marker() -> None:
+    try:
+        if _RESTART_FILE.exists():
+            _RESTART_FILE.unlink()
+    except Exception as e:
+        print(f"[PERSIST] Warning: could not delete restart marker - {e}")
+
+
+def get_remote_session_status(session_id: str) -> str | None:
     try:
         url = f"{settings.BACKEND_URL.rstrip('/')}/session/status"
         headers = {
@@ -88,8 +148,14 @@ def check_session_active(session_id: str) -> bool:
 
         if response.status_code == 200:
             data = response.json()
-            status = data.get("status", "")
-            return status in {"active", "paused"}
-        return False
+            return str(data.get("status", "")).lower()
+        return None
     except Exception:
+        return None
+
+
+def check_session_active(session_id: str) -> bool:
+    status = get_remote_session_status(session_id)
+    if status is None:
         return True
+    return status in {"active", "paused", "completed"}

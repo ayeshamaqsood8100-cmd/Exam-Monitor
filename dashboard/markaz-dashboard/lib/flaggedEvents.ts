@@ -25,6 +25,7 @@ export async function getAllFlaggedEvents(): Promise<FlaggedEventWithContext[]> 
     const { data, error } = await supabase
         .from("flagged_events")
         .select(`id, session_id, flag_type, description, evidence, severity, flagged_at, reviewed, exam_sessions!flagged_events_session_id_fkey ( student_id, exam_id, students (name, erp), exams (exam_name, class_number) )`)
+        .not("flag_type", "like", "system_%")
         .order("flagged_at", { ascending: false });
     if (error) throw new Error(`Failed to fetch flagged events: ${error.message}`);
     const rawData = (data as unknown) as JoinedFlagResponse[];

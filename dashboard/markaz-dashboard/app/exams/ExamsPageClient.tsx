@@ -7,7 +7,7 @@ import { THEME } from "@/constants/theme";
 import ExamCard from "@/components/exams/ExamCard";
 import CreateExamModal from "@/components/exams/CreateExamModal";
 import Card from "@/components/ui/Card";
-import { toggleForceStopAction, createExamAction } from "@/app/exams/actions";
+import { endAndRemoveExamAction, createExamAction } from "@/app/exams/actions";
 
 interface ExamsPageClientProps {
     exams: Exam[];
@@ -20,22 +20,23 @@ export default function ExamsPageClient({ exams: initialExams }: ExamsPageClient
     // Optimistic UI state locally to avoid needing immediate full page reload wait on toggle
     const [exams, setExams] = useState<Exam[]>(initialExams);
 
-    const handleForceStopToggle = async (id: string, current: boolean) => {
-        // Optimistic cache update
+    const handleEndAndRemove = async (id: string) => {
+        const confirmEnd = confirm("End & remove this exam for all students? This permanently removes the agent from their devices.");
+        if (!confirmEnd) return;
+
         setExams((prev) =>
             prev.map((exam) =>
-                exam.id === id ? { ...exam, force_stop: !current } : exam
+                exam.id === id ? { ...exam, force_stop: true } : exam
             )
         );
 
-        const result = await toggleForceStopAction(id, current);
+        const result = await endAndRemoveExamAction(id);
 
-        // Revert state strictly on error
         if (result.error) {
-            alert(`Error toggling force stop: ${result.error}`);
+            alert(`Error ending exam: ${result.error}`);
             setExams((prev) =>
                 prev.map((exam) =>
-                    exam.id === id ? { ...exam, force_stop: current } : exam
+                    exam.id === id ? { ...exam, force_stop: false } : exam
                 )
             );
         }
@@ -82,7 +83,7 @@ export default function ExamsPageClient({ exams: initialExams }: ExamsPageClient
                         <ExamCard
                             key={exam.id}
                             exam={exam}
-                            onForceStopToggle={handleForceStopToggle}
+                            onEndAndRemove={handleEndAndRemove}
                         />
                     ))}
                 </div>

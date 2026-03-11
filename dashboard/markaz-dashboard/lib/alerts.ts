@@ -185,3 +185,22 @@ export async function getAgentAlertsSnapshot(): Promise<{
     ]);
     return { liveAlerts, storedAlerts };
 }
+
+export async function markAgentAlertReviewed(id: string): Promise<void> {
+    const { error } = await supabase.from("flagged_events").update({ reviewed: true }).eq("id", id);
+    if (error) throw new Error(`Failed to mark agent alert as reviewed: ${error.message}`);
+}
+
+export async function markSessionAgentAlertsReviewed(sessionId: string, flagTypes: string[]): Promise<void> {
+    if (flagTypes.length === 0) {
+        return;
+    }
+
+    const { error } = await supabase
+        .from("flagged_events")
+        .update({ reviewed: true })
+        .eq("session_id", sessionId)
+        .in("flag_type", flagTypes);
+
+    if (error) throw new Error(`Failed to clear agent alerts for session: ${error.message}`);
+}

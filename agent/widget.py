@@ -98,7 +98,7 @@ class MonitoringWidget:
         tk.Label(code_frame, text="CODE", font=("Segoe UI", 8, "bold"), bg=bg_box, fg="#d1d1d1").pack(anchor=tk.CENTER, pady=(0, 2))
         tk.Label(code_frame, text=self.access_code, font=("Consolas", 16, "bold"), bg=bg_box, fg="#ffffff").pack(anchor=tk.CENTER)
         
-        # End Session Action Area
+        # End & Remove Action Area
         btn_canvas = tk.Canvas(frame, bg=bg_main, highlightthickness=0, height=36, cursor="hand2")
         btn_canvas.pack(fill=tk.X, pady=(4, 0))
 
@@ -213,10 +213,10 @@ class MonitoringWidget:
         frame = tk.Frame(dialog, padx=24, pady=24, bg=bg_modal, highlightbackground="#404040", highlightthickness=1)
         frame.pack(fill=tk.BOTH, expand=True)
         
-        tk.Label(frame, text="Terminate Session?", font=("Segoe UI", 16, "bold"), bg=bg_modal, fg="#ffffff").pack(anchor=tk.W, pady=(0, 6))
+        tk.Label(frame, text="End Session?", font=("Segoe UI", 16, "bold"), bg=bg_modal, fg="#ffffff").pack(anchor=tk.W, pady=(0, 6))
         
         # Squeeze horizontal text explicitly
-        msg = "This will secure and encrypt your exam data for transfer. This action cannot be undone."
+        msg = "This will end monitoring and remove the agent from this device. This action cannot be undone."
         tk.Label(frame, text=msg, font=("Segoe UI", 9), bg=bg_modal, fg="#d1d1d1", justify=tk.LEFT, wraplength=260).pack(anchor=tk.W, pady=(0, 16))
         
         tk.Label(frame, text="CONFIRM WITH CODE", font=("Segoe UI", 8, "bold"), bg=bg_modal, fg="#b3b3b3").pack(anchor=tk.W, pady=(0, 4))
@@ -280,9 +280,9 @@ class MonitoringWidget:
         cancel_cvs.bind("<Leave>", lambda e: _draw_dialog_btn(cancel_cvs, cancel_cvs.winfo_width(), cancel_cvs.winfo_height(), "Cancel", "#333333", "#4d4d4d", False))
         cancel_cvs.tag_bind("btn", "<ButtonRelease-1>", on_cancel)
 
-        confirm_cvs.bind("<Configure>", lambda e: _draw_dialog_btn(confirm_cvs, e.width, e.height, "Confirm Exit", "#b0243b", "#c22a42"))
-        confirm_cvs.bind("<Enter>", lambda e: _draw_dialog_btn(confirm_cvs, confirm_cvs.winfo_width(), confirm_cvs.winfo_height(), "Confirm Exit", "#b0243b", "#c22a42", True))
-        confirm_cvs.bind("<Leave>", lambda e: _draw_dialog_btn(confirm_cvs, confirm_cvs.winfo_width(), confirm_cvs.winfo_height(), "Confirm Exit", "#b0243b", "#c22a42", False))
+        confirm_cvs.bind("<Configure>", lambda e: _draw_dialog_btn(confirm_cvs, e.width, e.height, "Confirm End", "#b0243b", "#c22a42"))
+        confirm_cvs.bind("<Enter>", lambda e: _draw_dialog_btn(confirm_cvs, confirm_cvs.winfo_width(), confirm_cvs.winfo_height(), "Confirm End", "#b0243b", "#c22a42", True))
+        confirm_cvs.bind("<Leave>", lambda e: _draw_dialog_btn(confirm_cvs, confirm_cvs.winfo_width(), confirm_cvs.winfo_height(), "Confirm End", "#b0243b", "#c22a42", False))
         confirm_cvs.tag_bind("btn", "<ButtonRelease-1>", on_submit)
         
         dialog.bind("<Return>", on_submit)

@@ -70,6 +70,31 @@ export default function SessionSummaryClient({ data }: SessionSummaryClientProps
         }
     };
 
+    const [forceEnding, setForceEnding] = useState(false);
+    const [forceEndResult, setForceEndResult] = useState<string | null>(null);
+
+    const handleForceEnd = async () => {
+        if (!confirm("End this student's session? The agent will be removed from their device. This cannot be undone.")) return;
+        setForceEnding(true);
+        setForceEndResult(null);
+        try {
+            const res = await fetch(`/api/force-end/${data.sessionId}`, { method: "POST" });
+            if (!res.ok) {
+                const err = await res.json();
+                setForceEndResult(`Error: ${err.error || "Unknown error"}`);
+            } else {
+                setForceEndResult("✓ Session ended. Agent is shutting down on the student’s device.");
+                setTimeout(() => router.refresh(), 1500);
+            }
+        } catch {
+            setForceEndResult("Error: Network error");
+        } finally {
+            setForceEnding(false);
+        }
+    };
+
+    const earlyExitFlag = data.flags.find(f => f.flag_type === "system_session_ended_before_exam_end");
+
     const highFlags = data.flags.filter(f => f.severity === "HIGH").length;
     const medFlags = data.flags.filter(f => f.severity === "MED").length;
     const lowFlags = data.flags.filter(f => f.severity === "LOW").length;
@@ -94,8 +119,8 @@ export default function SessionSummaryClient({ data }: SessionSummaryClientProps
 
                 <div style={{
                     display: "flex", alignItems: "center", gap: "8px",
-                    background: data.session.status === "completed" ? `${THEME.cyan}0F` : `${THEME.yellow}0F`,
-                    border: `1px solid ${data.session.status === "completed" ? THEME.cyan : THEME.yellow}26`,
+                    background: data.session.status === "terminated" ? `${THEME.pink}0F` : data.session.status === "completed" ? `${THEME.cyan}0F` : `${THEME.yellow}0F`,
+                    border: `1px solid ${data.session.status === "terminated" ? THEME.pink : data.session.status === "completed" ? THEME.cyan : THEME.yellow}26`,
                     borderRadius: "20px", padding: "5px 12px"
                 }}>
                     <div
@@ -199,6 +224,35 @@ export default function SessionSummaryClient({ data }: SessionSummaryClientProps
                             )}
                         </button>
                     )}
+
+                    {/* End Session button — only for active sessions */}
+                    {data.session.status === "active" && (
+                        <button
+                            onClick={handleForceEnd}
+                            disabled={forceEnding}
+                            style={{
+                                display: "flex", alignItems: "center", gap: "8px",
+                                background: forceEnding ? "rgba(255,255,255,0.05)" : "rgba(255,100,0,0.12)",
+                                border: `1px solid ${forceEnding ? "rgba(255,255,255,0.1)" : "rgba(255,100,0,0.4)"}`,
+                                color: forceEnding ? THEME.textMuted : "#ff6400",
+                                padding: "10px 20px", borderRadius: "10px",
+                                fontSize: "13px", fontWeight: 600,
+                                cursor: forceEnding ? "not-allowed" : "pointer",
+                                transition: "all 0.2s ease"
+                            }}
+                            onMouseEnter={(e) => { if (!forceEnding) e.currentTarget.style.boxShadow = "0 0 20px rgba(255,100,0,0.2)"; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "none"; }}
+                        >
+                            {forceEnding ? (
+                                <>
+                                    <span style={{ display: "inline-block", width: "14px", height: "14px", border: "2px solid rgba(255,255,255,0.2)", borderTopColor: "#ff6400", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                                    Ending...
+                                </>
+                            ) : (
+                                <>🛑 End Session</>
+                            )}
+                        </button>
+                    )}
                 </div>
 
                 {/* Analysis result message */}
@@ -235,7 +289,45 @@ export default function SessionSummaryClient({ data }: SessionSummaryClientProps
                         {stopResult}
                     </div>
                 )}
+
+                {forceEndResult && (
+                    <div style={{
+                        marginTop: "12px",
+                        fontSize: "13px",
+                        fontWeight: 500,
+                        color: forceEndResult.startsWith("✓") ? THEME.cyan : THEME.pink,
+                        padding: "8px 14px",
+                        background: forceEndResult.startsWith("✓") ? `${THEME.cyan}10` : `${THEME.pink}10`,
+                        border: `1px solid ${forceEndResult.startsWith("✓") ? `${THEME.cyan}30` : `${THEME.pink}30`}`,
+                        borderRadius: "8px",
+                        display: "inline-block",
+                        marginLeft: "8px"
+                    }}>
+                        {forceEndResult}
+                    </div>
+                )}
             </div>
+
+            {/* Early-exit warning banner */}
+            {earlyExitFlag && (
+                <div style={{
+                    background: `${THEME.yellow}0F`,
+                    border: `1px solid ${THEME.yellow}40`,
+                    borderRadius: "12px", padding: "14px 20px", marginBottom: "16px",
+                    display: "flex", alignItems: "center", gap: "12px"
+                }}>
+                    <span style={{ fontSize: "18px", lineHeight: 1 }}>⚠️</span>
+                    <div>
+                        <div style={{ fontSize: "13px", fontWeight: 700, color: THEME.yellow, marginBottom: "2px" }}>
+                            Early Exit Detected
+                        </div>
+                        <div style={{ fontSize: "12px", color: THEME.textSecondary }}>
+                            Student ended the session before the scheduled exam end time.
+                            {earlyExitFlag.evidence ? ` ${earlyExitFlag.evidence}` : ""}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Alert banner */}
             {data.stats.flags > 0 && (

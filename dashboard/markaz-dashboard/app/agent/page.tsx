@@ -2,12 +2,12 @@ import React from "react";
 import Link from "next/link";
 import AlertsClient from "@/components/alerts/AlertsClient";
 import { getAgentAlertsSnapshot } from "@/lib/alerts";
+import { markAgentReviewedAction } from "./actions";
 import { THEME } from "@/constants/theme";
-import { markAgentReviewedAction } from "@/app/agent/actions";
 
 export const dynamic = "force-dynamic";
 
-export default async function AlertsPage(): Promise<React.JSX.Element> {
+export default async function AgentPage(): Promise<React.JSX.Element> {
     try {
         const { liveAlerts, storedAlerts } = await getAgentAlertsSnapshot();
         return (
@@ -23,7 +23,7 @@ export default async function AlertsPage(): Promise<React.JSX.Element> {
         return (
             <div style={{ maxWidth: "600px", margin: "100px auto", padding: "32px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "16px", textAlign: "center" }}>
                 <div style={{ width: "48px", height: "48px", borderRadius: "50%", background: `${THEME.pink}15`, color: THEME.pink, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px", fontSize: "24px" }}>!</div>
-                <h2 style={{ color: THEME.textPrimary, marginBottom: "12px", fontSize: "20px" }}>Failed to load agent alerts</h2>
+                <h2 style={{ color: THEME.textPrimary, marginBottom: "12px", fontSize: "20px" }}>Failed to load agent events</h2>
                 <div style={{ color: THEME.textSecondary, marginBottom: "32px", fontSize: "14px", lineHeight: 1.5 }}>
                     {error instanceof Error ? error.message : "An unexpected error occurred."}
                 </div>

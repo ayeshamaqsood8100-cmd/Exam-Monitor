@@ -1,0 +1,231 @@
+
+> markaz-dashboard@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3000
+  - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 4.3s
+ ○ Compiling /exams ...
+ ✓ Compiled /api/sessions in 6.3s (678 modules)
+ GET /exams 200 in 7708ms
+ GET /api/sessions?exam_id=0e9c1d15-e403-49c9-871f-91bcc70147ff 200 in 7003ms
+ GET /api/sessions?exam_id=0e9c1d15-e403-49c9-871f-91bcc70147ff 200 in 470ms
+ ○ Compiling /sessions ...
+ ✓ Compiled /sessions in 2.7s (644 modules)
+ GET /sessions?exam_id=0e9c1d15-e403-49c9-871f-91bcc70147ff 200 in 3522ms
+ GET /flagged 200 in 3910ms
+ GET /agent 200 in 3789ms
+ GET /api/sessions?exam_id=0e9c1d15-e403-49c9-871f-91bcc70147ff 200 in 584ms
+ GET /api/sessions?exam_id=0e9c1d15-e403-49c9-871f-91bcc70147ff 200 in 407ms
+ GET /api/sessions?exam_id=0e9c1d15-e403-49c9-871f-91bcc70147ff 200 in 403ms
+ GET /api/sessions?exam_id=0e9c1d15-e403-49c9-871f-91bcc70147ff 200 in 745ms
+ GET /api/sessions?exam_id=0e9c1d15-e403-49c9-871f-91bcc70147ff 200 in 459ms
+ GET /api/sessions?exam_id=0e9c1d15-e403-49c9-871f-91bcc70147ff 200 in 2023ms
+ GET /api/sessions?exam_id=0e9c1d15-e403-49c9-871f-91bcc70147ff 200 in 1048ms
+ GET /api/sessions?exam_id=0e9c1d15-e403-49c9-871f-91bcc70147ff 200 in 767ms
+ GET /api/sessions?exam_id=0e9c1d15-e403-49c9-871f-91bcc70147ff 200 in 454ms
+ GET /api/sessions?exam_id=0e9c1d15-e403-49c9-871f-91bcc70147ff 200 in 724ms
+ GET /api/sessions?exam_id=0e9c1d15-e403-49c9-871f-91bcc70147ff 200 in 725ms
+ GET /api/sessions?exam_id=0e9c1d15-e403-49c9-871f-91bcc70147ff 200 in 721ms
+ GET /api/sessions?exam_id=0e9c1d15-e403-49c9-871f-91bcc70147ff 200 in 520ms
+ GET /api/sessions?exam_id=0e9c1d15-e403-49c9-871f-91bcc70147ff 200 in 639ms
+ GET /api/sessions?exam_id=0e9c1d15-e403-49c9-871f-91bcc70147ff 200 in 441ms
+ GET /api/sessions?exam_id=0e9c1d15-e403-49c9-871f-91bcc70147ff 200 in 539ms
+ GET /api/sessions?exam_id=0e9c1d15-e403-49c9-871f-91bcc70147ff 200 in 556ms
+ GET /api/sessions?exam_id=0e9c1d15-e403-49c9-871f-91bcc70147ff 200 in 452ms
+ GET /api/sessions?exam_id=0e9c1d15-e403-49c9-871f-91bcc70147ff 200 in 468ms
+ GET /api/sessions?exam_id=0e9c1d15-e403-49c9-871f-91bcc70147ff 200 in 877ms
+ GET /api/sessions?exam_id=0e9c1d15-e403-49c9-871f-91bcc70147ff 200 in 485ms
+ GET /api/sessions?exam_id=0e9c1d15-e403-49c9-871f-91bcc70147ff 200 in 2949ms
+ GET /api/sessions?exam_id=0e9c1d15-e403-49c9-871f-91bcc70147ff 200 in 1550ms
+ GET /api/sessions?exam_id=0e9c1d15-e403-49c9-871f-91bcc70147ff 200 in 1157ms
+ GET /api/sessions?exam_id=0e9c1d15-e403-49c9-871f-91bcc70147ff 200 in 417ms
+ ○ Compiling /exams ...
+ ✓ Compiled /exams in 2.9s (423 modules)
+ GET /api/sessions?exam_id=0e9c1d15-e403-49c9-871f-91bcc70147ff 200 in 1589ms
+ ○ Compiling /sessions ...
+ ✓ Compiled /sessions in 669ms (331 modules)
+ GET /sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 547ms
+ ⚠ Cross origin request detected from 127.0.0.1 to /_next/* resource. In a future major version of Next.js, you will need to explicitly configure "allowedDevOrigins" in next.config to allow this.
+Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+ ○ Compiling /api/sessions ...
+ ✓ Compiled /api/sessions in 1052ms (361 modules)
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 2031ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 370ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 511ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 391ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 386ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 1035ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 692ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 644ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 791ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 709ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 644ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 773ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 9653ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 330ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 333ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 388ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 634ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 427ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 1783ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 299ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 712ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 2097ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 372ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 1480ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 303ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 1455ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 360ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 878ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 910ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 502ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 715ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 778ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 321ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 775ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 691ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 453ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 409ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 1052ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 358ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 274ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 529ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 413ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 823ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 691ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 765ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 755ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 741ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 699ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 1386ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 315ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 763ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 362ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 658ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 667ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 684ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 543ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 781ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 1902ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 280ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 286ms
+ ✓ Compiled in 1508ms (361 modules)
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 295ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 300ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 666ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 953ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 428ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 419ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 814ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 859ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 489ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 349ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 755ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 791ms
+ ✓ Compiled in 368ms (361 modules)
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 950ms (631 modules)
+ GET /_next/static/css/app/layout.css?v=1773152364324 404 in 1307ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 284ms
+ GET /api/sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 525ms
+ GET /_next/static/css/app/layout.css?v=1773152372729 404 in 86ms
+ GET /_next/static/chunks/main-app.js?v=1773152372729 404 in 196ms
+ GET /_next/static/chunks/app-pages-internals.js 404 in 193ms
+ GET /_next/static/chunks/app/sessions/loading.js 404 in 193ms
+ GET /_next/static/chunks/app/layout.js 404 in 166ms
+ GET /sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 1018ms
+ GET /_next/static/chunks/app/sessions/page.js 404 in 80ms
+ GET /_next/static/css/app/layout.css?v=1773152377243 404 in 79ms
+ GET /_next/static/chunks/main-app.js?v=1773152377243 404 in 186ms
+ GET /_next/static/chunks/app-pages-internals.js 404 in 187ms
+ GET /_next/static/chunks/app/sessions/loading.js 404 in 186ms
+ GET /_next/static/chunks/app/layout.js 404 in 157ms
+ GET /sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 810ms
+ GET /_next/static/chunks/app/sessions/page.js 404 in 66ms
+ GET /_next/static/css/app/layout.css?v=1773152378337 404 in 99ms
+ GET /_next/static/chunks/main-app.js?v=1773152378337 404 in 175ms
+ GET /_next/static/chunks/app-pages-internals.js 404 in 170ms
+ GET /_next/static/chunks/app/sessions/loading.js 404 in 167ms
+ GET /_next/static/chunks/app/layout.js 404 in 139ms
+ GET /sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 113ms
+ GET /sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 409ms
+ GET /_next/static/chunks/app/sessions/page.js 404 in 81ms
+ GET /_next/static/css/app/layout.css?v=1773152378765 404 in 83ms
+ GET /_next/static/chunks/main-app.js?v=1773152378765 404 in 165ms
+ GET /sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 319ms
+ GET /_next/static/chunks/app-pages-internals.js 404 in 166ms
+ GET /_next/static/chunks/app/sessions/loading.js 404 in 143ms
+ GET /_next/static/css/app/layout.css?v=1773152378942 404 in 88ms
+ GET /_next/static/chunks/main-app.js?v=1773152378942 404 in 134ms
+ GET /_next/static/chunks/app-pages-internals.js 404 in 129ms
+ GET /_next/static/chunks/app/sessions/loading.js 404 in 127ms
+ GET /_next/static/chunks/app/layout.js 404 in 72ms
+ GET /sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 833ms
+ GET /_next/static/chunks/app/sessions/page.js 404 in 60ms
+ GET /_next/static/css/app/layout.css?v=1773152380226 404 in 75ms
+ GET /_next/static/chunks/main-app.js?v=1773152380226 404 in 119ms
+ GET /_next/static/chunks/app-pages-internals.js 404 in 112ms
+ GET /_next/static/chunks/app/sessions/loading.js 404 in 108ms
+ GET /_next/static/chunks/app/layout.js 404 in 98ms
+ GET /sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 359ms
+ GET /_next/static/chunks/app/sessions/page.js 404 in 54ms
+ GET /_next/static/css/app/layout.css?v=1773152975119 404 in 97ms
+ GET /_next/static/chunks/app/sessions/loading.js 404 in 176ms
+ GET /_next/static/chunks/app-pages-internals.js 404 in 181ms
+ GET /_next/static/chunks/main-app.js?v=1773152975119 404 in 194ms
+ GET /_next/static/chunks/app/layout.js 404 in 129ms
+ GET /sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 986ms
+ GET /_next/static/chunks/app/sessions/page.js 404 in 29ms
+ GET /_next/static/css/app/layout.css?v=1773152991470 404 in 29ms
+ GET /_next/static/chunks/main-app.js?v=1773152991470 404 in 70ms
+ GET /_next/static/chunks/app-pages-internals.js 404 in 69ms
+ GET /_next/static/chunks/app/sessions/loading.js 404 in 65ms
+ GET /_next/static/chunks/app/layout.js 404 in 59ms
+ GET /sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 702ms
+ GET /_next/static/chunks/app/sessions/page.js 404 in 39ms
+ GET /_next/static/css/app/layout.css?v=1773153049991 404 in 42ms
+ GET /_next/static/chunks/main-app.js?v=1773153049991 404 in 102ms
+ GET /_next/static/chunks/app-pages-internals.js 404 in 100ms
+ GET /_next/static/chunks/app/sessions/loading.js 404 in 98ms
+ GET /_next/static/chunks/app/layout.js 404 in 89ms
+ GET /sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 1247ms
+ GET /_next/static/chunks/app/sessions/page.js 404 in 53ms
+ GET /_next/static/css/app/layout.css?v=1773153054110 404 in 28ms
+ GET /_next/static/chunks/main-app.js?v=1773153054110 404 in 77ms
+ GET /_next/static/chunks/app-pages-internals.js 404 in 60ms
+ GET /_next/static/chunks/app/sessions/loading.js 404 in 61ms
+ GET /_next/static/chunks/app/layout.js 404 in 58ms
+ GET /sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 200 in 401ms
+ GET /_next/static/chunks/app/sessions/page.js 404 in 69ms
+ ✓ Compiled in 692ms (331 modules)
+ ⨯ TypeError: e[o] is not a function
+    at Object.t [as require] (C:\Users\1\OneDrive - Institute of Business Administration\Desktop\Exam\dashboard\markaz-dashboard\.next\server\webpack-runtime.js:1:127)
+    at JSON.parse (<anonymous>)
+digest: "1544506874"
+TypeError: e[o] is not a function
+    at Object.t [as require] (C:\Users\1\OneDrive - Institute of Business Administration\Desktop\Exam\dashboard\markaz-dashboard\.next\server\webpack-runtime.js:1:127)
+    at require (C:\Users\1\OneDrive - Institute of Business Administration\Desktop\Exam\dashboard\markaz-dashboard\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:17:18811)
+    at A (C:\Users\1\OneDrive - Institute of Business Administration\Desktop\Exam\dashboard\markaz-dashboard\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:94398)
+    at C:\Users\1\OneDrive - Institute of Business Administration\Desktop\Exam\dashboard\markaz-dashboard\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:96726
+    at B._fromJSON (C:\Users\1\OneDrive - Institute of Business Administration\Desktop\Exam\dashboard\markaz-dashboard\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:97164)
+    at JSON.parse (<anonymous>)
+    at I (C:\Users\1\OneDrive - Institute of Business Administration\Desktop\Exam\dashboard\markaz-dashboard\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:94119)
+    at t (C:\Users\1\OneDrive - Institute of Business Administration\Desktop\Exam\dashboard\markaz-dashboard\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:100640)
+ ⨯ TypeError: e[o] is not a function
+    at Object.t [as require] (C:\Users\1\OneDrive - Institute of Business Administration\Desktop\Exam\dashboard\markaz-dashboard\.next\server\webpack-runtime.js:1:127)
+    at require (C:\Users\1\OneDrive - Institute of Business Administration\Desktop\Exam\dashboard\markaz-dashboard\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:17:18811)
+    at A (C:\Users\1\OneDrive - Institute of Business Administration\Desktop\Exam\dashboard\markaz-dashboard\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:94398)
+    at C:\Users\1\OneDrive - Institute of Business Administration\Desktop\Exam\dashboard\markaz-dashboard\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:96726
+    at B._fromJSON (C:\Users\1\OneDrive - Institute of Business Administration\Desktop\Exam\dashboard\markaz-dashboard\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:97164)
+    at JSON.parse (<anonymous>)
+    at I (C:\Users\1\OneDrive - Institute of Business Administration\Desktop\Exam\dashboard\markaz-dashboard\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:94119)
+    at t (C:\Users\1\OneDrive - Institute of Business Administration\Desktop\Exam\dashboard\markaz-dashboard\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:100640) {
+  page: '/sessions'
+}
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 1027ms (825 modules)
+ GET /sessions?exam_id=911d7c8b-40f6-4944-939a-dd984a19a5b2 500 in 1565ms

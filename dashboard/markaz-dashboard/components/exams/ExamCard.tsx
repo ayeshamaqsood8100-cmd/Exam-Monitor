@@ -8,10 +8,10 @@ import Card from "@/components/ui/Card";
 
 interface ExamCardProps {
     exam: Exam;
-    onForceStopToggle: (id: string, current: boolean) => void;
+    onEndAndRemove: (id: string) => void;
 }
 
-export default function ExamCard({ exam, onForceStopToggle }: ExamCardProps): React.JSX.Element {
+export default function ExamCard({ exam, onEndAndRemove }: ExamCardProps): React.JSX.Element {
     const [isHovered, setIsHovered] = useState(false);
     const [isToggling, setIsToggling] = useState(false);
 
@@ -23,10 +23,9 @@ export default function ExamCard({ exam, onForceStopToggle }: ExamCardProps): Re
         });
     };
 
-    const handleToggle = async () => {
+    const handleEndRemove = async () => {
         setIsToggling(true);
-        // Since the parent handles the optimistic UI wrapper, we just call the prop and wait for it to resolve
-        await onForceStopToggle(exam.id, exam.force_stop);
+        await onEndAndRemove(exam.id);
         setIsToggling(false);
     };
 
@@ -126,17 +125,17 @@ export default function ExamCard({ exam, onForceStopToggle }: ExamCardProps): Re
                                 justifyContent: "center"
                             }}
                         >
-                            {isStopped ? "FORCE STOP" : "RUNNING"}
+                            {isStopped ? "ENDED" : "RUNNING"}
                         </span>
 
                         {/* Toggle Button */}
                         <button
-                            onClick={handleToggle}
-                            disabled={isToggling}
+                            onClick={handleEndRemove}
+                            disabled={isToggling || isStopped}
                             style={{
                                 background: "transparent",
-                                border: `1px solid ${isStopped ? THEME.cyan : THEME.pink}`,
-                                color: isStopped ? THEME.cyan : THEME.pink,
+                                border: `1px solid ${isStopped ? THEME.textMuted : THEME.pink}`,
+                                color: isStopped ? THEME.textMuted : THEME.pink,
                                 padding: "5px 14px",
                                 borderRadius: "6px",
                                 fontSize: "12px",
@@ -147,14 +146,16 @@ export default function ExamCard({ exam, onForceStopToggle }: ExamCardProps): Re
                             }}
                             onMouseEnter={(e) => {
                                 if (!isToggling) {
-                                    e.currentTarget.style.background = isStopped ? `${THEME.cyan}15` : `${THEME.pink}15`;
+                                    if (!isStopped) {
+                                        e.currentTarget.style.background = `${THEME.pink}15`;
+                                    }
                                 }
                             }}
                             onMouseLeave={(e) => {
                                 e.currentTarget.style.background = "transparent";
                             }}
                         >
-                            {isStopped ? "Resume" : "Force Stop"}
+                            {isStopped ? "Ended" : "End & Remove All"}
                         </button>
                     </div>
 

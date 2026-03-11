@@ -11,22 +11,20 @@ interface SessionsPageClientProps {
     initialSessions: SessionWithStudent[];
     exam: ExamSummary;
     onForceStopSession: (sessionId: string) => Promise<{ error?: string }>;
-    onRestartSession: (sessionId: string) => Promise<{ error?: string }>;
 }
 
-export default function SessionsPageClient({ examId, initialSessions, exam, onForceStopSession, onRestartSession }: SessionsPageClientProps): React.JSX.Element {
+export default function SessionsPageClient({ examId, initialSessions, exam, onForceStopSession }: SessionsPageClientProps): React.JSX.Element {
     const { sessions, setSessions, lastRefreshed } = useSessionPolling(examId, initialSessions, 5000);
     const [stoppingIds, setStoppingIds] = useState<Set<string>>(new Set());
-    const [restartingIds, setRestartingIds] = useState<Set<string>>(new Set());
     const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
         setIsMounted(true);
     }, []);
 
-    const activeCount = sessions.filter(s => s.heartbeat_status === "active").length;
-    const pausedCount = sessions.filter(s => s.heartbeat_status === "paused").length;
-    const lostCount = sessions.filter(s => s.heartbeat_status === "heartbeat_lost").length;
+    const activeCount = sessions.filter(s => s.display_status === "ACTIVE").length;
+    const pausedCount = sessions.filter(s => s.display_status === "PAUSED").length;
+    const attentionCount = sessions.filter(s => s.needs_attention).length;
 
     const handleForceStop = async (sessionId: string) => {
         setStoppingIds(prev => {
@@ -38,34 +36,21 @@ export default function SessionsPageClient({ examId, initialSessions, exam, onFo
         // Optimistic UI update
         setSessions(prev => prev.map(s =>
             s.id === sessionId ?
-                { ...s, status: "paused", heartbeat_status: "paused" } : s
+                {
+                    ...s,
+                    status: "terminated",
+                    heartbeat_status: "terminated",
+                    display_status: "TERMINATED",
+                    needs_attention: false,
+                    attention_reason: null,
+                    can_restart: false,
+                    session_end: new Date().toISOString(),
+                } : s
         ));
 
         await onForceStopSession(sessionId);
 
         setStoppingIds(prev => {
-            const next = new Set(prev);
-            next.delete(sessionId);
-            return next;
-        });
-    };
-
-    const handleRestart = async (sessionId: string) => {
-        setRestartingIds(prev => {
-            const next = new Set(prev);
-            next.add(sessionId);
-            return next;
-        });
-
-        // Optimistic UI update
-        setSessions(prev => prev.map(s =>
-            s.id === sessionId ?
-                { ...s, status: "active", heartbeat_status: "active" } : s
-        ));
-
-        await onRestartSession(sessionId);
-
-        setRestartingIds(prev => {
             const next = new Set(prev);
             next.delete(sessionId);
             return next;
@@ -139,7 +124,7 @@ export default function SessionsPageClient({ examId, initialSessions, exam, onFo
                         {activeCount} Active
                     </div>
 
-                    {lostCount > 0 && (
+                    {attentionCount > 0 && (
                         <div
                             style={{
                                 background: `${THEME.pink}1A`,
@@ -155,7 +140,7 @@ export default function SessionsPageClient({ examId, initialSessions, exam, onFo
                             }}
                         >
                             <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: THEME.pink }} />
-                            {lostCount} Lost
+                            {attentionCount} Needs Attention
                         </div>
                     )}
 
@@ -195,8 +180,6 @@ export default function SessionsPageClient({ examId, initialSessions, exam, onFo
                 sessions={sessions}
                 onForceStop={handleForceStop}
                 stoppingIds={stoppingIds}
-                onRestart={handleRestart}
-                restartingIds={restartingIds}
             />
         </div>
     );

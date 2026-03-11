@@ -2,6 +2,19 @@
 import { unstable_noStore as noStore } from "next/cache";
 import { supabase } from "@/lib/supabase";
 
+const SYSTEM_FLAG_PREFIX = "system_";
+
+export type HeartbeatStatus = "active" | "paused" | "heartbeat_lost" | "completed" | "terminated";
+export type SessionDisplayStatus =
+    | "ACTIVE"
+    | "PAUSED"
+    | "COMPLETED"
+    | "COMPLETED - ENDED EARLY"
+    | "TERMINATED"
+    | "AGENT LOST"
+    | "AGENT KILLED"
+    | "RESTARTED AFTER REBOOT";
+
 export interface SessionWithStudent {
     id: string;
     student_id: string;
@@ -16,7 +29,13 @@ export interface SessionWithStudent {
         erp: string;
     };
     flag_count: number;
-    heartbeat_status: "active" | "paused" | "heartbeat_lost" | "completed";
+    agent_event_count: number;
+    heartbeat_status: HeartbeatStatus;
+    display_status: SessionDisplayStatus;
+    needs_attention: boolean;
+    attention_reason: string | null;
+    attention_updated_at: string | null;
+    can_restart: boolean;
 }
 
 export interface ExamSummary {
@@ -26,6 +45,13 @@ export interface ExamSummary {
     start_time: string;
     end_time: string;
     force_stop: boolean;
+}
+
+interface RawFlaggedEventSummary {
+    id: string;
+    flag_type: string;
+    flagged_at: string;
+    reviewed: boolean;
 }
 
 interface RawSessionRow {
@@ -38,7 +64,144 @@ interface RawSessionRow {
     last_heartbeat_at: string | null;
     created_at: string;
     student: { name: string; erp: string } | { name: string; erp: string }[];
-    flagged_events: { id: string }[] | null;
+    flagged_events: RawFlaggedEventSummary[] | null;
+}
+
+interface AttentionState {
+    displayStatus: SessionDisplayStatus;
+    needsAttention: boolean;
+    attentionReason: string | null;
+    attentionUpdatedAt: string | null;
+    canRestart: boolean;
+}
+
+function getHeartbeatStatus(row: RawSessionRow, heartbeatCutoff: Date): HeartbeatStatus {
+    if (row.status === "terminated") return "terminated";
+    if (row.status === "completed") return "completed";
+    if (row.status === "paused") return "paused";
+    if (!row.last_heartbeat_at) return "heartbeat_lost";
+    return new Date(row.last_heartbeat_at) < heartbeatCutoff ? "heartbeat_lost" : "active";
+}
+
+function newestUnreviewedEventAt(events: RawFlaggedEventSummary[], flagType: string): string | null {
+    const matches = events
+        .filter((event) => event.flag_type === flagType && !event.reviewed)
+        .map((event) => event.flagged_at)
+        .sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+    return matches[0] || null;
+}
+
+function deriveAttentionState(row: RawSessionRow, heartbeatStatus: HeartbeatStatus, systemEvents: RawFlaggedEventSummary[]): AttentionState {
+    const earlyEndAt = newestUnreviewedEventAt(systemEvents, "system_session_ended_before_exam_end");
+    const unexpectedExitAt = newestUnreviewedEventAt(systemEvents, "system_agent_process_exited_unexpectedly");
+    const rebootRestartAt = newestUnreviewedEventAt(systemEvents, "system_agent_restarted_after_reboot");
+
+    if (row.status === "completed") {
+        if (earlyEndAt) {
+            return {
+                displayStatus: "COMPLETED - ENDED EARLY",
+                needsAttention: true,
+                attentionReason: "Student ended the session before exam time was over.",
+                attentionUpdatedAt: earlyEndAt,
+                canRestart: true,
+            };
+        }
+        return {
+            displayStatus: "COMPLETED",
+            needsAttention: false,
+            attentionReason: null,
+            attentionUpdatedAt: null,
+            canRestart: true,
+        };
+    }
+
+    if (row.status === "terminated") {
+        return {
+            displayStatus: "TERMINATED",
+            needsAttention: false,
+            attentionReason: null,
+            attentionUpdatedAt: row.session_end,
+            canRestart: false,
+        };
+    }
+
+    if (unexpectedExitAt && heartbeatStatus === "paused") {
+        return {
+            displayStatus: "AGENT KILLED",
+            needsAttention: true,
+            attentionReason: "The agent was interrupted and is waiting for an invigilator restart.",
+            attentionUpdatedAt: unexpectedExitAt,
+            canRestart: true,
+        };
+    }
+
+    if (heartbeatStatus === "heartbeat_lost") {
+        return {
+            displayStatus: "AGENT LOST",
+            needsAttention: true,
+            attentionReason: "Heartbeat is missing. The agent may have crashed, rebooted, or been killed.",
+            attentionUpdatedAt: row.last_heartbeat_at,
+            canRestart: true,
+        };
+    }
+
+    if (rebootRestartAt && heartbeatStatus === "active") {
+        return {
+            displayStatus: "RESTARTED AFTER REBOOT",
+            needsAttention: true,
+            attentionReason: "The agent resumed automatically after a reboot or relaunch.",
+            attentionUpdatedAt: rebootRestartAt,
+            canRestart: false,
+        };
+    }
+
+    if (heartbeatStatus === "paused") {
+        return {
+            displayStatus: "PAUSED",
+            needsAttention: false,
+            attentionReason: null,
+            attentionUpdatedAt: row.last_heartbeat_at,
+            canRestart: true,
+        };
+    }
+
+    return {
+        displayStatus: "ACTIVE",
+        needsAttention: false,
+        attentionReason: null,
+        attentionUpdatedAt: row.last_heartbeat_at,
+        canRestart: false,
+    };
+}
+
+function getPriority(displayStatus: SessionDisplayStatus, needsAttention: boolean): number {
+    if (!needsAttention) {
+        switch (displayStatus) {
+            case "ACTIVE":
+                return 50;
+            case "PAUSED":
+                return 60;
+            case "COMPLETED":
+                return 70;
+            case "TERMINATED":
+                return 80;
+            default:
+                return 90;
+        }
+    }
+
+    switch (displayStatus) {
+        case "AGENT KILLED":
+            return 1;
+        case "AGENT LOST":
+            return 2;
+        case "RESTARTED AFTER REBOOT":
+            return 3;
+        case "COMPLETED - ENDED EARLY":
+            return 4;
+        default:
+            return 10;
+    }
 }
 
 export async function getExamById(examId: string): Promise<ExamSummary> {
@@ -60,39 +223,24 @@ export async function getSessionsForExam(examId: string): Promise<SessionWithStu
     const { data, error } = await supabase
         .from("exam_sessions")
         .select(`
-      *,
-      student:students(name, erp),
-      flagged_events(id)
-    `)
+            *,
+            student:students(name, erp),
+            flagged_events(id, flag_type, flagged_at, reviewed)
+        `)
         .eq("exam_id", examId)
         .order("session_start", { ascending: true });
 
     if (error) throw new Error(`Failed to fetch sessions: ${error.message}`);
 
-    const now = new Date();
-    const heartbeatCutoff = new Date(now.getTime() - 12000);
+    const heartbeatCutoff = new Date(Date.now() - 12000);
 
-    const mappedData: SessionWithStudent[] = (data || []).map((row: RawSessionRow) => {
-        // Typecast from joined arrays to single object/count
+    const mappedData: SessionWithStudent[] = ((data as RawSessionRow[]) || []).map((row) => {
         const student = Array.isArray(row.student) ? row.student[0] : row.student;
-        const flag_count = row.flagged_events ? row.flagged_events.length : 0;
-
-        let heartbeat_status: "active" | "paused" | "heartbeat_lost" | "completed" = "active";
-
-        if (row.status === "completed") {
-            heartbeat_status = "completed";
-        } else if (row.status === "paused") {
-            heartbeat_status = "paused";
-        } else {
-            if (!row.last_heartbeat_at) {
-                heartbeat_status = "heartbeat_lost";
-            } else {
-                const lastHb = new Date(row.last_heartbeat_at);
-                if (lastHb < heartbeatCutoff) {
-                    heartbeat_status = "heartbeat_lost";
-                }
-            }
-        }
+        const allFlags = row.flagged_events || [];
+        const systemEvents = allFlags.filter((event) => event.flag_type.startsWith(SYSTEM_FLAG_PREFIX));
+        const cheatingEvents = allFlags.filter((event) => !event.flag_type.startsWith(SYSTEM_FLAG_PREFIX));
+        const heartbeatStatus = getHeartbeatStatus(row, heartbeatCutoff);
+        const attentionState = deriveAttentionState(row, heartbeatStatus, systemEvents);
 
         return {
             id: row.id,
@@ -104,9 +252,24 @@ export async function getSessionsForExam(examId: string): Promise<SessionWithStu
             last_heartbeat_at: row.last_heartbeat_at,
             created_at: row.created_at,
             student: student || { name: "Unknown", erp: "Unknown" },
-            flag_count,
-            heartbeat_status
+            flag_count: cheatingEvents.length,
+            agent_event_count: systemEvents.length,
+            heartbeat_status: heartbeatStatus,
+            display_status: attentionState.displayStatus,
+            needs_attention: attentionState.needsAttention,
+            attention_reason: attentionState.attentionReason,
+            attention_updated_at: attentionState.attentionUpdatedAt,
+            can_restart: attentionState.canRestart,
         };
+    });
+
+    mappedData.sort((left, right) => {
+        const priorityDiff = getPriority(left.display_status, left.needs_attention) - getPriority(right.display_status, right.needs_attention);
+        if (priorityDiff !== 0) return priorityDiff;
+
+        const leftTime = new Date(left.attention_updated_at || left.session_start).getTime();
+        const rightTime = new Date(right.attention_updated_at || right.session_start).getTime();
+        return rightTime - leftTime;
     });
 
     return mappedData;

@@ -67,6 +67,9 @@ def start_session(student_erp: str, exam_id: UUID) -> dict:
             # Treat duplicate starts as idempotent so brief retry storms do not fail the student.
             return {"session_id": existing_session["id"], "student_id": student_id, "student_name": student_name}
 
+        if existing_session["status"] == "terminated":
+            raise ValueError("Session terminated; reinstall required.")
+
         # 3. Reactivate existing completed/abandoned session
         _run_with_retry(
             lambda: db.client.table("exam_sessions").update({
@@ -96,6 +99,8 @@ def start_session(student_erp: str, exam_id: UUID) -> dict:
         )
         if recovery.data:
             existing_session = recovery.data[0]
+            if existing_session["status"] == "terminated":
+                raise ValueError("Session terminated; reinstall required.")
             if existing_session["status"] != "active":
                 _run_with_retry(
                     lambda: db.client.table("exam_sessions").update({
@@ -120,13 +125,14 @@ def end_session(session_id: UUID, source: str = "system") -> bool:
     if not existing.data:
         return False
 
-    if existing.data[0].get("status") == "completed":
+    if existing.data[0].get("status") in {"completed", "terminated"}:
         return True
 
     now_utc = datetime.now(timezone.utc).isoformat()
+    final_status = "completed" if source == "student" else "terminated"
     response = _run_with_retry(
         lambda: db.client.table("exam_sessions").update({
-            "status": "completed",
+            "status": final_status,
             "session_end": now_utc
         }).eq("id", session_id_str).execute()
     )
@@ -140,7 +146,10 @@ def end_session(session_id: UUID, source: str = "system") -> bool:
         if exam_end_time:
             try:
                 exam_end_dt = datetime.fromisoformat(str(exam_end_time).replace("Z", "+00:00"))
-                if exam_end_dt > datetime.now(timezone.utc):
+                if exam_end_dt.tzinfo is None:
+                    exam_end_dt = exam_end_dt.replace(tzinfo=timezone.utc)
+                now_dt = datetime.now(timezone.utc)
+                if exam_end_dt > now_dt:
                     exam_name = exam_join.get("exam_name", "Exam") if isinstance(exam_join, dict) else "Exam"
                     create_system_alert(
                         session_id_str,
@@ -148,6 +157,15 @@ def end_session(session_id: UUID, source: str = "system") -> bool:
                         "Student ended the session before the exam end time.",
                         evidence=f"{exam_name} was scheduled to end at {exam_end_dt.isoformat()} UTC.",
                         severity="MED",
+                    )
+                elif exam_end_dt < now_dt:
+                    exam_name = exam_join.get("exam_name", "Exam") if isinstance(exam_join, dict) else "Exam"
+                    create_system_alert(
+                        session_id_str,
+                        "system_session_ended_after_exam_end",
+                        "Student ended the session after the exam end time.",
+                        evidence=f"{exam_name} was scheduled to end at {exam_end_dt.isoformat()} UTC.",
+                        severity="LOW",
                     )
             except Exception:
                 pass
@@ -165,7 +183,7 @@ def pause_session(session_id: UUID) -> bool:
         return False
 
     current_status = existing.data[0].get("status")
-    if current_status == "completed":
+    if current_status in {"completed", "terminated"}:
         return False
 
     now_utc = datetime.now(timezone.utc).isoformat()
@@ -188,6 +206,9 @@ def restart_session(session_id: UUID) -> bool:
     if not existing.data:
         return False
 
+    if existing.data[0].get("status") == "terminated":
+        return False
+
     now_utc = datetime.now(timezone.utc).isoformat()
     response = _run_with_retry(
         lambda: db.client.table("exam_sessions").update({
@@ -198,3 +219,18 @@ def restart_session(session_id: UUID) -> bool:
     )
 
     return bool(response.data and len(response.data) > 0)
+
+
+
+def terminate_exam_sessions(exam_id: UUID) -> int:
+    exam_id_str = str(exam_id)
+    now_utc = datetime.now(timezone.utc).isoformat()
+
+    _run_with_retry(
+        lambda: db.client.table("exams").update({"force_stop": True}).eq("id", exam_id_str).execute()
+    )
+
+    response = _run_with_retry(
+        lambda: db.client.table("exam_sessions").update({"status": "terminated", "session_end": now_utc}).eq("exam_id", exam_id_str).neq("status", "terminated").execute()
+    )
+    return len(response.data or [])

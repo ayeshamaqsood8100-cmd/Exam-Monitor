@@ -58,6 +58,26 @@ def _record_agent_event(saved_session: dict, event_type: str, description: str, 
         print(f"[WATCHDOG] Warning: failed to record agent event - {e}")
 
 
+def _pause_session_for_restart(saved_session: dict) -> None:
+    from agent.config import settings
+
+    url = f"{settings.BACKEND_URL.rstrip('/')}/session/pause"
+    headers = {
+        "X-API-Key": settings.BACKEND_API_KEY,
+        "Content-Type": "application/json",
+    }
+
+    try:
+        with httpx.Client(timeout=5.0) as client:
+            client.post(
+                url,
+                headers=headers,
+                json={"session_id": saved_session["session_id"]},
+            ).raise_for_status()
+    except Exception as e:
+        print(f"[WATCHDOG] Warning: failed to pause session for restart - {e}")
+
+
 def _stop_agent_process(agent_process: subprocess.Popen) -> None:
     """Terminate the child process without leaving it running after watchdog exit."""
     if agent_process.poll() is not None:
@@ -122,6 +142,16 @@ def run_watchdog():
             if saved is None:
                 print("[WATCHDOG] Session ended cleanly. Watchdog shutting down.")
                 break
+
+            from agent.session_persist import save_restart_marker
+
+            save_restart_marker(
+                saved["session_id"],
+                "unexpected_exit",
+                evidence=f"Agent process exit code: {exit_code}",
+            )
+
+            _pause_session_for_restart(saved)
 
             _record_agent_event(
                 saved,

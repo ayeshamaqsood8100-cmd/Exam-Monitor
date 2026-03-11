@@ -5,7 +5,7 @@ import SessionsPageClient from "@/components/sessions/SessionsPageClient";
 import Card from "@/components/ui/Card";
 import Breadcrumb from "@/components/ui/Breadcrumb";
 import { THEME } from "@/constants/theme";
-import { forceStopSessionAction, restartSessionAction, analyzeSessionsAction } from "@/app/sessions/actions";
+import { forceStopSessionAction, analyzeSessionsAction } from "@/app/sessions/actions";
 import AnalyzeButton from "@/components/sessions/AnalyzeButton";
 
 export const dynamic = "force-dynamic";
@@ -61,7 +61,6 @@ export default async function SessionsPage({ searchParams }: { searchParams: { e
                     initialSessions={initialSessions}
                     exam={exam}
                     onForceStopSession={forceStopSessionAction}
-                    onRestartSession={restartSessionAction}
                 />
             </div>
         );

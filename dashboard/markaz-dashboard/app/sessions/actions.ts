@@ -1,6 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { postToBackend } from "@/lib/backendApi";
+import { markSessionAgentAlertsReviewed } from "@/lib/alerts";
 
 interface AnalyzeSessionsResponse {
     sessions_total?: number;
@@ -12,8 +13,10 @@ interface AnalyzeSessionsResponse {
 
 export async function forceStopSessionAction(sessionId: string): Promise<{ error?: string }> {
     try {
-        await postToBackend<{ status: string }>("/session/pause", { session_id: sessionId });
+        await postToBackend<{ status: string }>("/session/end", { session_id: sessionId, source: "admin" });
         revalidatePath("/sessions");
+        revalidatePath("/agent");
+        revalidatePath("/alerts");
         return {};
     } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : "Unknown error occurred";
@@ -24,7 +27,12 @@ export async function forceStopSessionAction(sessionId: string): Promise<{ error
 export async function restartSessionAction(sessionId: string): Promise<{ error?: string }> {
     try {
         await postToBackend<{ status: string }>("/session/restart", { session_id: sessionId });
+        await markSessionAgentAlertsReviewed(sessionId, [
+            "system_agent_process_exited_unexpectedly",
+        ]);
         revalidatePath("/sessions");
+        revalidatePath("/agent");
+        revalidatePath("/alerts");
         return {};
     } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : "Unknown error occurred";

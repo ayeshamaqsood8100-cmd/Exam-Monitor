@@ -8,10 +8,8 @@ interface SessionsTableProps {
     sessions: SessionWithStudent[];
     onForceStop: (sessionId: string) => void;
     stoppingIds: Set<string>;
-    onRestart: (sessionId: string) => void;
-    restartingIds: Set<string>;
 }
-export default function SessionsTable({ sessions, onForceStop, stoppingIds, onRestart, restartingIds }: SessionsTableProps): React.JSX.Element {
+export default function SessionsTable({ sessions, onForceStop, stoppingIds }: SessionsTableProps): React.JSX.Element {
     const thStyle: React.CSSProperties = {
         color: THEME.textMuted,
         fontSize: "11px",
@@ -50,8 +48,6 @@ export default function SessionsTable({ sessions, onForceStop, stoppingIds, onRe
                                     session={session}
                                     onForceStop={onForceStop}
                                     isStopping={stoppingIds.has(session.id)}
-                                    onRestart={onRestart}
-                                    isRestarting={restartingIds.has(session.id)}
                                 />
                             ))
                         )}
