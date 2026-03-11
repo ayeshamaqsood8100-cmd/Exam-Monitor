@@ -34,6 +34,12 @@ def create_or_get_sync(session_id: UUID, sync_number: int, synced_at: str) -> st
     raise Exception("Failed to create or retrieve telemetry sync record")
 
 
+def update_sync_timestamp(sync_id: str, synced_at: str) -> None:
+    db.client.table("telemetry_syncs").update({
+        "synced_at": synced_at
+    }).eq("id", sync_id).execute()
+
+
 def insert_keystrokes(session_id: UUID, sync_id: str, keystrokes: List[KeystrokeEntry]) -> None:
     if not keystrokes:
         return

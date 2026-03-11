@@ -5,6 +5,7 @@ Handles initiating the exam session with the remote backend over HTTP.
 import httpx
 from typing import Dict, Any, Tuple
 from .config import settings
+from .http_client import get_http_client
 
 class SessionManager:
     """
@@ -36,9 +37,7 @@ class SessionManager:
         }
         
         try:
-            # Use a synchronous client with a defined timeout to prevent infinite hanging
-            with httpx.Client(timeout=10.0) as client:
-                response = client.post(url, headers=headers, json=payload)
+            response = get_http_client().post(url, headers=headers, json=payload, timeout=10.0)
                 
             # Immediately raise an exception if HTTP status is 4xx or 5xx
             response.raise_for_status()

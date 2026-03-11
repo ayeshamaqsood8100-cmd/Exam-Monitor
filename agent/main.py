@@ -5,7 +5,6 @@ Handles the basic interactive terminal interface for starting a session.
 import sys
 import uuid
 import threading
-import httpx
 from typing import Optional
 from .config import settings
 from .session import SessionManager
@@ -19,6 +18,7 @@ from .sync import SyncEngine
 from .widget import MonitoringWidget
 from . import session_persist
 from . import autostart
+from .http_client import close_http_client, get_http_client
 
 
 def validate_uuid(val: str) -> bool:
@@ -68,18 +68,18 @@ class AgentOrchestrator:
         try:
             url = f"{settings.BACKEND_URL.rstrip('/')}/session/event"
             headers = {"X-API-Key": settings.BACKEND_API_KEY, "Content-Type": "application/json"}
-            with httpx.Client(timeout=5.0) as client:
-                client.post(
-                    url,
-                    headers=headers,
-                    json={
-                        "session_id": self.session_id,
-                        "event_type": event_type,
-                        "description": description,
-                        "evidence": evidence,
-                        "severity": severity,
-                    },
-                ).raise_for_status()
+            get_http_client().post(
+                url,
+                headers=headers,
+                json={
+                    "session_id": self.session_id,
+                    "event_type": event_type,
+                    "description": description,
+                    "evidence": evidence,
+                    "severity": severity,
+                },
+                timeout=5.0,
+            ).raise_for_status()
         except Exception as e:
             print(f"[ALERT] Warning: failed to record session event - {e}")
 
@@ -100,8 +100,12 @@ class AgentOrchestrator:
         try:
             url = f"{settings.BACKEND_URL.rstrip('/')}{endpoint}"
             headers = {"X-API-Key": settings.BACKEND_API_KEY, "Content-Type": "application/json"}
-            with httpx.Client(timeout=5.0) as client:
-                response = client.post(url, headers=headers, json={"session_id": self.session_id})
+            response = get_http_client().post(
+                url,
+                headers=headers,
+                json={"session_id": self.session_id},
+                timeout=5.0,
+            )
             response.raise_for_status()
             return True
         except Exception as e:
@@ -127,8 +131,12 @@ class AgentOrchestrator:
             try:
                 url = f"{settings.BACKEND_URL.rstrip('/')}/session/end"
                 headers = {"X-API-Key": settings.BACKEND_API_KEY, "Content-Type": "application/json"}
-                with httpx.Client(timeout=10.0) as client:
-                    response = client.post(url, headers=headers, json={"session_id": self.session_id, "source": "student"})
+                response = get_http_client().post(
+                    url,
+                    headers=headers,
+                    json={"session_id": self.session_id, "source": "student"},
+                    timeout=10.0,
+                )
                 response.raise_for_status()
             except Exception as e:
                 print(f"[COMPLETE] Warning: failed to mark session as completed on backend - {e}")
@@ -395,8 +403,12 @@ class AgentOrchestrator:
             try:
                 url = f"{settings.BACKEND_URL.rstrip('/')}/session/end"
                 headers = {"X-API-Key": settings.BACKEND_API_KEY, "Content-Type": "application/json"}
-                with httpx.Client(timeout=10.0) as client:
-                    client.post(url, headers=headers, json={"session_id": self.session_id, "source": source})
+                get_http_client().post(
+                    url,
+                    headers=headers,
+                    json={"session_id": self.session_id, "source": source},
+                    timeout=10.0,
+                )
             except Exception as e:
                 print(f"[SHUTDOWN] Warning: failed to mark session as complete on backend - {e}")
 
@@ -421,6 +433,7 @@ class AgentOrchestrator:
         # bundled console window to close automatically.
         import time as _time
         _time.sleep(0.6)
+        close_http_client()
         sys.exit(0)
 
 

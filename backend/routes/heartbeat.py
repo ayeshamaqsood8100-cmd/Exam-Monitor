@@ -6,7 +6,7 @@ from backend.services.heartbeat_service import update_heartbeat
 router = APIRouter()
 
 @router.post("/heartbeat", response_model=HeartbeatResponseModel, dependencies=[Depends(verify_api_key)])
-async def process_heartbeat(payload: HeartbeatModel):
+def process_heartbeat(payload: HeartbeatModel):
     try:
         result = update_heartbeat(payload.session_id)
 

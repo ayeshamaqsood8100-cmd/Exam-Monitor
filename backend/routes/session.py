@@ -9,7 +9,7 @@ from backend.services.database import db
 router = APIRouter()
 
 @router.post("/session/start", dependencies=[Depends(verify_api_key)])
-async def process_session_start(payload: SessionStartModel):
+def process_session_start(payload: SessionStartModel):
     try:
         result = start_session(payload.student_erp, payload.exam_id)
         return result
@@ -36,7 +36,7 @@ async def process_session_start(payload: SessionStartModel):
         )
 
 @router.post("/session/end", dependencies=[Depends(verify_api_key)])
-async def process_session_end(payload: SessionEndModel):
+def process_session_end(payload: SessionEndModel):
     try:
         updated = end_session(payload.session_id, source=payload.source)
         if not updated:
@@ -61,7 +61,7 @@ async def process_session_end(payload: SessionEndModel):
 
 
 @router.post("/session/event", dependencies=[Depends(verify_api_key)])
-async def process_session_event(payload: SessionEventModel):
+def process_session_event(payload: SessionEventModel):
     try:
         event_type = payload.event_type.strip().lower()
         create_system_alert(
@@ -80,7 +80,7 @@ async def process_session_event(payload: SessionEventModel):
 
 
 @router.post("/session/pause", dependencies=[Depends(verify_api_key)])
-async def process_session_pause(payload: SessionPauseModel):
+def process_session_pause(payload: SessionPauseModel):
     try:
         updated = pause_session(payload.session_id)
         if not updated:
@@ -105,7 +105,7 @@ async def process_session_pause(payload: SessionPauseModel):
 
 
 @router.post("/session/restart", dependencies=[Depends(verify_api_key)])
-async def process_session_restart(payload: SessionRestartModel):
+def process_session_restart(payload: SessionRestartModel):
     try:
         updated = restart_session(payload.session_id)
         if not updated:
@@ -130,7 +130,7 @@ async def process_session_restart(payload: SessionRestartModel):
 
 
 @router.post("/exam/terminate", dependencies=[Depends(verify_api_key)])
-async def process_exam_terminate(payload: ExamTerminateModel):
+def process_exam_terminate(payload: ExamTerminateModel):
     try:
         terminated = terminate_exam_sessions(payload.exam_id)
         return {"status": "ok", "sessions_terminated": terminated}
@@ -153,7 +153,7 @@ class SessionStatusModel(BaseModel):
     session_id: str
 
 @router.post("/session/status", dependencies=[Depends(verify_api_key)])
-async def check_session_status(payload: SessionStatusModel):
+def check_session_status(payload: SessionStatusModel):
     """Check if a session is still active (used by agent for crash recovery)."""
     try:
         result = db.client.table("exam_sessions").select("status").eq("id", payload.session_id).execute()

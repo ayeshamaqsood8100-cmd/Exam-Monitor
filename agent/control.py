@@ -1,13 +1,12 @@
 import threading
 from collections.abc import Callable
 
-import httpx
-
 from .config import settings
+from .http_client import get_http_client
 
 
 class SessionControlManager:
-    def __init__(self, session_id: str, on_status_change: Callable[[str], None], poll_interval_seconds: float = 2.0) -> None:
+    def __init__(self, session_id: str, on_status_change: Callable[[str], None], poll_interval_seconds: float = 10.0) -> None:
         self.session_id = session_id
         self._on_status_change = on_status_change
         self._poll_interval_seconds = poll_interval_seconds
@@ -43,8 +42,12 @@ class SessionControlManager:
         }
 
         try:
-            with httpx.Client(timeout=5.0) as client:
-                response = client.post(url, headers=headers, json={"session_id": self.session_id})
+            response = get_http_client().post(
+                url,
+                headers=headers,
+                json={"session_id": self.session_id},
+                timeout=5.0,
+            )
             response.raise_for_status()
             data = response.json()
             return str(data.get("status", "")).lower()

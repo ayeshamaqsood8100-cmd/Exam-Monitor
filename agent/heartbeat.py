@@ -3,9 +3,9 @@ Heartbeat management module for the Markaz Exam Monitor agent.
 Handles background pinging to prove the agent is alive.
 """
 import threading
-import httpx
 from datetime import datetime, timezone
 from .config import settings
+from .http_client import get_http_client
 
 class HeartbeatManager:
     """
@@ -51,8 +51,7 @@ class HeartbeatManager:
         }
         
         try:
-            with httpx.Client(timeout=10.0) as client:
-                response = client.post(url, headers=headers, json=payload)
+            response = get_http_client().post(url, headers=headers, json=payload, timeout=10.0)
             response.raise_for_status()
             
             # Safe JSON parse after confirming 200 HTTP success

@@ -8,6 +8,7 @@ import httpx
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any
 from .config import settings
+from .http_client import get_http_client
 
 PLEDGE_TEXT = """
 ============================================================
@@ -67,8 +68,7 @@ class ConsentManager:
         }
         
         try:
-            with httpx.Client(timeout=10.0) as client:
-                response = client.post(url, headers=headers, json=payload)
+            response = get_http_client().post(url, headers=headers, json=payload, timeout=10.0)
             response.raise_for_status()
             
             data: Dict[str, Any] = response.json()

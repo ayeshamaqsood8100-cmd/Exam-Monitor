@@ -2,6 +2,7 @@ from uuid import UUID
 from datetime import datetime, timezone
 import random
 import time
+import threading
 from backend.services.database import db
 from backend.services.alert_service import create_system_alert
 
@@ -118,8 +119,12 @@ def start_session(student_erp: str, exam_id: UUID) -> dict:
 
 def end_session(session_id: UUID, source: str = "system") -> bool:
     session_id_str = str(session_id)
+    select_fields = "id, status"
+    if source == "student":
+        select_fields = "id, status, exams(end_time, exam_name)"
+
     existing = _run_with_retry(
-        lambda: db.client.table("exam_sessions").select("id, status, session_start, exam_id, exams(end_time, exam_name)").eq("id", session_id_str).execute()
+        lambda: db.client.table("exam_sessions").select(select_fields).eq("id", session_id_str).execute()
     )
 
     if not existing.data:
@@ -138,37 +143,11 @@ def end_session(session_id: UUID, source: str = "system") -> bool:
     )
 
     if source == "student":
-        session_row = existing.data[0]
-        exam_join = session_row.get("exams")
-        if isinstance(exam_join, list):
-            exam_join = exam_join[0] if exam_join else None
-        exam_end_time = exam_join.get("end_time") if isinstance(exam_join, dict) else None
-        if exam_end_time:
-            try:
-                exam_end_dt = datetime.fromisoformat(str(exam_end_time).replace("Z", "+00:00"))
-                if exam_end_dt.tzinfo is None:
-                    exam_end_dt = exam_end_dt.replace(tzinfo=timezone.utc)
-                now_dt = datetime.now(timezone.utc)
-                if exam_end_dt > now_dt:
-                    exam_name = exam_join.get("exam_name", "Exam") if isinstance(exam_join, dict) else "Exam"
-                    create_system_alert(
-                        session_id_str,
-                        "system_session_ended_before_exam_end",
-                        "Student ended the session before the exam end time.",
-                        evidence=f"{exam_name} was scheduled to end at {exam_end_dt.isoformat()} UTC.",
-                        severity="MED",
-                    )
-                elif exam_end_dt < now_dt:
-                    exam_name = exam_join.get("exam_name", "Exam") if isinstance(exam_join, dict) else "Exam"
-                    create_system_alert(
-                        session_id_str,
-                        "system_session_ended_after_exam_end",
-                        "Student ended the session after the exam end time.",
-                        evidence=f"{exam_name} was scheduled to end at {exam_end_dt.isoformat()} UTC.",
-                        severity="LOW",
-                    )
-            except Exception:
-                pass
+        threading.Thread(
+            target=_record_end_timing_alert,
+            args=(session_id_str, existing.data[0]),
+            daemon=True,
+        ).start()
 
     return bool(response.data and len(response.data) > 0)
 
@@ -185,6 +164,8 @@ def pause_session(session_id: UUID) -> bool:
     current_status = existing.data[0].get("status")
     if current_status in {"completed", "terminated"}:
         return False
+    if current_status == "paused":
+        return True
 
     now_utc = datetime.now(timezone.utc).isoformat()
     response = _run_with_retry(
@@ -206,8 +187,11 @@ def restart_session(session_id: UUID) -> bool:
     if not existing.data:
         return False
 
-    if existing.data[0].get("status") == "terminated":
+    current_status = existing.data[0].get("status")
+    if current_status == "terminated":
         return False
+    if current_status == "active":
+        return True
 
     now_utc = datetime.now(timezone.utc).isoformat()
     response = _run_with_retry(
@@ -219,6 +203,43 @@ def restart_session(session_id: UUID) -> bool:
     )
 
     return bool(response.data and len(response.data) > 0)
+
+
+def _record_end_timing_alert(session_id_str: str, session_row: dict) -> None:
+    try:
+        exam_join = session_row.get("exams")
+        if isinstance(exam_join, list):
+            exam_join = exam_join[0] if exam_join else None
+
+        exam_end_time = exam_join.get("end_time") if isinstance(exam_join, dict) else None
+        if not exam_end_time:
+            return
+
+        exam_end_dt = datetime.fromisoformat(str(exam_end_time).replace("Z", "+00:00"))
+        if exam_end_dt.tzinfo is None:
+            exam_end_dt = exam_end_dt.replace(tzinfo=timezone.utc)
+
+        now_dt = datetime.now(timezone.utc)
+        exam_name = exam_join.get("exam_name", "Exam") if isinstance(exam_join, dict) else "Exam"
+
+        if exam_end_dt > now_dt:
+            create_system_alert(
+                session_id_str,
+                "system_session_ended_before_exam_end",
+                "Student ended the session before the exam end time.",
+                evidence=f"{exam_name} was scheduled to end at {exam_end_dt.isoformat()} UTC.",
+                severity="MED",
+            )
+        elif exam_end_dt < now_dt:
+            create_system_alert(
+                session_id_str,
+                "system_session_ended_after_exam_end",
+                "Student ended the session after the exam end time.",
+                evidence=f"{exam_name} was scheduled to end at {exam_end_dt.isoformat()} UTC.",
+                severity="LOW",
+            )
+    except Exception:
+        pass
 
 
 

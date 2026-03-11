@@ -10,9 +10,13 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from .config import settings
+from .http_client import get_http_client
 from .collectors.window_collector import WindowCollector
 from .collectors.clipboard_collector import ClipboardCollector
 from .collectors.keystroke_collector import KeystrokeCollector
+
+UPLOAD_STAGGER_MIN_SECONDS = 0.25
+UPLOAD_STAGGER_MAX_SECONDS = 0.5
 
 
 class SyncEngine:
@@ -77,26 +81,27 @@ class SyncEngine:
                 "Content-Type": "application/json"
             }
 
-            with httpx.Client(timeout=15.0) as client:
-                success_k = self._upload_endpoint("/sync/keystrokes", "keystrokes", keystrokes, synced_at, headers, client)
-                if success_k:
-                    self._keystroke_collector.pop(len(keystrokes))
-                if delay_between_uploads:
-                    time.sleep(random.uniform(1, 3))
+            client = get_http_client()
+            telemetry_sync_id = self._initialize_sync(headers, client, synced_at)
+            success_k = self._upload_endpoint("/sync/keystrokes", "keystrokes", keystrokes, synced_at, headers, client, telemetry_sync_id)
+            if success_k:
+                self._keystroke_collector.pop(len(keystrokes))
+            if delay_between_uploads:
+                time.sleep(random.uniform(UPLOAD_STAGGER_MIN_SECONDS, UPLOAD_STAGGER_MAX_SECONDS))
 
-                success_w = self._upload_endpoint("/sync/windows", "windows", windows, synced_at, headers, client)
-                if success_w:
-                    self._window_collector.pop(len(windows))
-                if delay_between_uploads:
-                    time.sleep(random.uniform(1, 3))
+            success_w = self._upload_endpoint("/sync/windows", "windows", windows, synced_at, headers, client, telemetry_sync_id)
+            if success_w:
+                self._window_collector.pop(len(windows))
+            if delay_between_uploads:
+                time.sleep(random.uniform(UPLOAD_STAGGER_MIN_SECONDS, UPLOAD_STAGGER_MAX_SECONDS))
 
-                success_c = self._upload_endpoint("/sync/clipboard", "clipboard", clipboard, synced_at, headers, client)
-                if success_c:
-                    self._clipboard_collector.pop(len(clipboard))
-                if delay_between_uploads:
-                    time.sleep(random.uniform(1, 3))
+            success_c = self._upload_endpoint("/sync/clipboard", "clipboard", clipboard, synced_at, headers, client, telemetry_sync_id)
+            if success_c:
+                self._clipboard_collector.pop(len(clipboard))
+            if delay_between_uploads:
+                time.sleep(random.uniform(UPLOAD_STAGGER_MIN_SECONDS, UPLOAD_STAGGER_MAX_SECONDS))
 
-                success_o = self._upload_endpoint("/sync/offline", "offline_periods", self._offline_periods, synced_at, headers, client)
+            success_o = self._upload_endpoint("/sync/offline", "offline_periods", self._offline_periods, synced_at, headers, client, telemetry_sync_id)
 
             if success_o:
                 self._offline_periods = []
@@ -114,18 +119,36 @@ class SyncEngine:
                 if self._disconnected_at is None:
                     self._disconnected_at = synced_at
 
-    def _upload_endpoint(self, route: str, payload_key: str, data_list: list, synced_at: str, headers: dict, client: httpx.Client) -> bool:
+    def _initialize_sync(self, headers: dict, client: httpx.Client, synced_at: str) -> str | None:
+        url = f"{settings.BACKEND_URL.rstrip('/')}/sync/init"
+        payload = {
+            "session_id": self.session_id,
+            "sync_number": self._sync_number,
+            "synced_at": synced_at,
+        }
+
+        try:
+            response = client.post(url, headers=headers, json=payload, timeout=15.0)
+            response.raise_for_status()
+            data = response.json()
+            return data.get("telemetry_sync_id")
+        except Exception as e:
+            print(f"[SYNC] Warning: /sync/init failed - {str(e)}")
+            return None
+
+    def _upload_endpoint(self, route: str, payload_key: str, data_list: list, synced_at: str, headers: dict, client: httpx.Client, telemetry_sync_id: str | None) -> bool:
         """Helper to POST specific datasets synchronously with error handling."""
         url = f"{settings.BACKEND_URL.rstrip('/')}{route}"
         payload = {
             "session_id": self.session_id,
             "sync_number": self._sync_number,
             "synced_at": synced_at,
+            "telemetry_sync_id": telemetry_sync_id,
             payload_key: data_list
         }
 
         try:
-            response = client.post(url, headers=headers, json=payload)
+            response = client.post(url, headers=headers, json=payload, timeout=15.0)
             response.raise_for_status()
             return True
         except Exception as e:

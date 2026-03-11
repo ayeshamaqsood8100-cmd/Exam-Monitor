@@ -1,5 +1,6 @@
 import { unstable_noStore as noStore } from "next/cache";
 import { supabase } from "@/lib/supabase";
+import { HEARTBEAT_LOST_THRESHOLD_MS } from "@/lib/monitoring";
 
 export interface StoredAgentAlert {
     id: string;
@@ -151,7 +152,7 @@ export async function getLiveAgentAlerts(): Promise<LiveAgentAlert[]> {
 
     if (error) throw new Error(`Failed to fetch live agent alerts: ${error.message}`);
 
-    const cutoff = Date.now() - 12000;
+    const cutoff = Date.now() - HEARTBEAT_LOST_THRESHOLD_MS;
     return ((data as RawSessionAlert[]) || [])
         .filter((row) => {
             if (!row.last_heartbeat_at) return true;

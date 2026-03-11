@@ -106,8 +106,9 @@ def create_system_alert(
     if rows:
         keep_id = rows[0]["id"]
         db.client.table("flagged_events").update(payload).eq("id", keep_id).execute()
-        for extra in rows[1:]:
-            db.client.table("flagged_events").delete().eq("id", extra["id"]).execute()
+        extra_ids = [extra["id"] for extra in rows[1:] if extra.get("id")]
+        if extra_ids:
+            db.client.table("flagged_events").delete().in_("id", extra_ids).execute()
         return
 
     db.client.table("flagged_events").insert(payload).execute()

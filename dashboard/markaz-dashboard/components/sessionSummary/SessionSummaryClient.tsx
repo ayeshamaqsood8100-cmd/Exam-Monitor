@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { type SessionSummaryData } from "@/lib/sessionSummary";
+import { HEARTBEAT_INTERVAL_SECONDS } from "@/lib/monitoring";
 import { THEME } from "@/constants/theme";
 import StatCard from "./StatCard";
 import FlagCard from "./FlagCard";
@@ -98,6 +99,7 @@ export default function SessionSummaryClient({ data }: SessionSummaryClientProps
     const highFlags = data.flags.filter(f => f.severity === "HIGH").length;
     const medFlags = data.flags.filter(f => f.severity === "MED").length;
     const lowFlags = data.flags.filter(f => f.severity === "LOW").length;
+    const detailDataTruncated = data.limits.keystrokesTruncated || data.limits.windowsTruncated || data.limits.clipboardTruncated;
 
     return (
         <div style={{ paddingBottom: "64px" }}>
@@ -361,6 +363,23 @@ export default function SessionSummaryClient({ data }: SessionSummaryClientProps
                 </div>
             )}
 
+            {detailDataTruncated && (
+                <div style={{
+                    background: `${THEME.yellow}0F`,
+                    border: `1px solid ${THEME.yellow}33`,
+                    borderRadius: "12px",
+                    padding: "14px 20px",
+                    marginBottom: "28px",
+                    fontSize: "12px",
+                    color: THEME.textSecondary,
+                }}>
+                    Detail logs were capped for performance.
+                    {data.limits.keystrokesTruncated ? ` Keystrokes limited to ${data.limits.maxKeystrokeRows.toLocaleString()} rows.` : ""}
+                    {data.limits.windowsTruncated ? ` Windows limited to ${data.limits.maxWindowRows.toLocaleString()} rows.` : ""}
+                    {data.limits.clipboardTruncated ? ` Clipboard limited to ${data.limits.maxClipboardRows.toLocaleString()} rows.` : ""}
+                </div>
+            )}
+
             {/* Stat grid */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "12px", marginBottom: "32px" }}>
                 <StatCard label="Keystrokes" value={data.stats.keystrokes.toLocaleString()} sub="logged" accent={THEME.cyan} />
@@ -432,7 +451,7 @@ export default function SessionSummaryClient({ data }: SessionSummaryClientProps
                             Agent Health
                         </div>
                         {[
-                            { label: "Heartbeat Interval", val: "30s", ok: true },
+                            { label: "Heartbeat Interval", val: `${HEARTBEAT_INTERVAL_SECONDS}s`, ok: true },
                             { label: "Sync Cycles", val: data.stats.syncs.toString(), ok: data.stats.syncs > 0 },
                             { label: "Offline Periods", val: data.stats.offline_periods.toString(), ok: data.stats.offline_periods === 0 },
                             { label: "Agent Version", val: data.health.agent_version, ok: data.health.agent_version !== "Unknown" },

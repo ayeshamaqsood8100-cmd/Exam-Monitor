@@ -16,7 +16,8 @@ import time
 import os
 import signal
 import platform
-import httpx
+
+from agent.http_client import close_http_client, get_http_client
 
 
 # How often to check if the agent is Still alive (seconds)
@@ -42,18 +43,18 @@ def _record_agent_event(saved_session: dict, event_type: str, description: str, 
     }
 
     try:
-        with httpx.Client(timeout=5.0) as client:
-            client.post(
-                url,
-                headers=headers,
-                json={
-                    "session_id": saved_session["session_id"],
-                    "event_type": event_type,
-                    "description": description,
-                    "evidence": evidence,
-                    "severity": severity,
-                },
-            ).raise_for_status()
+        get_http_client().post(
+            url,
+            headers=headers,
+            json={
+                "session_id": saved_session["session_id"],
+                "event_type": event_type,
+                "description": description,
+                "evidence": evidence,
+                "severity": severity,
+            },
+            timeout=5.0,
+        ).raise_for_status()
     except Exception as e:
         print(f"[WATCHDOG] Warning: failed to record agent event - {e}")
 
@@ -68,12 +69,12 @@ def _pause_session_for_restart(saved_session: dict) -> None:
     }
 
     try:
-        with httpx.Client(timeout=5.0) as client:
-            client.post(
-                url,
-                headers=headers,
-                json={"session_id": saved_session["session_id"]},
-            ).raise_for_status()
+        get_http_client().post(
+            url,
+            headers=headers,
+            json={"session_id": saved_session["session_id"]},
+            timeout=5.0,
+        ).raise_for_status()
     except Exception as e:
         print(f"[WATCHDOG] Warning: failed to pause session for restart - {e}")
 
@@ -181,6 +182,8 @@ def run_watchdog():
         if agent_process and agent_process.poll() is None:
             _stop_agent_process(agent_process)
         print("[WATCHDOG] Shutdown complete.")
+    finally:
+        close_http_client()
 
 
 if __name__ == "__main__":

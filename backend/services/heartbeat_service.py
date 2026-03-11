@@ -5,6 +5,34 @@ from backend.services.database import db
 
 
 def update_heartbeat(session_id: UUID) -> dict:
+    rpc_result = _update_heartbeat_via_rpc(session_id)
+    if rpc_result is not None:
+        return rpc_result
+
+    return _update_heartbeat_legacy(session_id)
+
+
+def _update_heartbeat_via_rpc(session_id: UUID) -> dict | None:
+    try:
+        response = db.client.rpc("process_exam_session_heartbeat", {
+            "target_session_id": str(session_id),
+        }).execute()
+        if not response.data:
+            return None
+
+        row = response.data[0] if isinstance(response.data, list) else response.data
+        if row is None:
+            return None
+
+        return {
+            "updated": bool(row.get("updated", False)),
+            "force_stop": bool(row.get("force_stop", False)),
+        }
+    except Exception:
+        return None
+
+
+def _update_heartbeat_legacy(session_id: UUID) -> dict:
     status_res = db.client.table("exam_sessions").select("status").eq("id", str(session_id)).execute()
     if status_res.data and len(status_res.data) > 0:
         session_status = status_res.data[0].get("status", "")

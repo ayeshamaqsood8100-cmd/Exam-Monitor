@@ -18,12 +18,12 @@ A consent-based, visible desktop monitoring agent and backend system designed to
 - **Phase 5-9 (Dashboard):** 100% Complete (Scaffold, Exams List, Live Sessions, Session Summary).
 
 ## 4. Key Architectural Decisions (From DECISIONS.md)
-1. **Heartbeat Design (Option 3):** No standalone `heartbeats` table. Agent pings every 30s to update `last_heartbeat_at` in `exam_sessions`. Agent maintains a local "offline log" and uploads it every 60s within the telemetry batch.
+1. **Heartbeat Design (Option 3):** No standalone `heartbeats` table. Agent pings every 5s to update `last_heartbeat_at` in `exam_sessions`. Agent maintains a local "offline log" and uploads it every 60s within the telemetry batch.
 2. **Sync Jitter:** Telemetry upload interval randomized between 55–65s to prevent massive simultaneous connection spikes on the Supabase free tier database.
 3. **Session Linking:** Telemetry logs reference `session_id` directly, structurally replacing standalone `student_id` & `exam_id` logic. 
 4. **Peek-then-Pop Sync Architecture:** Collectors never `flush()` blindly. `SyncEngine` explicitly executes `peek(limit=500)` to extract a safe bounded slice, attempts the HTTP upload, and solely executes `.pop(count)` upon receiving a confirmed HTTP 200 success. This natively solves unbounded cache bloat and concurrent data loss.
 5. **Connection Pooling:** `SyncEngine` utilizes a single `httpx.Client()` context manager per sync cycle to upload all four endpoints securely and rapidly, mitigating overhead.
-6. **Graceful Shutdown (`force_stop`):** Heartbeat dynamically returns a `force_stop` boolean flag derived from the `exams` table. The SyncEngine can process this flag to safely invoke the agent's shutdown routine. Global and per-student session end triggers from the dashboard utilize this. Heartbeat update and `force_stop` fetch are now two separate queries due to Supabase 2.9.1 chained update/select incompatibility.
+6. **Graceful Shutdown (`force_stop`):** Heartbeat dynamically returns a `force_stop` boolean flag derived from the `exams` table. The SyncEngine can process this flag to safely invoke the agent's shutdown routine. Global and per-student session end triggers from the dashboard utilize this. Heartbeat processing now prefers a single Supabase RPC path, with a legacy fallback if the SQL function is missing.
 7. **Session End Pipeline:** The agent interface features a passcode-protected 'End Session' button alongside an access code display. Selecting it triggers the `/session/end` backend endpoint, stamping the `exam_sessions` row with a UTC `session_end` timestamp and locking the status to `"completed"`.
 8. **Widget Shutdown Threading:** The `MonitoringWidget` dispatches the `on_end_session` callback onto a background `daemon` thread upon passcode success rather than executing it directly. This decisively guards the synchronous `tkinter` `mainloop` from being blocked or killed by the OS during the 15-60+ second HTTP telemetry tear-down operations triggered by `AgentOrchestrator.shutdown()`.
 9. **Verification & Communication Constraints:** All new system modifications must be strictly visually confirmed by the human user. The AI must remain direct and concise.
@@ -52,7 +52,7 @@ A consent-based, visible desktop monitoring agent and backend system designed to
   - `agent/main.py` — `AgentOrchestrator` class, validates config, collects ERP, stores `session_id`, coordinates all modules
 
 - ✅ **Step 2 Complete: Heartbeat**
-  - `agent/heartbeat.py` — `HeartbeatManager` class, daemon thread, pings `/heartbeat` every 30 seconds, updates `last_heartbeat_at` in Supabase. Awaits `force_stop` responses.
+  - `agent/heartbeat.py` — `HeartbeatManager` class, daemon thread, pings `/heartbeat` every 5 seconds, updates `last_heartbeat_at` in Supabase. Awaits `force_stop` responses.
 
 - ✅ **Step 3 Complete: Consent flow**
   - `agent/consent.py` — `ConsentManager` class, displays IBA honour pledge, records consent via `/consent`, returns exam access code

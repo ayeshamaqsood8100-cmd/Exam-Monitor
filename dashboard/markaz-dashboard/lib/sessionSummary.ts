@@ -1,6 +1,12 @@
 // SERVER ONLY
 import { unstable_noStore as noStore } from "next/cache";
 import { supabase } from "@/lib/supabase";
+import {
+    HEARTBEAT_LOST_THRESHOLD_MS,
+    MAX_CLIPBOARD_DETAIL_ROWS,
+    MAX_KEYSTROKE_DETAIL_ROWS,
+    MAX_WINDOW_DETAIL_ROWS,
+} from "@/lib/monitoring";
 
 export interface KeystrokeGroup {
     startTime: string;
@@ -39,6 +45,14 @@ export interface SessionSummaryData {
     health: {
         agent_version: string;
         consented_at: string | null;
+    };
+    limits: {
+        maxKeystrokeRows: number;
+        maxWindowRows: number;
+        maxClipboardRows: number;
+        keystrokesTruncated: boolean;
+        windowsTruncated: boolean;
+        clipboardTruncated: boolean;
     };
     flags: {
         id: string;
@@ -87,7 +101,7 @@ function deriveSessionDisplayStatus(status: string, lastHeartbeatAt: string | nu
     const hasUnreviewedEarlyEnd = agentEvents.some((event) => event.flag_type === "system_session_ended_before_exam_end" && !event.reviewed);
     const hasUnreviewedKill = agentEvents.some((event) => event.flag_type === "system_agent_process_exited_unexpectedly" && !event.reviewed);
     const hasUnreviewedReboot = agentEvents.some((event) => event.flag_type === "system_agent_restarted_after_reboot" && !event.reviewed);
-    const heartbeatLost = status === "active" && (!lastHeartbeatAt || new Date(lastHeartbeatAt).getTime() < Date.now() - 12000);
+    const heartbeatLost = status === "active" && (!lastHeartbeatAt || new Date(lastHeartbeatAt).getTime() < Date.now() - HEARTBEAT_LOST_THRESHOLD_MS);
 
     if (status === "completed" && hasUnreviewedEarlyEnd) return "COMPLETED - ENDED EARLY";
     if (status === "terminated") return "TERMINATED";
@@ -106,6 +120,8 @@ export async function getSessionSummary(sessionId: string): Promise<SessionSumma
         consentRes,
         telemetryRes,
         keystrokesRes,
+        windowsCountRes,
+        clipboardCountRes,
         keystrokesDataRes,
         windowsRes,
         clipboardRes
@@ -119,9 +135,26 @@ export async function getSessionSummary(sessionId: string): Promise<SessionSumma
         supabase.from("consent_logs").select("consented_at, agent_version").eq("session_id", sessionId).maybeSingle(),
         supabase.from("telemetry_syncs").select("offline_periods").eq("session_id", sessionId),
         supabase.from("keystroke_logs").select("id", { count: "exact", head: true }).eq("session_id", sessionId),
-        supabase.from("keystroke_logs").select("id, captured_at, application, key_data").eq("session_id", sessionId).order("captured_at", { ascending: true }),
-        supabase.from("window_logs").select("switched_at, application_name, window_title").eq("session_id", sessionId).order("switched_at", { ascending: true }),
-        supabase.from("clipboard_logs").select("id, captured_at, event_type, source_application, destination_application, content").eq("session_id", sessionId).order("captured_at", { ascending: true })
+        supabase.from("window_logs").select("id", { count: "exact", head: true }).eq("session_id", sessionId),
+        supabase.from("clipboard_logs").select("id", { count: "exact", head: true }).eq("session_id", sessionId),
+        supabase
+            .from("keystroke_logs")
+            .select("id, captured_at, application, key_data")
+            .eq("session_id", sessionId)
+            .order("captured_at", { ascending: true })
+            .limit(MAX_KEYSTROKE_DETAIL_ROWS),
+        supabase
+            .from("window_logs")
+            .select("switched_at, application_name, window_title")
+            .eq("session_id", sessionId)
+            .order("switched_at", { ascending: true })
+            .limit(MAX_WINDOW_DETAIL_ROWS),
+        supabase
+            .from("clipboard_logs")
+            .select("id, captured_at, event_type, source_application, destination_application, content")
+            .eq("session_id", sessionId)
+            .order("captured_at", { ascending: true })
+            .limit(MAX_CLIPBOARD_DETAIL_ROWS)
     ]);
 
     // Queried separately to avoid Next.js fetch cache returning stale empty results
@@ -157,6 +190,12 @@ export async function getSessionSummary(sessionId: string): Promise<SessionSumma
     const cheatingFlags = allFlags.filter((row) => !row.flag_type.startsWith("system_"));
     const agentEvents = allFlags.filter((row) => row.flag_type.startsWith("system_"));
     const displayStatus = deriveSessionDisplayStatus(data.status, data.last_heartbeat_at, agentEvents);
+    const keystrokeCount = keystrokesRes.count || 0;
+    const windowCount = windowsCountRes.count || 0;
+    const clipboardCount = clipboardCountRes.count || 0;
+    const keystrokeRows = keystrokesDataRes.data || [];
+    const windowRows = windowsRes.data || [];
+    const clipboardRows = clipboardRes.data || [];
 
     return {
         sessionId: sessionId,
@@ -177,9 +216,9 @@ export async function getSessionSummary(sessionId: string): Promise<SessionSumma
             last_heartbeat: formatDateToKarachi(data.last_heartbeat_at)
         },
         stats: {
-            keystrokes: keystrokesRes.count || 0,
-            windows: windowsRes.data?.length || 0,
-            clipboard: clipboardRes.data?.length || 0,
+            keystrokes: keystrokeCount,
+            windows: windowCount,
+            clipboard: clipboardCount,
             flags: cheatingFlags.length,
             agent_events: agentEvents.length,
             syncs: telemetryRes.data?.length || 0,
@@ -188,6 +227,14 @@ export async function getSessionSummary(sessionId: string): Promise<SessionSumma
         health: {
             agent_version: consentRes.data?.agent_version || "Unknown",
             consented_at: formatDateToKarachi(consentRes.data?.consented_at || null)
+        },
+        limits: {
+            maxKeystrokeRows: MAX_KEYSTROKE_DETAIL_ROWS,
+            maxWindowRows: MAX_WINDOW_DETAIL_ROWS,
+            maxClipboardRows: MAX_CLIPBOARD_DETAIL_ROWS,
+            keystrokesTruncated: keystrokeCount > keystrokeRows.length,
+            windowsTruncated: windowCount > windowRows.length,
+            clipboardTruncated: clipboardCount > clipboardRows.length,
         },
         flags: cheatingFlags.map(row => ({
             id: row.id,
@@ -206,18 +253,18 @@ export async function getSessionSummary(sessionId: string): Promise<SessionSumma
             evidence: row.evidence,
             reviewed: row.reviewed
         })),
-        windows: (windowsRes.data || []).map(row => ({
+        windows: windowRows.map(row => ({
             switched_at: formatDateToKarachi(row.switched_at),
             app_name: row.application_name,
             window_title: row.window_title
         })),
-        keystrokes: (keystrokesDataRes.data || []).map(row => ({
+        keystrokes: keystrokeRows.map(row => ({
             id: row.id,
             captured_at: formatDateToKarachi(row.captured_at),
             application: row.application || "Unknown"
         })),
-        keystrokeGroups: buildKeystrokeGroups(keystrokesDataRes.data || []),
-        clipboard: (clipboardRes.data || []).map(row => ({
+        keystrokeGroups: buildKeystrokeGroups(keystrokeRows),
+        clipboard: clipboardRows.map(row => ({
             id: row.id,
             captured_at: formatDateToKarachi(row.captured_at),
             event_type: row.event_type as "COPY" | "PASTE",

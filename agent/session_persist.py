@@ -9,9 +9,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, Dict, Any
 
-import httpx
-
 from .config import settings
+from .http_client import get_http_client
 
 _SESSION_FILE = Path.home() / ".markaz_session.json"
 _BLOCK_FILE = Path.home() / ".markaz_blocked"
@@ -143,8 +142,12 @@ def get_remote_session_status(session_id: str) -> str | None:
             "X-API-Key": settings.BACKEND_API_KEY,
             "Content-Type": "application/json"
         }
-        with httpx.Client(timeout=10.0) as client:
-            response = client.post(url, headers=headers, json={"session_id": session_id})
+        response = get_http_client().post(
+            url,
+            headers=headers,
+            json={"session_id": session_id},
+            timeout=10.0,
+        )
 
         if response.status_code == 200:
             data = response.json()
