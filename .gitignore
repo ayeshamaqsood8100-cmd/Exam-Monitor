@@ -8,3 +8,8 @@ commit_log.txt
 fix_encoding.py
 git_files.txt
 .env*.local
+agent/build_config.py
+.build-venv-windows/
+build/
+dist/
+release/

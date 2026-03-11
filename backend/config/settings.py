@@ -39,6 +39,8 @@ class Settings(BaseSettings):
     SUPABASE_SERVICE_ROLE_KEY: str
     BACKEND_API_KEY: str
     FRONTEND_URL: str
+    STUDENT_AGENT_TOKEN_SECRET: str | None = None
+    STUDENT_AGENT_TOKEN_TTL_SECONDS: int = 604800
 
     AI_PROVIDER_ORDER: str = "deepseek,groq,openrouter"
     AI_TIMEOUT_SECONDS: float = 45.0

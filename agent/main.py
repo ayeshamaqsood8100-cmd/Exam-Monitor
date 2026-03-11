@@ -7,6 +7,7 @@ import time
 import uuid
 import threading
 from typing import Optional
+from .auth import build_auth_headers, clear_session_token, set_session_token
 from .config import settings
 from .session import SessionManager
 from .heartbeat import HeartbeatManager
@@ -20,6 +21,7 @@ from .widget import MonitoringWidget
 from . import session_persist
 from . import autostart
 from .http_client import close_http_client, get_http_client
+from .windows_student_ui import is_windows_packaged_runtime, request_student_erp, show_error_dialog
 
 KEYSTROKE_HEALTH_CHECK_INTERVAL_SECONDS = 15.0
 KEYSTROKE_HEALTH_STALE_AFTER_SECONDS = 90.0
@@ -45,6 +47,7 @@ class AgentOrchestrator:
         self.session_id: Optional[str] = None
         self.student_name: Optional[str] = None
         self.erp: Optional[str] = None
+        self.session_token: Optional[str] = None
         self.session_manager: Optional[SessionManager] = None
 
         self._shutdown_lock = threading.Lock()
@@ -78,7 +81,7 @@ class AgentOrchestrator:
 
         try:
             url = f"{settings.BACKEND_URL.rstrip('/')}/session/event"
-            headers = {"X-API-Key": settings.BACKEND_API_KEY, "Content-Type": "application/json"}
+            headers = build_auth_headers()
             get_http_client().post(
                 url,
                 headers=headers,
@@ -110,7 +113,7 @@ class AgentOrchestrator:
 
         try:
             url = f"{settings.BACKEND_URL.rstrip('/')}{endpoint}"
-            headers = {"X-API-Key": settings.BACKEND_API_KEY, "Content-Type": "application/json"}
+            headers = build_auth_headers()
             response = get_http_client().post(
                 url,
                 headers=headers,
@@ -141,7 +144,7 @@ class AgentOrchestrator:
         if self.session_id:
             try:
                 url = f"{settings.BACKEND_URL.rstrip('/')}/session/end"
-                headers = {"X-API-Key": settings.BACKEND_API_KEY, "Content-Type": "application/json"}
+                headers = build_auth_headers()
                 response = get_http_client().post(
                     url,
                     headers=headers,
@@ -161,7 +164,11 @@ class AgentOrchestrator:
         print("=== MARKAZ EXAM MONITOR ===")
 
         if session_persist.is_device_blocked():
-            print("[BLOCKED] This device has been removed from monitoring. Please reinstall the agent for future exams.")
+            message = "This device has been removed from monitoring. Please reinstall the agent for future exams."
+            if is_windows_packaged_runtime():
+                show_error_dialog("Markaz", message)
+            else:
+                print(f"[BLOCKED] {message}")
             try:
                 autostart.uninstall()
             except Exception:
@@ -170,8 +177,15 @@ class AgentOrchestrator:
 
 
         if not validate_uuid(settings.EXAM_ID):
-            print(f"\n[!] CONFIGURATION ERROR: The EXAM_ID '{settings.EXAM_ID}' provided in the .env file is not a valid UUID.")
-            print("Please correct the .env file before running the agent.")
+            message = (
+                f"The EXAM_ID '{settings.EXAM_ID}' provided for the agent is not a valid UUID.\n\n"
+                "Please correct the configuration before running the agent."
+            )
+            if is_windows_packaged_runtime():
+                show_error_dialog("Markaz", message)
+            else:
+                print(f"\n[!] CONFIGURATION ERROR: The EXAM_ID '{settings.EXAM_ID}' provided in the .env file is not a valid UUID.")
+                print("Please correct the .env file before running the agent.")
             sys.exit(1)
 
         print(f"Exam ID: {settings.EXAM_ID}\n")
@@ -179,8 +193,15 @@ class AgentOrchestrator:
         # Check for a saved session (crash recovery / reboot resume)
         saved = session_persist.load_session()
         restart_marker = session_persist.load_restart_marker()
+        if saved and not saved.get("session_token") and not settings.BACKEND_API_KEY:
+            session_persist.clear_session()
+            session_persist.clear_restart_marker()
+            saved = None
         if saved and saved.get("exam_id") == settings.EXAM_ID:
-            saved_status = session_persist.get_remote_session_status(saved["session_id"])
+            saved_status = session_persist.get_remote_session_status(
+                saved["session_id"],
+                session_token=saved.get("session_token"),
+            )
             if saved_status in {"active", "paused", "completed"}:
                 print(f"[RESUME] Found saved session for {saved['student_name']} (ERP: {saved['erp']})")
                 print(f"[RESUME] Resuming session {saved['session_id'][:8]}...\n")
@@ -188,6 +209,8 @@ class AgentOrchestrator:
                 self.student_name = saved["student_name"]
                 self.erp = saved["erp"]
                 self.access_code = saved.get("access_code")
+                self.session_token = saved.get("session_token")
+                set_session_token(self.session_token)
                 self._saved_remote_status = saved_status
                 if restart_marker and restart_marker.get("session_id") == self.session_id:
                     self._resume_marker = restart_marker
@@ -206,25 +229,37 @@ class AgentOrchestrator:
 
         if not self.session_id:
             # Loop to ensure the student enters a valid 5-digit ERP number
-            while True:
-                entered_erp = input("Please enter your student ERP number: ").strip()
-                if len(entered_erp) == 5 and entered_erp.isdigit():
-                    self.erp = entered_erp
-                    break
-                print("Error: ERP must be a 5-digit number (e.g. 28744). Please try again.")
+            if is_windows_packaged_runtime():
+                entered_erp = request_student_erp()
+                if not entered_erp:
+                    sys.exit(0)
+                self.erp = entered_erp
+            else:
+                while True:
+                    entered_erp = input("Please enter your student ERP number: ").strip()
+                    if len(entered_erp) == 5 and entered_erp.isdigit():
+                        self.erp = entered_erp
+                        break
+                    print("Error: ERP must be a 5-digit number (e.g. 28744). Please try again.")
 
         try:
             if not self.session_id:
                 print("\nConnecting to backend to start session...")
 
                 self.session_manager = SessionManager()
-                self.session_id, self.student_name = self.session_manager.start(self.erp)
+                self.session_id, self.student_name, self.session_token = self.session_manager.start(self.erp)
+                set_session_token(self.session_token)
 
                 print("\nSession started successfully.")
                 print(f"Session ID: {self.session_id}\n")
 
                 # Save session to disk for crash recovery
-                session_persist.save_session(self.session_id, self.erp, self.student_name)
+                session_persist.save_session(
+                    self.session_id,
+                    self.erp,
+                    self.student_name,
+                    session_token=self.session_token,
+                )
                 print("[PERSIST] Session saved for crash recovery")
                 session_persist.clear_restart_marker()
 
@@ -238,7 +273,8 @@ class AgentOrchestrator:
                 self.access_code = self.consent_manager.request()
                 session_persist.update_session_metadata(
                     consent_recorded=True,
-                    access_code=self.access_code
+                    access_code=self.access_code,
+                    session_token=self.session_token,
                 )
                 print("\n[CONSENT] Recorded successfully")
 
@@ -270,7 +306,8 @@ class AgentOrchestrator:
 
             if not waiting_for_manual_restart and self._saved_remote_status != "completed":
                 self._start_monitoring()
-                print("[EXAM] Monitoring active. Do not close this window.")
+                if not is_windows_packaged_runtime():
+                    print("[EXAM] Monitoring active. Do not close this window.")
 
             while not self._exit_event.wait(1.0):
                 pass
@@ -280,9 +317,15 @@ class AgentOrchestrator:
             self.shutdown(source="system")
         except Exception as e:
             # Catch any human-readable exceptions raised by the session module and display cleanly
-            print(f"\n[!] CRITICAL ERROR: Failed to start session.")
-            print(f"Detail: {str(e)}\n")
-            print("Cannot proceed with monitoring. Please contact your instructor or IT support.")
+            if is_windows_packaged_runtime():
+                show_error_dialog(
+                    "Markaz",
+                    f"Failed to start the exam session.\n\nDetail: {str(e)}\n\nPlease contact your instructor or IT support.",
+                )
+            else:
+                print(f"\n[!] CRITICAL ERROR: Failed to start session.")
+                print(f"Detail: {str(e)}\n")
+                print("Cannot proceed with monitoring. Please contact your instructor or IT support.")
             sys.exit(1)
 
     def _handle_remote_status(self, status: str) -> None:
@@ -525,7 +568,7 @@ class AgentOrchestrator:
         if self.session_id:
             try:
                 url = f"{settings.BACKEND_URL.rstrip('/')}/session/end"
-                headers = {"X-API-Key": settings.BACKEND_API_KEY, "Content-Type": "application/json"}
+                headers = build_auth_headers()
                 get_http_client().post(
                     url,
                     headers=headers,
@@ -556,6 +599,7 @@ class AgentOrchestrator:
         # bundled console window to close automatically.
         import time as _time
         _time.sleep(0.6)
+        clear_session_token()
         close_http_client()
         sys.exit(0)
 

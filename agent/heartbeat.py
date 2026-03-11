@@ -4,6 +4,7 @@ Handles background pinging to prove the agent is alive.
 """
 import threading
 from datetime import datetime, timezone
+from .auth import build_auth_headers
 from .config import settings
 from .http_client import get_http_client
 
@@ -36,11 +37,7 @@ class HeartbeatManager:
     def _ping(self) -> None:
         """Performs a single synchronous HTTP POST heartbeat ping."""
         url = f"{settings.BACKEND_URL.rstrip('/')}/heartbeat"
-        
-        headers = {
-            "X-API-Key": settings.BACKEND_API_KEY,
-            "Content-Type": "application/json"
-        }
+        headers = build_auth_headers()
         
         # Ensure timestamp is explicit timezone-aware UTC inside Python, formatted as ISO 8601 string
         timestamp = datetime.now(timezone.utc).isoformat()

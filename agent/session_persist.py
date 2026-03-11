@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, Dict, Any
 
+from .auth import build_auth_headers
 from .config import settings
 from .http_client import get_http_client
 
@@ -24,6 +25,7 @@ def save_session(
     *,
     consent_recorded: bool = False,
     access_code: str | None = None,
+    session_token: str | None = None,
 ) -> None:
     data = {
         "session_id": session_id,
@@ -32,6 +34,7 @@ def save_session(
         "exam_id": settings.EXAM_ID,
         "consent_recorded": consent_recorded,
         "access_code": access_code,
+        "session_token": session_token,
     }
     try:
         _SESSION_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
@@ -48,13 +51,19 @@ def load_session() -> Optional[Dict[str, Any]]:
             data.setdefault("student_name", "Student")
             data.setdefault("consent_recorded", False)
             data.setdefault("access_code", None)
+            data.setdefault("session_token", None)
             return data
         return None
     except Exception:
         return None
 
 
-def update_session_metadata(*, consent_recorded: bool | None = None, access_code: str | None = None) -> None:
+def update_session_metadata(
+    *,
+    consent_recorded: bool | None = None,
+    access_code: str | None = None,
+    session_token: str | None = None,
+) -> None:
     data = load_session()
     if not data:
         return
@@ -63,6 +72,8 @@ def update_session_metadata(*, consent_recorded: bool | None = None, access_code
         data["consent_recorded"] = consent_recorded
     if access_code is not None or "access_code" not in data:
         data["access_code"] = access_code
+    if session_token is not None or "session_token" not in data:
+        data["session_token"] = session_token
 
     try:
         _SESSION_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
@@ -135,13 +146,10 @@ def clear_restart_marker() -> None:
         print(f"[PERSIST] Warning: could not delete restart marker - {e}")
 
 
-def get_remote_session_status(session_id: str) -> str | None:
+def get_remote_session_status(session_id: str, session_token: str | None = None) -> str | None:
     try:
         url = f"{settings.BACKEND_URL.rstrip('/')}/session/status"
-        headers = {
-            "X-API-Key": settings.BACKEND_API_KEY,
-            "Content-Type": "application/json"
-        }
+        headers = build_auth_headers(session_token=session_token)
         response = get_http_client().post(
             url,
             headers=headers,
@@ -157,8 +165,8 @@ def get_remote_session_status(session_id: str) -> str | None:
         return None
 
 
-def check_session_active(session_id: str) -> bool:
-    status = get_remote_session_status(session_id)
+def check_session_active(session_id: str, session_token: str | None = None) -> bool:
+    status = get_remote_session_status(session_id, session_token=session_token)
     if status is None:
         return True
     return status in {"active", "paused", "completed"}

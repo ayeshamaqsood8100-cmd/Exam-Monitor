@@ -1,6 +1,7 @@
 import threading
 from collections.abc import Callable
 
+from .auth import build_auth_headers
 from .config import settings
 from .http_client import get_http_client
 
@@ -36,10 +37,7 @@ class SessionControlManager:
 
     def _fetch_status(self) -> str | None:
         url = f"{settings.BACKEND_URL.rstrip('/')}/session/status"
-        headers = {
-            "X-API-Key": settings.BACKEND_API_KEY,
-            "Content-Type": "application/json",
-        }
+        headers = build_auth_headers()
 
         try:
             response = get_http_client().post(

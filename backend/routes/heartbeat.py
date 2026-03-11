@@ -1,13 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from backend.models.heartbeat import HeartbeatModel, HeartbeatResponseModel
-from backend.services.security import verify_api_key
+from backend.services.security import authorize_session_access, verify_student_agent_auth
 from backend.services.heartbeat_service import update_heartbeat
 
 router = APIRouter()
 
-@router.post("/heartbeat", response_model=HeartbeatResponseModel, dependencies=[Depends(verify_api_key)])
-def process_heartbeat(payload: HeartbeatModel):
+@router.post("/heartbeat", response_model=HeartbeatResponseModel)
+def process_heartbeat(payload: HeartbeatModel, auth: dict = Depends(verify_student_agent_auth)):
     try:
+        authorize_session_access(str(payload.session_id), auth)
         result = update_heartbeat(payload.session_id)
 
         if not result["updated"]:

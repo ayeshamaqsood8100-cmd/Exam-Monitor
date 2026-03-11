@@ -9,6 +9,7 @@ import httpx
 from datetime import datetime, timezone
 from typing import Optional
 
+from .auth import build_auth_headers
 from .config import settings
 from .http_client import get_http_client
 from .collectors.window_collector import WindowCollector
@@ -76,10 +77,7 @@ class SyncEngine:
             windows = self._window_collector.peek(limit=500)
             clipboard = self._clipboard_collector.peek(limit=500)
 
-            headers = {
-                "X-API-Key": settings.BACKEND_API_KEY,
-                "Content-Type": "application/json"
-            }
+            headers = build_auth_headers()
 
             client = get_http_client()
             telemetry_sync_id = self._initialize_sync(headers, client, synced_at)

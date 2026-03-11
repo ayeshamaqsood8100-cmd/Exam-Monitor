@@ -12,7 +12,7 @@ class SessionManager:
     Manages the lifecycle of an exam session with the remote backend.
     """
     
-    def start(self, erp: str) -> Tuple[str, str]:
+    def start(self, erp: str) -> Tuple[str, str, str]:
         """
         Initiates an exam session for the given student ERP by calling the backend API.
         Raises clear, human-readable exceptions on any failure condition.
@@ -26,10 +26,7 @@ class SessionManager:
         # Defensive URL joining to prevent double slashes
         url = f"{settings.BACKEND_URL.rstrip('/')}/session/start"
         
-        headers = {
-            "X-API-Key": settings.BACKEND_API_KEY,
-            "Content-Type": "application/json"
-        }
+        headers = {"Content-Type": "application/json"}
         
         payload = {
             "student_erp": erp,
@@ -54,7 +51,13 @@ class SessionManager:
                 
             student_name = data.get("student_name", "Student")
             
-            return str(session_id), str(student_name)
+            session_token = data.get("session_token")
+            if not session_token:
+                raise ValueError(
+                    f"Backend responded with success, but 'session_token' was missing from the response body. Payload received: {data}"
+                )
+
+            return str(session_id), str(student_name), str(session_token)
             
         except httpx.ConnectError as e:
             raise ConnectionError(f"Network error: Failed to connect to the backend at {settings.BACKEND_URL}. Please check your internet connection.") from e

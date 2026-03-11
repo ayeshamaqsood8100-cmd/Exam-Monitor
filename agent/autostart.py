@@ -22,6 +22,8 @@ _WINDOWS_HELPER_VBS = _WINDOWS_HELPER_DIR / "launch_watchdog.vbs"
 
 
 def _get_working_directory():
+    if getattr(sys, "frozen", False):
+        return os.path.dirname(sys.executable)
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -33,12 +35,17 @@ def _write_windows_helper() -> None:
     _WINDOWS_HELPER_DIR.mkdir(parents=True, exist_ok=True)
     cwd = _get_working_directory()
     python_path = sys.executable
-    bat_content = f'@echo off\ncd /d "{cwd}"\n"{python_path}" -m agent.watchdog\n'
+    if getattr(sys, "frozen", False):
+        bat_content = f'@echo off\ncd /d "{cwd}"\n"{python_path}"\n'
+        vbs_run_target = f'Chr(34) & "{python_path}" & Chr(34)'
+    else:
+        bat_content = f'@echo off\ncd /d "{cwd}"\n"{python_path}" -m agent.watchdog\n'
+        vbs_run_target = f'Chr(34) & "{python_path}" & Chr(34) & " -m agent.watchdog"'
     _WINDOWS_HELPER_BAT.write_text(bat_content, encoding="utf-8")
     vbs_content = (
         'Set shell = CreateObject("WScript.Shell")\n'
         f'shell.CurrentDirectory = "{cwd}"\n'
-        f'shell.Run Chr(34) & "{python_path}" & Chr(34) & " -m agent.watchdog", 0, False\n'
+        f"shell.Run {vbs_run_target}, 0, False\n"
     )
     _WINDOWS_HELPER_VBS.write_text(vbs_content, encoding="utf-8")
 

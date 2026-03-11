@@ -17,8 +17,11 @@ import os
 import signal
 import platform
 
+from agent.auth import build_auth_headers
 from agent.http_client import close_http_client, get_http_client
+from agent.windows_student_ui import is_windows_packaged_runtime, show_error_dialog
 
+CHILD_PROCESS_ARG = "--markaz-agent-child"
 
 # How often to check if the agent is Still alive (seconds)
 CHECK_INTERVAL = 1
@@ -30,6 +33,8 @@ RAPID_RESTART_WINDOW = 120  # seconds
 
 def get_agent_command():
     """Returns the command to start the agent, using the same Python interpreter."""
+    if getattr(sys, "frozen", False):
+        return [sys.executable, CHILD_PROCESS_ARG]
     return [sys.executable, "-m", "agent.main"]
 
 
@@ -37,10 +42,7 @@ def _record_agent_event(saved_session: dict, event_type: str, description: str, 
     from agent.config import settings
 
     url = f"{settings.BACKEND_URL.rstrip('/')}/session/event"
-    headers = {
-        "X-API-Key": settings.BACKEND_API_KEY,
-        "Content-Type": "application/json",
-    }
+    headers = build_auth_headers(session_token=saved_session.get("session_token"))
 
     try:
         get_http_client().post(
@@ -63,10 +65,7 @@ def _pause_session_for_restart(saved_session: dict) -> None:
     from agent.config import settings
 
     url = f"{settings.BACKEND_URL.rstrip('/')}/session/pause"
-    headers = {
-        "X-API-Key": settings.BACKEND_API_KEY,
-        "Content-Type": "application/json",
-    }
+    headers = build_auth_headers(session_token=saved_session.get("session_token"))
 
     try:
         get_http_client().post(
@@ -114,6 +113,7 @@ def run_watchdog():
     restart_times = []
 
     agent_process = None
+    hidden_windows_runtime = is_windows_packaged_runtime()
 
     try:
         while True:
@@ -122,14 +122,15 @@ def run_watchdog():
             cwd = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
             print(f"[WATCHDOG] Starting agent...")
-            agent_process = subprocess.Popen(
-                cmd,
-                cwd=cwd,
-                # Inherit stdin/stdout so student can interact with ERP prompt
-                stdin=sys.stdin,
-                stdout=sys.stdout,
-                stderr=sys.stderr
-            )
+            popen_kwargs = {"cwd": cwd}
+            if hidden_windows_runtime:
+                popen_kwargs["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+            else:
+                popen_kwargs["stdin"] = sys.stdin
+                popen_kwargs["stdout"] = sys.stdout
+                popen_kwargs["stderr"] = sys.stderr
+
+            agent_process = subprocess.Popen(cmd, **popen_kwargs)
 
             # Wait for the agent to exit
             exit_code = agent_process.wait()
@@ -171,6 +172,11 @@ def run_watchdog():
             if len(restart_times) >= MAX_RAPID_RESTARTS:
                 print(f"[WATCHDOG] Agent crashed {MAX_RAPID_RESTARTS} times in {RAPID_RESTART_WINDOW}s. Giving up.")
                 print("[WATCHDOG] Please contact your instructor or IT support.")
+                if hidden_windows_runtime:
+                    show_error_dialog(
+                        "Markaz",
+                        "The exam agent failed to restart after repeated attempts.\n\nPlease contact your instructor or IT support.",
+                    )
                 break
 
             print(f"[WATCHDOG] Agent died unexpectedly. Restarting in {CHECK_INTERVAL} seconds...")
