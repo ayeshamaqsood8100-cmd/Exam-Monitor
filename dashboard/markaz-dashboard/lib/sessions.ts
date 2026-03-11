@@ -10,6 +10,7 @@ export type SessionDisplayStatus =
     | "PAUSED"
     | "COMPLETED"
     | "COMPLETED - ENDED EARLY"
+    | "COMPLETED - ENDED LATE"
     | "TERMINATED"
     | "AGENT LOST"
     | "AGENT KILLED"
@@ -93,6 +94,7 @@ function newestUnreviewedEventAt(events: RawFlaggedEventSummary[], flagType: str
 
 function deriveAttentionState(row: RawSessionRow, heartbeatStatus: HeartbeatStatus, systemEvents: RawFlaggedEventSummary[]): AttentionState {
     const earlyEndAt = newestUnreviewedEventAt(systemEvents, "system_session_ended_before_exam_end");
+    const lateEndAt = newestUnreviewedEventAt(systemEvents, "system_session_ended_after_exam_end");
     const unexpectedExitAt = newestUnreviewedEventAt(systemEvents, "system_agent_process_exited_unexpectedly");
     const rebootRestartAt = newestUnreviewedEventAt(systemEvents, "system_agent_restarted_after_reboot");
 
@@ -103,6 +105,15 @@ function deriveAttentionState(row: RawSessionRow, heartbeatStatus: HeartbeatStat
                 needsAttention: true,
                 attentionReason: "Student ended the session before exam time was over.",
                 attentionUpdatedAt: earlyEndAt,
+                canRestart: true,
+            };
+        }
+        if (lateEndAt) {
+            return {
+                displayStatus: "COMPLETED - ENDED LATE",
+                needsAttention: false,
+                attentionReason: "Student ended the session after exam time was over.",
+                attentionUpdatedAt: lateEndAt,
                 canRestart: true,
             };
         }
@@ -183,6 +194,8 @@ function getPriority(displayStatus: SessionDisplayStatus, needsAttention: boolea
                 return 60;
             case "COMPLETED":
                 return 70;
+            case "COMPLETED - ENDED LATE":
+                return 75;
             case "TERMINATED":
                 return 80;
             default:

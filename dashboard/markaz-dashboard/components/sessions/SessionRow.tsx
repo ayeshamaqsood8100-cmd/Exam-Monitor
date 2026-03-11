@@ -42,6 +42,10 @@ export default function SessionRow({ session, onForceStop, isStopping }: Session
             dotColor = THEME.yellow;
             badgeColor = THEME.yellow;
             break;
+        case "COMPLETED - ENDED LATE":
+            dotColor = THEME.blue;
+            badgeColor = THEME.blue;
+            break;
         case "TERMINATED":
             dotColor = THEME.pink;
             badgeColor = THEME.pink;

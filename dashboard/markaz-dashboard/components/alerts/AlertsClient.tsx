@@ -24,6 +24,8 @@ function prettifyType(flagType: string): string {
             return "RESTARTED AFTER REBOOT";
         case "system_session_ended_before_exam_end":
             return "COMPLETED - ENDED EARLY";
+        case "system_session_ended_after_exam_end":
+            return "COMPLETED - ENDED LATE";
         default:
             return flagType.replace(/^system_/, "").replaceAll("_", " ").toUpperCase();
     }
