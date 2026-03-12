@@ -75,7 +75,8 @@ def request_student_erp() -> str | None:
     root.configure(bg=_BG_BASE)
     root.attributes("-topmost", True)
     
-    w, h = 460, 380
+    # Increased height to ensure buttons are visible when title bar is present
+    w, h = 460, 450
     _center_window(root, w, h)
     root.lift()
     root.focus_force()
@@ -166,7 +167,8 @@ def request_student_erp_with_session_start(
     root.configure(bg=_BG_BASE)
     root.attributes("-topmost", True)
     
-    w, h = 460, 380
+    # Increased height to ensure buttons are visible when title bar is present
+    w, h = 460, 450
     _center_window(root, w, h)
     root.lift()
     root.focus_force()
@@ -338,8 +340,8 @@ def request_consent_confirmation() -> bool:
     root.configure(bg=_BG_BASE)
     root.attributes("-topmost", True)
     
-    # Shrink consent window slightly for a cleaner look
-    w, h = 480, 520
+    # Increased height to accommodate all text and buttons comfortably
+    w, h = 480, 580
     _center_window(root, w, h)
     root.lift()
     root.focus_force()
