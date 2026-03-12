@@ -22,7 +22,7 @@ from . import session_persist
 from . import autostart
 from .http_client import close_http_client, get_http_client
 from .windows_student_ui import (
-    is_windows_packaged_runtime,
+    is_gui_mode,
     request_student_erp,
     request_student_erp_with_session_start,
     show_error_dialog,
@@ -170,7 +170,7 @@ class AgentOrchestrator:
 
         if session_persist.is_device_blocked():
             message = "This device has been removed from monitoring. Please reinstall the agent for future exams."
-            if is_windows_packaged_runtime():
+            if is_gui_mode():
                 show_error_dialog("Markaz", message)
             else:
                 print(f"[BLOCKED] {message}")
@@ -186,7 +186,7 @@ class AgentOrchestrator:
                 f"The EXAM_ID '{settings.EXAM_ID}' provided for the agent is not a valid UUID.\n\n"
                 "Please correct the configuration before running the agent."
             )
-            if is_windows_packaged_runtime():
+            if is_gui_mode():
                 show_error_dialog("Markaz", message)
             else:
                 print(f"\n[!] CONFIGURATION ERROR: The EXAM_ID '{settings.EXAM_ID}' provided in the .env file is not a valid UUID.")
@@ -234,7 +234,7 @@ class AgentOrchestrator:
 
         if not self.session_id:
             # Loop to ensure the student enters a valid 5-digit ERP number
-            if is_windows_packaged_runtime():
+            if is_gui_mode():
                 self.session_manager = SessionManager()
                 entered_erp, started_session = request_student_erp_with_session_start(self.session_manager.start)
                 if not entered_erp:
@@ -327,7 +327,7 @@ class AgentOrchestrator:
 
             if not waiting_for_manual_restart and self._saved_remote_status != "completed":
                 self._start_monitoring()
-                if not is_windows_packaged_runtime():
+                if not is_gui_mode():
                     print("[EXAM] Monitoring active. Do not close this window.")
 
             while not self._exit_event.wait(1.0):
@@ -338,7 +338,7 @@ class AgentOrchestrator:
             self.shutdown(source="system")
         except Exception as e:
             # Catch any human-readable exceptions raised by the session module and display cleanly
-            if is_windows_packaged_runtime():
+            if is_gui_mode():
                 show_error_dialog(
                     "Markaz",
                     f"Failed to start the exam session.\n\nDetail: {str(e)}\n\nPlease contact your instructor or IT support.",

@@ -19,7 +19,7 @@ import platform
 
 from agent.auth import build_auth_headers
 from agent.http_client import close_http_client, get_http_client
-from agent.windows_student_ui import is_windows_packaged_runtime, show_error_dialog
+from agent.windows_student_ui import is_windows_packaged_runtime, is_gui_mode, show_error_dialog
 
 CHILD_PROCESS_ARG = "--markaz-agent-child"
 
@@ -113,6 +113,7 @@ def run_watchdog():
     restart_times = []
 
     agent_process = None
+    gui_mode = is_gui_mode()
     hidden_windows_runtime = is_windows_packaged_runtime()
 
     try:
@@ -172,7 +173,7 @@ def run_watchdog():
             if len(restart_times) >= MAX_RAPID_RESTARTS:
                 print(f"[WATCHDOG] Agent crashed {MAX_RAPID_RESTARTS} times in {RAPID_RESTART_WINDOW}s. Giving up.")
                 print("[WATCHDOG] Please contact your instructor or IT support.")
-                if hidden_windows_runtime:
+                if gui_mode:
                     show_error_dialog(
                         "Markaz",
                         "The exam agent failed to restart after repeated attempts.\n\nPlease contact your instructor or IT support.",

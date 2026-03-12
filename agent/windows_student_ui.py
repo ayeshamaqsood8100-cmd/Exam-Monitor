@@ -25,6 +25,10 @@ _TEXT_ERROR = "#FF3366"
 def is_windows_packaged_runtime() -> bool:
     return platform.system() == "Windows" and bool(getattr(sys, "frozen", False))
 
+def is_gui_mode() -> bool:
+    # Enable GUI for testing on Mac as well as packaged builds.
+    return True
+
 
 def show_error_dialog(title: str, message: str) -> None:
     root = tk.Tk()

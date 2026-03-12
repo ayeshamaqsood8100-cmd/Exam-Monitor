@@ -13,7 +13,7 @@ from .auth import build_auth_headers
 from .config import settings
 from .http_client import get_http_client
 from .windows_student_ui import (
-    is_windows_packaged_runtime,
+    is_gui_mode,
     request_consent_confirmation,
     show_error_dialog,
 )
@@ -48,7 +48,7 @@ class ConsentManager:
         """
         Presents the pledge, waits for valid YES/NO input, records consent with backend, and returns access_code.
         """
-        if is_windows_packaged_runtime():
+        if is_gui_mode():
             if not request_consent_confirmation():
                 sys.exit(0)
         else:
@@ -80,7 +80,7 @@ class ConsentManager:
             data: Dict[str, Any] = response.json()
             access_code = data.get("access_code")
 
-            if not is_windows_packaged_runtime():
+            if not is_gui_mode():
                 os.system("cls" if os.name == "nt" else "clear")
 
                 if access_code is not None:
@@ -114,7 +114,7 @@ class ConsentManager:
         return None
 
     def _fail(self, message: str) -> None:
-        if is_windows_packaged_runtime():
+        if is_gui_mode():
             show_error_dialog("Markaz", message)
         else:
             print(f"\n[!] {message}")
