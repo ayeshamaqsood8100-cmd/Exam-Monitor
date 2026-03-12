@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from backend.services.analysis.models import NormalizedTelemetry, TelemetryAnalysisRequest, TriggerType
 from backend.services.analysis.preprocess import (
     build_input_stats,
@@ -79,6 +81,17 @@ def load_session_request(
         telemetry_sync_rows=telemetry_sync_rows,
         keystroke_groups=keystroke_groups,
     )
+    normalized_telemetry = NormalizedTelemetry(
+        windows=normalize_window_rows(window_rows),
+        clipboard=normalize_clipboard_rows(clipboard_rows),
+        keystrokes=keystroke_groups,
+        offline_periods=normalize_offline_period_rows(telemetry_sync_rows),
+    )
+    analysis_start, analysis_end = _derive_analysis_window(
+        session_start=str(session["session_start"]),
+        session_end=str(session.get("session_end")) if session.get("session_end") else None,
+        telemetry=normalized_telemetry,
+    )
 
     return TelemetryAnalysisRequest(
         session_id=str(session["id"]),
@@ -86,18 +99,60 @@ def load_session_request(
         student_id=str(session["student_id"]),
         student_name=str(student.get("name", "Unknown")),
         student_erp=str(student.get("erp", "Unknown")),
-        session_start=str(session["session_start"]),
-        session_end=str(session.get("session_end")) if session.get("session_end") else None,
+        session_start=analysis_start,
+        session_end=analysis_end,
         trigger_type=trigger_type,
         prompt_version=prompt_version,
-        telemetry=NormalizedTelemetry(
-            windows=normalize_window_rows(window_rows),
-            clipboard=normalize_clipboard_rows(clipboard_rows),
-            keystrokes=keystroke_groups,
-            offline_periods=normalize_offline_period_rows(telemetry_sync_rows),
-        ),
+        telemetry=normalized_telemetry,
         input_stats=input_stats,
     )
+
+
+def _derive_analysis_window(
+    *,
+    session_start: str,
+    session_end: str | None,
+    telemetry: NormalizedTelemetry,
+) -> tuple[str, str | None]:
+    lower = _to_utc(session_start)
+    upper = _to_utc(session_end) if session_end else None
+    telemetry_times = _collect_telemetry_timestamps(telemetry)
+    if not telemetry_times:
+        return lower.isoformat(), upper.isoformat() if upper else None
+
+    telemetry_min = min(telemetry_times)
+    telemetry_max = max(telemetry_times)
+    effective_start = min(lower, telemetry_min)
+    effective_end = max(upper, telemetry_max) if upper else telemetry_max
+    return effective_start.isoformat(), effective_end.isoformat()
+
+
+def _collect_telemetry_timestamps(telemetry: NormalizedTelemetry) -> list[datetime]:
+    timestamps: list[datetime] = []
+
+    for entry in telemetry.windows:
+        timestamps.append(_to_utc(entry.switched_at))
+
+    for entry in telemetry.clipboard:
+        timestamps.append(_to_utc(entry.captured_at))
+
+    for entry in telemetry.keystrokes:
+        timestamps.append(_to_utc(entry.start_at))
+        timestamps.append(_to_utc(entry.end_at))
+
+    for period in telemetry.offline_periods:
+        for value in (period.start, period.end, period.synced_at):
+            if value:
+                timestamps.append(_to_utc(value))
+
+    return timestamps
+
+
+def _to_utc(value: str) -> datetime:
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
 
 
 def _load_telemetry_sync_rows(session_id: str) -> list[dict]:

@@ -43,3 +43,33 @@ export async function restartSessionAction(sessionId: string): Promise<{ error?:
 export async function analyzeSessionsAction(examId: string): Promise<AnalyzeSessionsResponse> {
     return await postToBackend<AnalyzeSessionsResponse>(`/analyze/${examId}`);
 }
+
+export async function terminateExamAction(examId: string): Promise<{ error?: string; count?: number }> {
+    try {
+        const { terminateExamDirectly } = await import("@/lib/exams");
+        const count = await terminateExamDirectly(examId);
+        revalidatePath("/sessions");
+        revalidatePath("/exams");
+        revalidatePath("/alerts");
+        return { count };
+    } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : "Unknown error occurred";
+        return { error: msg };
+    }
+}
+
+export async function acknowledgeSessionAction(sessionId: string): Promise<{ error?: string }> {
+    try {
+        await markSessionAgentAlertsReviewed(sessionId, [
+            "system_session_ended_before_exam_end",
+            "system_agent_process_exited_unexpectedly",
+            "system_agent_restarted_after_reboot",
+        ]);
+        revalidatePath("/sessions");
+        revalidatePath("/alerts");
+        return {};
+    } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : "Unknown error occurred";
+        return { error: msg };
+    }
+}

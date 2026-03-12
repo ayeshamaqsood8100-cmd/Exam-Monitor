@@ -2,16 +2,16 @@
 
 import React, { useState, useEffect } from "react";
 import { type ExamSummary, type SessionWithStudent } from "@/lib/sessions";
-import { THEME } from "@/constants/theme";
 import { useSessionPolling } from "@/hooks/useSessionPolling";
 import SessionsTable from "@/components/sessions/SessionsTable";
-import Card from "@/components/ui/Card";
 
 interface SessionsPageClientProps {
     examId: string;
     initialSessions: SessionWithStudent[];
     exam: ExamSummary;
     onForceStopSession: (sessionId: string) => Promise<{ error?: string }>;
+    onTerminateExam: (examId: string) => Promise<{ error?: string; count?: number }>;
+    onAcknowledgeSession: (sessionId: string) => Promise<{ error?: string }>;
 }
 
 function buildRestoreSessionSql(examId: string): string {
@@ -85,25 +85,15 @@ function SqlSnippetCard({
     onCopy,
 }: SqlSnippetCardProps): React.JSX.Element {
     return (
-        <Card style={{ padding: "20px 22px", flex: "1 1 420px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "flex-start", marginBottom: "10px", flexWrap: "wrap" }}>
+        <div className="aesthetic-card p-6 flex-1 min-w-[420px]">
+            <div className="flex justify-between items-start gap-3 mb-3 flex-wrap">
                 <div>
-                    <div style={{ color: THEME.textPrimary, fontSize: "14px", fontWeight: 700 }}>{title}</div>
-                    <div style={{ color: THEME.textSecondary, fontSize: "12px", marginTop: "6px", lineHeight: 1.5 }}>{description}</div>
+                    <div className="text-[var(--text-primary)] text-sm font-bold">{title}</div>
+                    <div className="text-[var(--text-secondary)] text-xs mt-1.5 leading-relaxed max-w-[400px]">{description}</div>
                 </div>
                 <button
                     onClick={() => void onCopy(copyKey, sql)}
-                    style={{
-                        background: "transparent",
-                        border: `1px solid ${THEME.cyan}`,
-                        color: THEME.cyan,
-                        padding: "6px 12px",
-                        borderRadius: "8px",
-                        fontSize: "12px",
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        whiteSpace: "nowrap",
-                    }}
+                    className="bg-transparent border border-[var(--accent-cyan)] text-[var(--accent-cyan)] px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer whitespace-nowrap transition-colors hover:bg-[var(--accent-cyan)] hover:text-white"
                 >
                     {copiedKey === copyKey ? "Copied" : "Copy SQL"}
                 </button>
@@ -112,29 +102,21 @@ function SqlSnippetCard({
                 readOnly
                 value={sql}
                 spellCheck={false}
-                style={{
-                    width: "100%",
-                    minHeight: "260px",
-                    resize: "vertical",
-                    background: "rgba(0,0,0,0.32)",
-                    color: THEME.textPrimary,
-                    border: `1px solid ${THEME.cardBorder}`,
-                    borderRadius: "12px",
-                    padding: "14px",
-                    fontFamily: THEME.fontMono,
-                    fontSize: "12px",
-                    lineHeight: 1.55,
-                }}
+                className="w-full min-h-[260px] resize-y bg-black/30 text-[var(--text-primary)] border border-[var(--border)] rounded-xl p-3.5 font-mono text-xs leading-relaxed outline-none focus:border-[var(--accent-cyan)] transition-colors"
             />
-        </Card>
+        </div>
     );
 }
 
-export default function SessionsPageClient({ examId, initialSessions, exam, onForceStopSession }: SessionsPageClientProps): React.JSX.Element {
+export default function SessionsPageClient({ examId, initialSessions, exam, onForceStopSession, onTerminateExam, onAcknowledgeSession }: SessionsPageClientProps): React.JSX.Element {
     const { sessions, setSessions, lastRefreshed } = useSessionPolling(examId, initialSessions, 5000);
     const [stoppingIds, setStoppingIds] = useState<Set<string>>(new Set());
     const [isMounted, setIsMounted] = useState(false);
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState<"LIVE" | "SQL">("LIVE");
+    const [isTerminating, setIsTerminating] = useState(false);
+    const [terminateResult, setTerminateResult] = useState<string | null>(null);
+    const [acknowledgedIds, setAcknowledgedIds] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         setIsMounted(true);
@@ -143,6 +125,7 @@ export default function SessionsPageClient({ examId, initialSessions, exam, onFo
     const activeCount = sessions.filter(s => s.display_status === "ACTIVE").length;
     const pausedCount = sessions.filter(s => s.display_status === "PAUSED").length;
     const attentionCount = sessions.filter(s => s.needs_attention).length;
+    
     const restoreSessionSql = buildRestoreSessionSql(examId);
     const studentUpsertSql = buildStudentUpsertSql();
 
@@ -182,7 +165,7 @@ export default function SessionsPageClient({ examId, initialSessions, exam, onFo
             hour: "2-digit",
             minute: "2-digit",
             second: "2-digit",
-            hour12: false // Force 24 hr for technical readout
+            hour12: false
         });
     };
 
@@ -202,149 +185,158 @@ export default function SessionsPageClient({ examId, initialSessions, exam, onFo
         <div>
             {/* Optional Top Warning Banner */}
             {exam.force_stop && (
-                <div
-                    style={{
-                        background: `${THEME.pink}1A`, // ~10% opacity
-                        border: `1px solid ${THEME.pink}4D`, // ~30% opacity
-                        color: THEME.pink,
-                        padding: "16px",
-                        borderRadius: "8px",
-                        marginBottom: "24px",
-                        fontWeight: "bold",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        letterSpacing: "0.5px"
-                    }}
-                >
+                <div className="bg-[#ec4899]/10 border border-[#ec4899]/30 text-[#ec4899] p-4 rounded-lg mb-6 font-bold flex items-center justify-center tracking-wide">
                     EXAM FORCE STOPPED — All sessions have been terminated.
                 </div>
             )}
 
             {/* Header Area */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
-
+            <div className="flex justify-between items-start mb-6">
                 <div>
-                    <div style={{ color: THEME.textMuted, fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "6px" }}>
+                    <div className="text-[var(--text-muted)] text-[11px] uppercase tracking-wider mb-1.5">
                         {exam.class_number}
                     </div>
-                    <h1 style={{ color: THEME.textPrimary, fontSize: "26px", fontWeight: "bold", margin: 0 }}>
+                    <h1 className="text-[var(--text-primary)] text-[26px] font-bold m-0 leading-tight">
                         {exam.exam_name}
                     </h1>
-                    <div style={{ color: THEME.textMuted, fontFamily: THEME.fontMono, fontSize: "12px", marginTop: "12px" }}>
+                    <div className="text-[var(--text-muted)] font-mono text-xs mt-3">
                         Last refreshed: {isMounted ? formatTime(lastRefreshed) : null}
                     </div>
                 </div>
 
-                {/* Header Badges */}
-                <div style={{ display: "flex", gap: "12px" }}>
-                    <div
-                        style={{
-                            background: `${THEME.cyan}1A`,
-                            border: `1px solid ${THEME.cyan}33`,
-                            color: THEME.cyan,
-                            padding: "6px 16px",
-                            borderRadius: "20px",
-                            fontSize: "14px",
-                            fontWeight: 600,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px"
-                        }}
-                    >
-                        <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: THEME.cyan, animation: "breathe 2s infinite" }} />
+                {/* Header Badges + Force Stop */}
+                <div className="flex gap-3 items-center flex-wrap">
+                    <div className="bg-[#06b6d4]/10 border border-[#06b6d4]/20 text-[#06b6d4] px-4 py-1.5 rounded-full text-sm font-semibold flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-[#06b6d4] badge-pulse" />
                         {activeCount} Active
                     </div>
 
                     {attentionCount > 0 && (
-                        <div
-                            style={{
-                                background: `${THEME.pink}1A`,
-                                border: `1px solid ${THEME.pink}33`,
-                                color: THEME.pink,
-                                padding: "6px 16px",
-                                borderRadius: "20px",
-                                fontSize: "14px",
-                                fontWeight: 600,
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "8px"
-                            }}
-                        >
-                            <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: THEME.pink }} />
+                        <div className="bg-[#ec4899]/10 border border-[#ec4899]/20 text-[#ec4899] px-4 py-1.5 rounded-full text-sm font-semibold flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-[#ec4899]" />
                             {attentionCount} Needs Attention
                         </div>
                     )}
 
                     {pausedCount > 0 && (
-                        <div
-                            style={{
-                                background: `${THEME.yellow}1A`,
-                                border: `1px solid ${THEME.yellow}33`,
-                                color: THEME.yellow,
-                                padding: "6px 16px",
-                                borderRadius: "20px",
-                                fontSize: "14px",
-                                fontWeight: 600,
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "8px"
-                            }}
-                        >
-                            <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: THEME.yellow }} />
+                        <div className="bg-[#ffd166]/10 border border-[#ffd166]/20 text-[#ffd166] px-4 py-1.5 rounded-full text-sm font-semibold flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-[#ffd166]" />
                             {pausedCount} Paused
                         </div>
                     )}
-                </div>
 
+                    {/* Force Stop All Button */}
+                    {!exam.force_stop && (
+                        <button
+                            onClick={async () => {
+                                if (!confirm("⚠️ END ALL SESSIONS?\n\nThis will terminate every active session and kill the agent on every student's device. This cannot be undone.")) return;
+                                setIsTerminating(true);
+                                setTerminateResult(null);
+                                const result = await onTerminateExam(examId);
+                                if (result.error) {
+                                    setTerminateResult(`Error: ${result.error}`);
+                                } else {
+                                    setTerminateResult(`✓ ${result.count ?? 0} sessions terminated`);
+                                    // Refresh after a short delay
+                                    setTimeout(() => window.location.reload(), 1500);
+                                }
+                                setIsTerminating(false);
+                            }}
+                            disabled={isTerminating}
+                            className={`px-4 py-1.5 rounded-full text-sm font-semibold flex items-center gap-2 border transition-colors ${isTerminating ? 'opacity-50 cursor-wait bg-[#ef4444]/5 border-[#ef4444]/20 text-[#ef4444]' : 'bg-[#ef4444]/10 border-[#ef4444]/30 text-[#ef4444] hover:bg-[#ef4444]/20 cursor-pointer'}`}
+                        >
+                            {isTerminating ? (
+                                <>
+                                    <div className="w-3 h-3 border-2 border-[#ef4444]/30 border-t-[#ef4444] rounded-full animate-spin" />
+                                    Terminating...
+                                </>
+                            ) : (
+                                <>🛑 End All Sessions</>
+                            )}
+                        </button>
+                    )}
+                </div>
             </div>
 
-            {/* Neon divider line */}
-            <div
-                style={{
-                    height: "1px",
-                    background: `linear-gradient(90deg, transparent, ${THEME.cyan}26, transparent)`,
-                    marginBottom: "32px",
-                }}
-            />
+            {/* Terminate result message */}
+            {terminateResult && (
+                <div className={`mb-4 text-sm font-medium px-4 py-2.5 rounded-lg inline-block ${terminateResult.startsWith("✓") ? 'text-[#06b6d4] bg-[#06b6d4]/10 border border-[#06b6d4]/30' : 'text-[#ef4444] bg-[#ef4444]/10 border border-[#ef4444]/30'}`}>
+                    {terminateResult}
+                </div>
+            )}
 
-            <div style={{ marginBottom: "32px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: "16px", flexWrap: "wrap", marginBottom: "14px" }}>
-                    <div>
-                        <div style={{ color: THEME.textPrimary, fontSize: "13px", fontWeight: 700 }}>Operational SQL</div>
-                        <div style={{ color: THEME.textMuted, fontSize: "12px", marginTop: "6px", maxWidth: "760px" }}>
-                            Replace the placeholders before running in Supabase. The restore query is scoped to this exam only, which makes it safer than reviving the student&apos;s latest session across every exam.
+            {/* Tabs */}
+            <div className="flex gap-2 border-b border-[var(--border)] mb-8">
+                <button 
+                    onClick={() => setActiveTab("LIVE")}
+                    className={`px-5 py-3 text-sm font-medium transition-colors relative ${activeTab === "LIVE" ? "text-[var(--text-primary)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}
+                >
+                    Live Monitoring
+                    {activeTab === "LIVE" && (
+                        <div className="absolute bottom-0 left-0 w-full h-[2px] bg-[#06b6d4] rounded-t-sm shadow-[0_-2px_8px_rgba(6,182,212,0.4)]" />
+                    )}
+                </button>
+                <button 
+                    onClick={() => setActiveTab("SQL")}
+                    className={`px-5 py-3 text-sm font-medium transition-colors relative ${activeTab === "SQL" ? "text-[var(--text-primary)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}
+                >
+                    Manual Overrides & SQL
+                    {activeTab === "SQL" && (
+                        <div className="absolute bottom-0 left-0 w-full h-[2px] bg-[#06b6d4] rounded-t-sm shadow-[0_-2px_8px_rgba(6,182,212,0.4)]" />
+                    )}
+                </button>
+            </div>
+
+            {/* Tab Contents */}
+            {activeTab === "LIVE" ? (
+                <SessionsTable
+                    sessions={sessions}
+                    onForceStop={handleForceStop}
+                    stoppingIds={stoppingIds}
+                    onAcknowledge={async (sessionId: string) => {
+                        setAcknowledgedIds(prev => {
+                            const next = new Set(prev);
+                            next.add(sessionId);
+                            return next;
+                        });
+                        await onAcknowledgeSession(sessionId);
+                    }}
+                    acknowledgedIds={acknowledgedIds}
+                />
+            ) : (
+                <div className="animate-in fade-in duration-300">
+                    <div className="flex justify-between items-end gap-4 flex-wrap mb-4">
+                        <div>
+                            <div className="text-[var(--text-primary)] text-[13px] font-bold">Operational SQL</div>
+                            <div className="text-[var(--text-muted)] text-[12px] mt-1.5 max-w-[760px]">
+                                Replace the placeholders before running in Supabase. The restore query is scoped to this exam only, which makes it safer than reviving the student&apos;s latest session across every exam.
+                            </div>
+                        </div>
+                        <div className="text-[var(--text-muted)] font-mono text-[11px]">
+                            Exam ID: {examId}
                         </div>
                     </div>
-                    <div style={{ color: THEME.textMuted, fontFamily: THEME.fontMono, fontSize: "11px" }}>
-                        Exam ID: {examId}
+                    
+                    <div className="flex gap-4 flex-wrap">
+                        <SqlSnippetCard
+                            title="Restore Session By ERP"
+                            description="Reactivates the latest session for this ERP inside the current exam only. If the exam was globally force-stopped, clear that first or the agent will shut down again on the next heartbeat."
+                            sql={restoreSessionSql}
+                            copyKey="restore-session"
+                            copiedKey={copiedKey}
+                            onCopy={handleCopySql}
+                        />
+                        <SqlSnippetCard
+                            title="Add Or Update Student"
+                            description="Creates the student if the ERP does not exist yet. If it already exists, this updates the student name instead of inserting a duplicate."
+                            sql={studentUpsertSql}
+                            copyKey="upsert-student"
+                            copiedKey={copiedKey}
+                            onCopy={handleCopySql}
+                        />
                     </div>
                 </div>
-                <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
-                    <SqlSnippetCard
-                        title="Restore Session By ERP"
-                        description="Reactivates the latest session for this ERP inside the current exam only. If the exam was globally force-stopped, clear that first or the agent will shut down again on the next heartbeat."
-                        sql={restoreSessionSql}
-                        copyKey="restore-session"
-                        copiedKey={copiedKey}
-                        onCopy={handleCopySql}
-                    />
-                    <SqlSnippetCard
-                        title="Add Or Update Student"
-                        description="Creates the student if the ERP does not exist yet. If it already exists, this updates the student name instead of inserting a duplicate."
-                        sql={studentUpsertSql}
-                        copyKey="upsert-student"
-                        copiedKey={copiedKey}
-                        onCopy={handleCopySql}
-                    />
-                </div>
-            </div>
-
-            <SessionsTable
-                sessions={sessions}
-                onForceStop={handleForceStop}
-                stoppingIds={stoppingIds}
-            />
+            )}
         </div>
     );
 }

@@ -14,6 +14,7 @@ import multiprocessing as mp
 import platform
 import queue
 import threading
+import time
 import tkinter as tk
 from typing import Callable
 
@@ -302,97 +303,120 @@ def _run_widget_process(
     event_queue: mp.Queue,
 ) -> None:
     end_requested = False
-    root = tk.Tk()
-    _configure_floating_window(root, "Markaz Sentinel")
-
-    start_x = 0
-    start_y = 0
-    start_win_x = 0
-    start_win_y = 0
-
-    def on_drag_start(event) -> None:
-        nonlocal start_x, start_y, start_win_x, start_win_y
-        start_x = event.x_root
-        start_y = event.y_root
-        start_win_x = root.winfo_x()
-        start_win_y = root.winfo_y()
-
-    def on_drag_motion(event) -> None:
-        dx = event.x_root - start_x
-        dy = event.y_root - start_y
-        new_x = start_win_x + dx
-        new_y = start_win_y + dy
-
-        screen_width = root.winfo_screenwidth()
-        screen_height = root.winfo_screenheight()
-        width = root.winfo_width()
-        height = root.winfo_height()
-
-        new_x = max(0, min(new_x, screen_width - width))
-        new_y = max(0, min(new_y, screen_height - height))
-        root.geometry(f"+{new_x}+{new_y}")
-
-    def on_drag_release(_event) -> None:
-        root.update_idletasks()
-        screen_width = root.winfo_screenwidth()
-        screen_height = root.winfo_screenheight()
-        width = root.winfo_width()
-        height = root.winfo_height()
-        x = root.winfo_x()
-        y = root.winfo_y()
-        new_x = max(0, min(x, screen_width - width))
-        new_y = max(0, min(y, screen_height - height))
-        if x != new_x or y != new_y:
-            root.geometry(f"+{new_x}+{new_y}")
-
-    def prompt_end_session() -> None:
-        nonlocal end_requested
-        if end_requested:
-            return
-
-        def confirm() -> None:
-            nonlocal end_requested
-            end_requested = True
-            event_queue.put({"type": "end_session"})
-
-        root.after(0, lambda: _show_end_session_modal(root, access_code=access_code or "", on_confirm=confirm))
-
-    def poll_commands() -> None:
-        try:
-            while True:
-                command = command_queue.get_nowait()
-                action = command.get("action")
-                if action == "show":
-                    root.deiconify()
-                elif action == "hide":
-                    root.withdraw()
-                elif action == "stop":
-                    root.destroy()
-                    return
-        except queue.Empty:
-            pass
-
-        root.after(150, poll_commands)
-
-    target_width, target_height = _build_side_widget(
-        root,
-        student_name=student_name,
-        erp=erp,
-        access_code=access_code,
-        on_end_session=prompt_end_session,
-        on_drag_start=on_drag_start,
-        on_drag_motion=on_drag_motion,
-        on_drag_release=on_drag_release,
-    )
-    screen_width = root.winfo_screenwidth()
-    root.geometry(f"{target_width}x{target_height}+{screen_width - target_width - 20}+20")
-    event_queue.put({"type": "ready"})
-    root.after(150, poll_commands)
+    root = None
 
     try:
+        root = tk.Tk()
+        _configure_floating_window(root, "Markaz Sentinel")
+
+        start_x = 0
+        start_y = 0
+        start_win_x = 0
+        start_win_y = 0
+
+        def on_drag_start(event) -> None:
+            nonlocal start_x, start_y, start_win_x, start_win_y
+            start_x = event.x_root
+            start_y = event.y_root
+            start_win_x = root.winfo_x()
+            start_win_y = root.winfo_y()
+
+        def on_drag_motion(event) -> None:
+            dx = event.x_root - start_x
+            dy = event.y_root - start_y
+            new_x = start_win_x + dx
+            new_y = start_win_y + dy
+
+            screen_width = root.winfo_screenwidth()
+            screen_height = root.winfo_screenheight()
+            width = root.winfo_width()
+            height = root.winfo_height()
+
+            new_x = max(0, min(new_x, screen_width - width))
+            new_y = max(0, min(new_y, screen_height - height))
+            root.geometry(f"+{new_x}+{new_y}")
+
+        def on_drag_release(_event) -> None:
+            root.update_idletasks()
+            screen_width = root.winfo_screenwidth()
+            screen_height = root.winfo_screenheight()
+            width = root.winfo_width()
+            height = root.winfo_height()
+            x = root.winfo_x()
+            y = root.winfo_y()
+            new_x = max(0, min(x, screen_width - width))
+            new_y = max(0, min(y, screen_height - height))
+            if x != new_x or y != new_y:
+                root.geometry(f"+{new_x}+{new_y}")
+
+        def prompt_end_session() -> None:
+            nonlocal end_requested
+            if end_requested:
+                return
+
+            def confirm() -> None:
+                nonlocal end_requested
+                end_requested = True
+                event_queue.put({"type": "end_session"})
+
+            root.after(0, lambda: _show_end_session_modal(root, access_code=access_code or "", on_confirm=confirm))
+
+        def poll_commands() -> None:
+            try:
+                while True:
+                    command = command_queue.get_nowait()
+                    action = command.get("action")
+                    if action == "show":
+                        root.deiconify()
+                    elif action == "hide":
+                        root.withdraw()
+                    elif action == "stop":
+                        root.destroy()
+                        return
+            except queue.Empty:
+                pass
+
+            root.after(150, poll_commands)
+
+        target_width, target_height = _build_side_widget(
+            root,
+            student_name=student_name,
+            erp=erp,
+            access_code=access_code,
+            on_end_session=prompt_end_session,
+            on_drag_start=on_drag_start,
+            on_drag_motion=on_drag_motion,
+            on_drag_release=on_drag_release,
+        )
+        screen_width = root.winfo_screenwidth()
+        root.geometry(f"{target_width}x{target_height}+{screen_width - target_width - 20}+20")
+        event_queue.put({"type": "ready"})
+        root.after(150, poll_commands)
         root.mainloop()
+    except Exception as exc:
+        try:
+            event_queue.put(
+                {
+                    "type": "error",
+                    "message": (
+                        "The macOS monitoring widget could not start. "
+                        f"{exc.__class__.__name__}: {exc}"
+                    ),
+                }
+            )
+        except Exception:
+            pass
+        raise
     finally:
-        event_queue.put({"type": "stopped"})
+        if root is not None:
+            try:
+                root.destroy()
+            except Exception:
+                pass
+        try:
+            event_queue.put({"type": "stopped"})
+        except Exception:
+            pass
 
 
 class MonitoringWidget:
@@ -410,6 +434,7 @@ class MonitoringWidget:
         self._event_queue = None
         self._listener_thread: threading.Thread | None = None
         self._uses_process_backend = False
+        self._startup_error_message: str | None = None
 
         self._start_x = 0
         self._start_y = 0
@@ -418,7 +443,12 @@ class MonitoringWidget:
 
     def start(self) -> None:
         if _IS_MAC:
-            self._start_process_widget(_run_widget_process, ready_timeout=8.0)
+            if not self._start_process_widget(_run_widget_process, ready_timeout=8.0):
+                error_message = self._startup_error_message or (
+                    "The macOS monitoring widget did not become ready. "
+                    "Close any existing Markaz processes and rerun the agent from Terminal."
+                )
+                raise RuntimeError(error_message)
             return
 
         if self._thread and self._thread.is_alive():
@@ -476,6 +506,7 @@ class MonitoringWidget:
         self._event_queue = ctx.Queue()
         self._ready_event.clear()
         self._listener_stop.clear()
+        self._startup_error_message = None
         self._process = ctx.Process(
             target=target,
             args=(self.student_name, self.erp, self.access_code or "", self._command_queue, self._event_queue),
@@ -485,9 +516,16 @@ class MonitoringWidget:
 
         self._listener_thread = threading.Thread(target=self._listen_process_events, daemon=True)
         self._listener_thread.start()
-        if self._ready_event.wait(timeout=ready_timeout):
-            self._uses_process_backend = True
-            return True
+
+        deadline = time.monotonic() + ready_timeout
+        while time.monotonic() < deadline:
+            if self._ready_event.wait(timeout=0.1):
+                self._uses_process_backend = True
+                return True
+            if self._startup_error_message:
+                break
+            if self._process and not self._process.is_alive():
+                break
 
         self._stop_process_widget()
         return False
@@ -508,6 +546,11 @@ class MonitoringWidget:
             event_type = event.get("type")
             if event_type == "ready":
                 self._ready_event.set()
+            elif event_type == "error":
+                self._startup_error_message = str(
+                    event.get("message") or "The macOS monitoring widget failed to start."
+                )
+                return
             elif event_type == "end_session":
                 threading.Thread(target=self.on_end_session, daemon=True).start()
             elif event_type == "stopped":
@@ -554,6 +597,7 @@ class MonitoringWidget:
         self._event_queue = None
         self._listener_thread = None
         self._uses_process_backend = False
+        self._startup_error_message = None
 
     def _run_app(self) -> None:
         self.root = tk.Tk()

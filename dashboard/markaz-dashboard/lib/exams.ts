@@ -50,6 +50,39 @@ export async function createExam(payload: CreateExamPayload): Promise<Exam> {
     return data as Exam;
 }
 
+export async function terminateExamDirectly(id: string): Promise<number> {
+    noStore();
+
+    const nowUtc = new Date().toISOString();
+
+    const { data: examRows, error: examError } = await supabase
+        .from("exams")
+        .update({ force_stop: true })
+        .eq("id", id)
+        .select("id");
+
+    if (examError) {
+        throw new Error(`Failed to terminate exam: ${examError.message}`);
+    }
+
+    if (!examRows || examRows.length === 0) {
+        throw new Error("Exam not found");
+    }
+
+    const { data: sessionRows, error: sessionError } = await supabase
+        .from("exam_sessions")
+        .update({ status: "terminated", session_end: nowUtc })
+        .eq("exam_id", id)
+        .neq("status", "terminated")
+        .select("id");
+
+    if (sessionError) {
+        throw new Error(`Failed to terminate exam sessions: ${sessionError.message}`);
+    }
+
+    return sessionRows?.length || 0;
+}
+
 export async function toggleForceStop(id: string, current: boolean): Promise<void> {
     noStore();
     const { error } = await supabase

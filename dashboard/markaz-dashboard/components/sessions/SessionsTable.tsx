@@ -1,44 +1,35 @@
 "use client";
+
 import React from "react";
 import { type SessionWithStudent } from "@/lib/sessions";
-import { THEME } from "@/constants/theme";
-import Card from "@/components/ui/Card";
 import SessionRow from "./SessionRow";
+
 interface SessionsTableProps {
     sessions: SessionWithStudent[];
     onForceStop: (sessionId: string) => void;
     stoppingIds: Set<string>;
 }
+
 export default function SessionsTable({ sessions, onForceStop, stoppingIds }: SessionsTableProps): React.JSX.Element {
-    const thStyle: React.CSSProperties = {
-        color: THEME.textMuted,
-        fontSize: "11px",
-        textTransform: "uppercase",
-        letterSpacing: "0.08em",
-        padding: "12px 16px",
-        borderBottom: "1px solid rgba(255,255,255,0.06)",
-        textAlign: "left",
-        fontWeight: 600
-    };
     return (
-        <Card style={{ padding: 0, overflow: "hidden" }}>
-            <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <div className="aesthetic-card p-0 overflow-hidden">
+            <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
                     <thead>
                         <tr>
-                            <th style={thStyle}>Student</th>
-                            <th style={thStyle}>Status</th>
-                            <th style={thStyle}>Last Heartbeat</th>
-                            <th style={thStyle}>Session Start</th>
-                            <th style={thStyle}>Flags</th>
-                            <th style={thStyle}>Actions</th>
+                            <th className="text-[var(--text-muted)] text-[11px] uppercase tracking-[0.08em] px-5 py-4 border-b border-[var(--border)] text-left font-semibold">Student</th>
+                            <th className="text-[var(--text-muted)] text-[11px] uppercase tracking-[0.08em] px-5 py-4 border-b border-[var(--border)] text-left font-semibold">Status</th>
+                            <th className="text-[var(--text-muted)] text-[11px] uppercase tracking-[0.08em] px-5 py-4 border-b border-[var(--border)] text-left font-semibold">Last Heartbeat</th>
+                            <th className="text-[var(--text-muted)] text-[11px] uppercase tracking-[0.08em] px-5 py-4 border-b border-[var(--border)] text-left font-semibold">Session Start</th>
+                            <th className="text-[var(--text-muted)] text-[11px] uppercase tracking-[0.08em] px-5 py-4 border-b border-[var(--border)] text-left font-semibold">Flags</th>
+                            <th className="text-[var(--text-muted)] text-[11px] uppercase tracking-[0.08em] px-5 py-4 border-b border-[var(--border)] text-left font-semibold">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {sessions.length === 0 ? (
                             <tr>
-                                <td colSpan={6} style={{ padding: "48px 16px", textAlign: "center" }}>
-                                    <div style={{ color: THEME.textMuted }}>No sessions yet for this exam.</div>
+                                <td colSpan={6} className="px-5 py-12 text-center text-[var(--text-muted)]">
+                                    No sessions active for this configuration yet.
                                 </td>
                             </tr>
                         ) : (
@@ -54,6 +45,6 @@ export default function SessionsTable({ sessions, onForceStop, stoppingIds }: Se
                     </tbody>
                 </table>
             </div>
-        </Card>
+        </div>
     );
 }

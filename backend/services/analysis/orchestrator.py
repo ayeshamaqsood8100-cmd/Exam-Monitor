@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 import httpx
 from fastapi import HTTPException
 
@@ -15,9 +16,13 @@ from backend.services.analysis.repository import (
 )
 from backend.services.analysis.telemetry_loader import list_completed_session_ids, load_session_request
 
+INTERACTIVE_PROVIDER_TIMEOUT_SECONDS = 15.0
+INTERACTIVE_TOTAL_TIMEOUT_SECONDS = 45.0
+INTERACTIVE_PROVIDER_RETRIES = 0
+
 
 def run_session_analysis(session_id: str) -> dict:
-    runtime_config = _build_runtime_config()
+    runtime_config = _build_interactive_runtime_config()
 
     try:
         request = load_session_request(
@@ -40,6 +45,7 @@ def run_session_analysis(session_id: str) -> dict:
                 request,
                 runtime_config=runtime_config,
                 client=client,
+                wall_clock_budget_seconds=INTERACTIVE_TOTAL_TIMEOUT_SECONDS,
             )
     except AllProvidersFailedError as exc:
         _complete_failed_run(
@@ -186,6 +192,15 @@ def _build_runtime_config() -> AnalysisRuntimeConfig:
         return settings.build_analysis_config()
     except AnalysisConfigError as exc:
         raise HTTPException(status_code=503, detail=f"Analysis configuration error: {exc}") from exc
+
+
+def _build_interactive_runtime_config() -> AnalysisRuntimeConfig:
+    runtime_config = _build_runtime_config()
+    return replace(
+        runtime_config,
+        timeout_seconds=min(runtime_config.timeout_seconds, INTERACTIVE_PROVIDER_TIMEOUT_SECONDS),
+        max_retries_per_provider=INTERACTIVE_PROVIDER_RETRIES,
+    )
 
 
 def _build_provider_chain(runtime_config: AnalysisRuntimeConfig) -> list[dict]:

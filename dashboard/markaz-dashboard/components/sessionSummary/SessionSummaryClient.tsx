@@ -22,6 +22,8 @@ export default function SessionSummaryClient({ data }: SessionSummaryClientProps
     const [analyzeResult, setAnalyzeResult] = useState<string | null>(null);
     const [stopping, setStopping] = useState(false);
     const [stopResult, setStopResult] = useState<string | null>(null);
+    const [restarting, setRestarting] = useState(false);
+    const [restartResult, setRestartResult] = useState<string | null>(null);
 
     // Format Helper avoiding hydration errors by extracting raw strings from DB cleanly
     const extractTime = (dateString: string) => {
@@ -55,6 +57,7 @@ export default function SessionSummaryClient({ data }: SessionSummaryClientProps
         if (!confirm("Pause this student's monitoring now? The widget should disappear almost immediately.")) return;
         setStopping(true);
         setStopResult(null);
+        setRestartResult(null);
         try {
             const res = await fetch(`/api/stop/${data.sessionId}`, { method: "POST" });
             if (!res.ok) {
@@ -70,6 +73,27 @@ export default function SessionSummaryClient({ data }: SessionSummaryClientProps
             setStopping(false);
         }
     };
+    const handleRestart = async () => {
+        if (!confirm("Restart this student's paused monitoring session now?")) return;
+        setRestarting(true);
+        setRestartResult(null);
+        setStopResult(null);
+        setForceEndResult(null);
+        try {
+            const res = await fetch(`/api/restart/${data.sessionId}`, { method: "POST" });
+            if (!res.ok) {
+                const err = await res.json();
+                setRestartResult(`Error: ${err.error || "Unknown error"}`);
+            } else {
+                setRestartResult("OK Session restarted");
+                setTimeout(() => router.refresh(), 1000);
+            }
+        } catch {
+            setRestartResult("Error: Network error");
+        } finally {
+            setRestarting(false);
+        }
+    };
 
     const [forceEnding, setForceEnding] = useState(false);
     const [forceEndResult, setForceEndResult] = useState<string | null>(null);
@@ -78,6 +102,7 @@ export default function SessionSummaryClient({ data }: SessionSummaryClientProps
         if (!confirm("End this student's session? The agent will be removed from their device. This cannot be undone.")) return;
         setForceEnding(true);
         setForceEndResult(null);
+        setRestartResult(null);
         try {
             const res = await fetch(`/api/force-end/${data.sessionId}`, { method: "POST" });
             if (!res.ok) {
@@ -94,12 +119,23 @@ export default function SessionSummaryClient({ data }: SessionSummaryClientProps
         }
     };
 
-    const earlyExitFlag = data.flags.find(f => f.flag_type === "system_session_ended_before_exam_end");
+    const earlyExitFlag = data.agentEvents.find((event) => event.flag_type === "system_session_ended_before_exam_end");
+    const lateExitFlag = data.agentEvents.find((event) => event.flag_type === "system_session_ended_after_exam_end");
+    const endedOnTime =
+        data.session.status === "completed" &&
+        !earlyExitFlag &&
+        !lateExitFlag;
 
     const highFlags = data.flags.filter(f => f.severity === "HIGH").length;
     const medFlags = data.flags.filter(f => f.severity === "MED").length;
     const lowFlags = data.flags.filter(f => f.severity === "LOW").length;
     const detailDataTruncated = data.limits.keystrokesTruncated || data.limits.windowsTruncated || data.limits.clipboardTruncated;
+    const statusLabel = data.session.display_status || data.session.status.toUpperCase();
+    const statusTone = statusLabel === "TERMINATED"
+        ? THEME.pink
+        : statusLabel === "ACTIVE" || statusLabel.startsWith("COMPLETED")
+            ? THEME.cyan
+            : THEME.yellow;
 
     return (
         <div style={{ paddingBottom: "64px" }}>
@@ -121,25 +157,25 @@ export default function SessionSummaryClient({ data }: SessionSummaryClientProps
 
                 <div style={{
                     display: "flex", alignItems: "center", gap: "8px",
-                    background: data.session.status === "terminated" ? `${THEME.pink}0F` : data.session.status === "completed" ? `${THEME.cyan}0F` : `${THEME.yellow}0F`,
-                    border: `1px solid ${data.session.status === "terminated" ? THEME.pink : data.session.status === "completed" ? THEME.cyan : THEME.yellow}26`,
+                    background: `${statusTone}0F`,
+                    border: `1px solid ${statusTone}26`,
                     borderRadius: "20px", padding: "5px 12px"
                 }}>
                     <div
                         style={{
                             width: "8px", height: "8px", borderRadius: "50%",
-                            background: data.session.status === "completed" ? THEME.cyan : THEME.yellow,
-                            animation: data.session.status === "completed" ? "none" : "breathe 2.5s ease-in-out infinite",
-                            boxShadow: `0 0 8px ${data.session.status === "completed" ? THEME.cyan : THEME.yellow}`
+                            background: statusTone,
+                            animation: statusLabel.startsWith("COMPLETED") || statusLabel === "TERMINATED" ? "none" : "breathe 2.5s ease-in-out infinite",
+                            boxShadow: `0 0 8px ${statusTone}`
                         }}
                     />
                     <span style={{
                         fontSize: "12px",
-                        color: data.session.status === "completed" ? THEME.cyan : THEME.yellow,
+                        color: statusTone,
                         fontWeight: 500,
                         textTransform: "capitalize"
                     }}>
-                        {data.session.status}
+                        {statusLabel}
                     </span>
                 </div>
             </div>
@@ -228,6 +264,34 @@ export default function SessionSummaryClient({ data }: SessionSummaryClientProps
                     )}
 
                     {/* End Session button — only for active sessions */}
+                    {data.session.status === "paused" && data.session.can_restart && (
+                        <button
+                            onClick={handleRestart}
+                            disabled={restarting}
+                            style={{
+                                display: "flex", alignItems: "center", gap: "8px",
+                                background: restarting ? "rgba(255,255,255,0.05)" : `${THEME.cyan}15`,
+                                border: `1px solid ${restarting ? "rgba(255,255,255,0.1)" : `${THEME.cyan}40`}`,
+                                color: restarting ? THEME.textMuted : THEME.cyan,
+                                padding: "10px 20px", borderRadius: "10px",
+                                fontSize: "13px", fontWeight: 600,
+                                cursor: restarting ? "not-allowed" : "pointer",
+                                transition: "all 0.2s ease"
+                            }}
+                            onMouseEnter={(e) => { if (!restarting) e.currentTarget.style.boxShadow = `0 0 20px ${THEME.cyan}20`; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "none"; }}
+                        >
+                            {restarting ? (
+                                <>
+                                    <span style={{ display: "inline-block", width: "14px", height: "14px", border: "2px solid rgba(255,255,255,0.2)", borderTopColor: THEME.cyan, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                                    Restarting...
+                                </>
+                            ) : (
+                                <>Restart Session</>
+                            )}
+                        </button>
+                    )}
+
                     {data.session.status === "active" && (
                         <button
                             onClick={handleForceEnd}
@@ -292,6 +356,22 @@ export default function SessionSummaryClient({ data }: SessionSummaryClientProps
                     </div>
                 )}
 
+                {restartResult && (
+                    <div style={{
+                        marginTop: "12px",
+                        fontSize: "13px",
+                        fontWeight: 500,
+                        color: restartResult.startsWith("OK") ? THEME.cyan : THEME.pink,
+                        padding: "8px 14px",
+                        background: restartResult.startsWith("OK") ? `${THEME.cyan}10` : `${THEME.pink}10`,
+                        border: `1px solid ${restartResult.startsWith("OK") ? `${THEME.cyan}30` : `${THEME.pink}30`}`,
+                        borderRadius: "8px",
+                        display: "inline-block",
+                        marginLeft: "8px"
+                    }}>
+                        {restartResult}
+                    </div>
+                )}
                 {forceEndResult && (
                     <div style={{
                         marginTop: "12px",
@@ -310,7 +390,7 @@ export default function SessionSummaryClient({ data }: SessionSummaryClientProps
                 )}
             </div>
 
-            {/* Early-exit warning banner */}
+            {/* Completion timing banner */}
             {earlyExitFlag && (
                 <div style={{
                     background: `${THEME.yellow}0F`,
@@ -325,7 +405,49 @@ export default function SessionSummaryClient({ data }: SessionSummaryClientProps
                         </div>
                         <div style={{ fontSize: "12px", color: THEME.textSecondary }}>
                             Student ended the session before the scheduled exam end time.
+                            {data.exam.scheduled_end ? ` Scheduled end: ${data.exam.scheduled_end}.` : ""}
                             {earlyExitFlag.evidence ? ` ${earlyExitFlag.evidence}` : ""}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {lateExitFlag && (
+                <div style={{
+                    background: `${THEME.cyan}0F`,
+                    border: `1px solid ${THEME.cyan}40`,
+                    borderRadius: "12px", padding: "14px 20px", marginBottom: "16px",
+                    display: "flex", alignItems: "center", gap: "12px"
+                }}>
+                    <span style={{ fontSize: "18px", lineHeight: 1 }}>i</span>
+                    <div>
+                        <div style={{ fontSize: "13px", fontWeight: 700, color: THEME.cyan, marginBottom: "2px" }}>
+                            Late Completion
+                        </div>
+                        <div style={{ fontSize: "12px", color: THEME.textSecondary }}>
+                            Student ended the session after the scheduled exam end time.
+                            {data.exam.scheduled_end ? ` Scheduled end: ${data.exam.scheduled_end}.` : ""}
+                            {lateExitFlag.evidence ? ` ${lateExitFlag.evidence}` : ""}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {endedOnTime && (
+                <div style={{
+                    background: `${THEME.cyan}0F`,
+                    border: `1px solid ${THEME.cyan}33`,
+                    borderRadius: "12px", padding: "14px 20px", marginBottom: "16px",
+                    display: "flex", alignItems: "center", gap: "12px"
+                }}>
+                    <span style={{ fontSize: "18px", lineHeight: 1 }}>i</span>
+                    <div>
+                        <div style={{ fontSize: "13px", fontWeight: 700, color: THEME.cyan, marginBottom: "2px" }}>
+                            Ended On Time
+                        </div>
+                        <div style={{ fontSize: "12px", color: THEME.textSecondary }}>
+                            Student completed within the allowed 15-minute window before the scheduled exam end.
+                            {data.exam.scheduled_end ? ` Scheduled end: ${data.exam.scheduled_end}.` : ""}
                         </div>
                     </div>
                 </div>
@@ -594,3 +716,4 @@ export default function SessionSummaryClient({ data }: SessionSummaryClientProps
         </div>
     );
 }
+

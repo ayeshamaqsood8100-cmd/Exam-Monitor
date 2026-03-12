@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createExam, type CreateExamPayload } from "@/lib/exams";
+import { createExam, terminateExamDirectly, type CreateExamPayload } from "@/lib/exams";
 import { postToBackend } from "@/lib/backendApi";
 
 export async function createExamAction(formData: FormData): Promise<{ error?: string; exam?: Awaited<ReturnType<typeof createExam>> }> {
@@ -33,7 +33,17 @@ export async function endAndRemoveExamAction(id: string): Promise<{ error?: stri
         revalidatePath("/exams");
         return {};
     } catch (error: unknown) {
-        const msg = error instanceof Error ? error.message : "Unknown error occurred";
-        return { error: msg };
+        try {
+            await terminateExamDirectly(id);
+            revalidatePath("/exams");
+            revalidatePath("/sessions");
+            revalidatePath("/agent");
+            revalidatePath("/alerts");
+            return {};
+        } catch (fallbackError: unknown) {
+            const primaryMsg = error instanceof Error ? error.message : "Unknown backend error occurred";
+            const fallbackMsg = fallbackError instanceof Error ? fallbackError.message : "Unknown fallback error occurred";
+            return { error: `${primaryMsg}. Direct fallback also failed: ${fallbackMsg}` };
+        }
     }
 }

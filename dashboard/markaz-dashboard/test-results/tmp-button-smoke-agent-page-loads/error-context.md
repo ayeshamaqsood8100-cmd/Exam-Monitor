@@ -1,0 +1,438 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]: M
+      - generic [ref=e5]: Markaz
+    - generic [ref=e6]:
+      - link "Exams" [ref=e7] [cursor=pointer]:
+        - /url: /exams
+      - link "Flagged Events" [ref=e8] [cursor=pointer]:
+        - /url: /flagged
+      - link "Agent" [ref=e9] [cursor=pointer]:
+        - /url: /agent
+  - main [ref=e10]:
+    - generic [ref=e12]:
+      - generic [ref=e13]:
+        - generic [ref=e14]:
+          - heading "Agent" [level=1] [ref=e15]
+          - generic [ref=e16]: "Last refreshed: 20:25:11"
+        - generic [ref=e17]:
+          - generic [ref=e18]: 8 LIVE
+          - generic [ref=e19]: 19 UNREVIEWED
+      - generic [ref=e21]:
+        - generic [ref=e22]: Live Agent Issues
+        - generic [ref=e23]:
+          - generic [ref=e26]:
+            - generic [ref=e27]:
+              - generic [ref=e28]: AGENT LOST
+              - generic [ref=e29]: Alishba Atif (28205)
+              - generic [ref=e30]: FINAL AGENT TEST · TEST-900
+              - generic [ref=e31]: Agent heartbeat has been lost. The laptop may have crashed, rebooted, or the agent may have been killed.
+            - generic [ref=e32]:
+              - generic [ref=e33]: Last heartbeat
+              - generic [ref=e34]: Mar 11, 12:43:44 PM
+              - link "View Session →" [ref=e35] [cursor=pointer]:
+                - /url: /sessions/9b6ed44b-d4af-40d7-bd53-09e3d589c79c
+          - generic [ref=e38]:
+            - generic [ref=e39]:
+              - generic [ref=e40]: AGENT LOST
+              - generic [ref=e41]: Ifrah Mazhar (27978)
+              - generic [ref=e42]: FINAL AGENT TEST · TEST-900
+              - generic [ref=e43]: Agent heartbeat has been lost. The laptop may have crashed, rebooted, or the agent may have been killed.
+            - generic [ref=e44]:
+              - generic [ref=e45]: Last heartbeat
+              - generic [ref=e46]: Mar 11, 12:47:01 PM
+              - link "View Session →" [ref=e47] [cursor=pointer]:
+                - /url: /sessions/3b61752b-35ea-4ffa-93ad-9f4960dc5f1c
+          - generic [ref=e50]:
+            - generic [ref=e51]:
+              - generic [ref=e52]: AGENT LOST
+              - generic [ref=e53]: Arsalan Anjum (27933)
+              - generic [ref=e54]: FINAL AGENT TEST · TEST-900
+              - generic [ref=e55]: Agent heartbeat has been lost. The laptop may have crashed, rebooted, or the agent may have been killed.
+            - generic [ref=e56]:
+              - generic [ref=e57]: Last heartbeat
+              - generic [ref=e58]: Mar 12, 8:56:39 AM
+              - link "View Session →" [ref=e59] [cursor=pointer]:
+                - /url: /sessions/e906f473-f6b9-4eaa-87b4-3a43ced8058b
+          - generic [ref=e62]:
+            - generic [ref=e63]:
+              - generic [ref=e64]: AGENT LOST
+              - generic [ref=e65]: Mehdi Nizam (30842)
+              - generic [ref=e66]: FINAL AGENT TEST · TEST-900
+              - generic [ref=e67]: Agent heartbeat has been lost. The laptop may have crashed, rebooted, or the agent may have been killed.
+            - generic [ref=e68]:
+              - generic [ref=e69]: Last heartbeat
+              - generic [ref=e70]: Mar 12, 9:17:52 AM
+              - link "View Session →" [ref=e71] [cursor=pointer]:
+                - /url: /sessions/2d3f1c42-87d2-4c76-9761-a7d805d474fb
+          - generic [ref=e74]:
+            - generic [ref=e75]:
+              - generic [ref=e76]: AGENT LOST
+              - generic [ref=e77]: Arham Shaikh (26673)
+              - generic [ref=e78]: FINAL AGENT TEST · TEST-900
+              - generic [ref=e79]: Agent heartbeat has been lost. The laptop may have crashed, rebooted, or the agent may have been killed.
+            - generic [ref=e80]:
+              - generic [ref=e81]: Last heartbeat
+              - generic [ref=e82]: Mar 12, 9:22:48 AM
+              - link "View Session →" [ref=e83] [cursor=pointer]:
+                - /url: /sessions/bad63097-2026-4aee-8df9-afac67fed783
+          - generic [ref=e86]:
+            - generic [ref=e87]:
+              - generic [ref=e88]: AGENT LOST
+              - generic [ref=e89]: Aiman Noor (28327)
+              - generic [ref=e90]: FINAL AGENT TEST · TEST-900
+              - generic [ref=e91]: Agent heartbeat has been lost. The laptop may have crashed, rebooted, or the agent may have been killed.
+            - generic [ref=e92]:
+              - generic [ref=e93]: Last heartbeat
+              - generic [ref=e94]: Mar 12, 9:31:51 AM
+              - link "View Session →" [ref=e95] [cursor=pointer]:
+                - /url: /sessions/8a92a405-3ef6-49b7-b0ca-cc0be97cdd33
+          - generic [ref=e98]:
+            - generic [ref=e99]:
+              - generic [ref=e100]: AGENT LOST
+              - generic [ref=e101]: Syed Arhab Ullah Jafri (28638)
+              - generic [ref=e102]: FINAL AGENT TEST · TEST-900
+              - generic [ref=e103]: Agent heartbeat has been lost. The laptop may have crashed, rebooted, or the agent may have been killed.
+            - generic [ref=e104]:
+              - generic [ref=e105]: Last heartbeat
+              - generic [ref=e106]: Mar 10, 8:25:17 PM
+              - link "View Session →" [ref=e107] [cursor=pointer]:
+                - /url: /sessions/11e5d3ef-32b8-4c2a-897c-e28146055609
+          - generic [ref=e110]:
+            - generic [ref=e111]:
+              - generic [ref=e112]: AGENT LOST
+              - generic [ref=e113]: Noor Us Saba (28547)
+              - generic [ref=e114]: FINAL AGENT TEST · TEST-900
+              - generic [ref=e115]: Agent heartbeat has been lost. The laptop may have crashed, rebooted, or the agent may have been killed.
+            - generic [ref=e116]:
+              - generic [ref=e117]: Last heartbeat
+              - generic [ref=e118]: Mar 10, 8:42:58 PM
+              - link "View Session →" [ref=e119] [cursor=pointer]:
+                - /url: /sessions/53cdccce-f595-41bc-a672-8f0ea630dc55
+      - generic [ref=e120]:
+        - generic [ref=e121]: Stored Agent Events
+        - generic [ref=e122]:
+          - generic [ref=e123]:
+            - generic [ref=e125]:
+              - generic [ref=e126]:
+                - generic [ref=e127]: AGENT KILLED
+                - generic [ref=e128]: Muhammad Abrar (28593)
+                - generic [ref=e129]: FINAL AGENT TEST · TEST-900
+              - generic [ref=e130]: "Last seen: Mar 12, 5:43:29 PM"
+            - generic [ref=e131]: The monitoring agent exited unexpectedly and the watchdog is restarting it.
+            - generic [ref=e132]:
+              - generic [ref=e133]: "Occurred: 1 time"
+              - generic [ref=e134]: "First seen: Mar 12, 5:43:29 PM"
+            - generic [ref=e135]: "Agent process exit code: 2147483651"
+            - generic [ref=e136]:
+              - link "View Session →" [ref=e137] [cursor=pointer]:
+                - /url: /sessions/630fae53-1f51-4ac6-82a6-50ac1c7183ce
+              - button "Mark Reviewed" [ref=e138] [cursor=pointer]
+          - generic [ref=e139]:
+            - generic [ref=e141]:
+              - generic [ref=e142]:
+                - generic [ref=e143]: COMPLETED - ENDED LATE
+                - generic [ref=e144]: Yusra Batool (28350)
+                - generic [ref=e145]: FINAL AGENT TEST · TEST-900
+              - generic [ref=e146]: "Last seen: Mar 12, 5:40:17 PM"
+            - generic [ref=e147]: Student ended the session after the exam end time.
+            - generic [ref=e148]:
+              - generic [ref=e149]: "Occurred: 1 time"
+              - generic [ref=e150]: "First seen: Mar 12, 5:40:17 PM"
+            - generic [ref=e151]: FINAL AGENT TEST was scheduled to end at 2026-03-12T04:38:06.041638+00:00 UTC.
+            - generic [ref=e152]:
+              - link "View Session →" [ref=e153] [cursor=pointer]:
+                - /url: /sessions/a66abe10-6741-476c-b0ee-85ecbe60d32b
+              - button "Mark Reviewed" [ref=e154] [cursor=pointer]
+          - generic [ref=e155]:
+            - generic [ref=e157]:
+              - generic [ref=e158]:
+                - generic [ref=e159]: COMPLETED - ENDED LATE
+                - generic [ref=e160]: Muhammad Abrar (28593)
+                - generic [ref=e161]: FINAL AGENT TEST · TEST-900
+              - generic [ref=e162]: "Last seen: Mar 12, 5:22:00 PM"
+            - generic [ref=e163]: Student ended the session after the exam end time.
+            - generic [ref=e164]:
+              - generic [ref=e165]: "Occurred: 8 times"
+              - generic [ref=e166]: "First seen: Mar 12, 3:04:02 PM"
+            - generic [ref=e167]: FINAL AGENT TEST was scheduled to end at 2026-03-12T04:38:06.041638+00:00 UTC.
+            - generic [ref=e168]:
+              - link "View Session →" [ref=e169] [cursor=pointer]:
+                - /url: /sessions/630fae53-1f51-4ac6-82a6-50ac1c7183ce
+              - button "Mark Reviewed" [ref=e170] [cursor=pointer]
+          - generic [ref=e171]:
+            - generic [ref=e173]:
+              - generic [ref=e174]:
+                - generic [ref=e175]: COMPLETED - ENDED LATE
+                - generic [ref=e176]: Manahil Essani (28772)
+                - generic [ref=e177]: FINAL AGENT TEST · TEST-900
+              - generic [ref=e178]: "Last seen: Mar 12, 1:13:16 PM"
+            - generic [ref=e179]: Student ended the session after the exam end time.
+            - generic [ref=e180]:
+              - generic [ref=e181]: "Occurred: 1 time"
+              - generic [ref=e182]: "First seen: Mar 12, 1:13:16 PM"
+            - generic [ref=e183]: FINAL AGENT TEST was scheduled to end at 2026-03-12T04:38:06.041638+00:00 UTC.
+            - generic [ref=e184]:
+              - link "View Session →" [ref=e185] [cursor=pointer]:
+                - /url: /sessions/b3970858-918b-4ca3-8622-1c1a97376532
+              - button "Mark Reviewed" [ref=e186] [cursor=pointer]
+          - generic [ref=e187]:
+            - generic [ref=e189]:
+              - generic [ref=e190]:
+                - generic [ref=e191]: COMPLETED - ENDED LATE
+                - generic [ref=e192]: Syed Munis Yezdan (28204)
+                - generic [ref=e193]: FINAL AGENT TEST · TEST-900
+              - generic [ref=e194]: "Last seen: Mar 12, 1:04:44 PM"
+            - generic [ref=e195]: Student ended the session after the exam end time.
+            - generic [ref=e196]:
+              - generic [ref=e197]: "Occurred: 1 time"
+              - generic [ref=e198]: "First seen: Mar 12, 1:04:44 PM"
+            - generic [ref=e199]: FINAL AGENT TEST was scheduled to end at 2026-03-12T04:38:06.041638+00:00 UTC.
+            - generic [ref=e200]:
+              - link "View Session →" [ref=e201] [cursor=pointer]:
+                - /url: /sessions/198119dc-c0f1-42ee-9d54-b81b1294d999
+              - button "Mark Reviewed" [ref=e202] [cursor=pointer]
+          - generic [ref=e203]:
+            - generic [ref=e205]:
+              - generic [ref=e206]:
+                - generic [ref=e207]: RESTARTED AFTER REBOOT
+                - generic [ref=e208]: Syed Munis Yezdan (28204)
+                - generic [ref=e209]: FINAL AGENT TEST · TEST-900
+              - generic [ref=e210]: "Last seen: Mar 12, 1:04:14 PM"
+            - generic [ref=e211]: The monitoring agent restarted after a reboot or relaunch and monitoring resumed automatically.
+            - generic [ref=e212]:
+              - generic [ref=e213]: "Occurred: 1 time"
+              - generic [ref=e214]: "First seen: Mar 12, 1:04:14 PM"
+            - generic [ref=e215]: Resumed session 198119dc for ERP 28204.
+            - generic [ref=e216]:
+              - link "View Session →" [ref=e217] [cursor=pointer]:
+                - /url: /sessions/198119dc-c0f1-42ee-9d54-b81b1294d999
+              - button "Mark Reviewed" [ref=e218] [cursor=pointer]
+          - generic [ref=e219]:
+            - generic [ref=e221]:
+              - generic [ref=e222]:
+                - generic [ref=e223]: KEYSTROKE COLLECTOR RECOVERED
+                - generic [ref=e224]: Sameen Samad (28121)
+                - generic [ref=e225]: FINAL AGENT TEST · TEST-900
+              - generic [ref=e226]: "Last seen: Mar 12, 1:01:14 PM"
+            - generic [ref=e227]: The keystroke collector recovered after becoming unresponsive.
+            - generic [ref=e228]:
+              - generic [ref=e229]: "Occurred: 2 times"
+              - generic [ref=e230]: "First seen: Mar 12, 1:00:42 PM"
+            - generic [ref=e231]: Last keystroke was 135s ago while window or clipboard activity continued.
+            - generic [ref=e232]:
+              - link "View Session →" [ref=e233] [cursor=pointer]:
+                - /url: /sessions/c1549e5e-ef7a-4e34-a689-117a12c149fb
+              - button "Mark Reviewed" [ref=e234] [cursor=pointer]
+          - generic [ref=e235]:
+            - generic [ref=e237]:
+              - generic [ref=e238]:
+                - generic [ref=e239]: KEYSTROKE COLLECTOR UNHEALTHY
+                - generic [ref=e240]: Sameen Samad (28121)
+                - generic [ref=e241]: FINAL AGENT TEST · TEST-900
+              - generic [ref=e242]: "Last seen: Mar 12, 1:00:58 PM"
+            - generic [ref=e243]: The keystroke collector became unresponsive while other agent activity continued.
+            - generic [ref=e244]:
+              - generic [ref=e245]: "Occurred: 2 times"
+              - generic [ref=e246]: "First seen: Mar 12, 1:00:26 PM"
+            - generic [ref=e247]: Last keystroke was 135s ago while window or clipboard activity continued.
+            - generic [ref=e248]:
+              - link "View Session →" [ref=e249] [cursor=pointer]:
+                - /url: /sessions/c1549e5e-ef7a-4e34-a689-117a12c149fb
+              - button "Mark Reviewed" [ref=e250] [cursor=pointer]
+          - generic [ref=e251]:
+            - generic [ref=e253]:
+              - generic [ref=e254]:
+                - generic [ref=e255]: KEYSTROKE COLLECTOR UNHEALTHY
+                - generic [ref=e256]: Hamna Kashif (27859)
+                - generic [ref=e257]: FINAL AGENT TEST · TEST-900
+              - generic [ref=e258]: "Last seen: Mar 12, 12:57:07 PM"
+            - generic [ref=e259]: The keystroke collector became unresponsive while other agent activity continued.
+            - generic [ref=e260]:
+              - generic [ref=e261]: "Occurred: 1 time"
+              - generic [ref=e262]: "First seen: Mar 12, 12:57:07 PM"
+            - generic [ref=e263]: Last keystroke was 153s ago while window or clipboard activity continued.
+            - generic [ref=e264]:
+              - link "View Session →" [ref=e265] [cursor=pointer]:
+                - /url: /sessions/b7bb7537-4c19-41aa-b4ba-8a574fb5912f
+              - button "Mark Reviewed" [ref=e266] [cursor=pointer]
+          - generic [ref=e267]:
+            - generic [ref=e269]:
+              - generic [ref=e270]:
+                - generic [ref=e271]: COMPLETED - ENDED LATE
+                - generic [ref=e272]: Sameen Samad (28121)
+                - generic [ref=e273]: FINAL AGENT TEST · TEST-900
+              - generic [ref=e274]: "Last seen: Mar 12, 11:23:26 AM"
+            - generic [ref=e275]: Student ended the session after the exam end time.
+            - generic [ref=e276]:
+              - generic [ref=e277]: "Occurred: 1 time"
+              - generic [ref=e278]: "First seen: Mar 12, 11:23:26 AM"
+            - generic [ref=e279]: FINAL AGENT TEST was scheduled to end at 2026-03-12T04:38:06.041638+00:00 UTC.
+            - generic [ref=e280]:
+              - link "View Session →" [ref=e281] [cursor=pointer]:
+                - /url: /sessions/c1549e5e-ef7a-4e34-a689-117a12c149fb
+              - button "Mark Reviewed" [ref=e282] [cursor=pointer]
+          - generic [ref=e283]:
+            - generic [ref=e285]:
+              - generic [ref=e286]:
+                - generic [ref=e287]: COMPLETED - ENDED LATE
+                - generic [ref=e288]: Asim Hussain (28116)
+                - generic [ref=e289]: FINAL AGENT TEST · TEST-900
+              - generic [ref=e290]: "Last seen: Mar 12, 10:02:17 AM"
+            - generic [ref=e291]: Student ended the session after the exam end time.
+            - generic [ref=e292]:
+              - generic [ref=e293]: "Occurred: 1 time"
+              - generic [ref=e294]: "First seen: Mar 12, 10:02:17 AM"
+            - generic [ref=e295]: FINAL AGENT TEST was scheduled to end at 2026-03-12T04:38:06.041638+00:00 UTC.
+            - generic [ref=e296]:
+              - link "View Session →" [ref=e297] [cursor=pointer]:
+                - /url: /sessions/c7b68cca-1d8f-4038-9c8a-d7fbc405080f
+              - button "Mark Reviewed" [ref=e298] [cursor=pointer]
+          - generic [ref=e299]:
+            - generic [ref=e301]:
+              - generic [ref=e302]:
+                - generic [ref=e303]: COMPLETED - ENDED LATE
+                - generic [ref=e304]: Mutahar Ali Shah (31428)
+                - generic [ref=e305]: FINAL AGENT TEST · TEST-900
+              - generic [ref=e306]: "Last seen: Mar 12, 1:33:00 AM"
+            - generic [ref=e307]: Student ended the session after the exam end time.
+            - generic [ref=e308]:
+              - generic [ref=e309]: "Occurred: 1 time"
+              - generic [ref=e310]: "First seen: Mar 12, 1:33:00 AM"
+            - generic [ref=e311]: FINAL AGENT TEST was scheduled to end at 2026-03-11T17:50:48.172000+00:00 UTC.
+            - generic [ref=e312]:
+              - link "View Session →" [ref=e313] [cursor=pointer]:
+                - /url: /sessions/97151ee1-f06d-44c6-bc25-12fe1cea6788
+              - button "Mark Reviewed" [ref=e314] [cursor=pointer]
+          - generic [ref=e315]:
+            - generic [ref=e317]:
+              - generic [ref=e318]:
+                - generic [ref=e319]: COMPLETED - ENDED EARLY
+                - generic [ref=e320]: Syed Hassan Abid Shah (26268)
+                - generic [ref=e321]: FINAL AGENT TEST · TEST-900
+              - generic [ref=e322]: "Last seen: Mar 11, 10:41:12 PM"
+            - generic [ref=e323]: Student ended the session before the exam end time.
+            - generic [ref=e324]:
+              - generic [ref=e325]: "Occurred: 1 time"
+              - generic [ref=e326]: "First seen: Mar 11, 10:41:12 PM"
+            - generic [ref=e327]: FINAL AGENT TEST was scheduled to end at 2026-03-11T17:50:48.172000+00:00 UTC.
+            - generic [ref=e328]:
+              - link "View Session →" [ref=e329] [cursor=pointer]:
+                - /url: /sessions/9e9b7f1b-2f32-4416-96f4-17e9136c71b3
+              - button "Mark Reviewed" [ref=e330] [cursor=pointer]
+          - generic [ref=e331]:
+            - generic [ref=e333]:
+              - generic [ref=e334]:
+                - generic [ref=e335]: RESTARTED AFTER REBOOT
+                - generic [ref=e336]: Muhammad Ahmed Ayub (28099)
+                - generic [ref=e337]: FINAL AGENT TEST · TEST-900
+              - generic [ref=e338]: "Last seen: Mar 11, 5:56:01 PM"
+            - generic [ref=e339]: The monitoring agent restarted after a reboot or relaunch and monitoring resumed automatically.
+            - generic [ref=e340]:
+              - generic [ref=e341]: "Occurred: 1 time"
+              - generic [ref=e342]: "First seen: Mar 11, 5:56:01 PM"
+            - generic [ref=e343]: Resumed session 21796667 for ERP 28099.
+            - generic [ref=e344]:
+              - link "View Session →" [ref=e345] [cursor=pointer]:
+                - /url: /sessions/21796667-22ee-4eeb-b616-2f2290028db0
+              - button "Mark Reviewed" [ref=e346] [cursor=pointer]
+          - generic [ref=e347]:
+            - generic [ref=e349]:
+              - generic [ref=e350]:
+                - generic [ref=e351]: AGENT KILLED
+                - generic [ref=e352]: Muhammad Ahmed Ayub (28099)
+                - generic [ref=e353]: FINAL AGENT TEST · TEST-900
+              - generic [ref=e354]: "Last seen: Mar 11, 5:41:35 PM"
+            - generic [ref=e355]: The monitoring agent exited unexpectedly and the watchdog is restarting it.
+            - generic [ref=e356]:
+              - generic [ref=e357]: "Occurred: 1 time"
+              - generic [ref=e358]: "First seen: Mar 11, 5:41:35 PM"
+            - generic [ref=e359]: "Agent process exit code: -6"
+            - generic [ref=e360]:
+              - link "View Session →" [ref=e361] [cursor=pointer]:
+                - /url: /sessions/21796667-22ee-4eeb-b616-2f2290028db0
+              - button "Mark Reviewed" [ref=e362] [cursor=pointer]
+          - generic [ref=e363]:
+            - generic [ref=e365]:
+              - generic [ref=e366]:
+                - generic [ref=e367]: COMPLETED - ENDED LATE
+                - generic [ref=e368]: Amnah Tariq (26632)
+                - generic [ref=e369]: FINAL AGENT TEST · TEST-900
+              - generic [ref=e370]: "Last seen: Mar 11, 7:01:40 AM"
+            - generic [ref=e371]: Student ended the session after the exam end time.
+            - generic [ref=e372]:
+              - generic [ref=e373]: "Occurred: 1 time"
+              - generic [ref=e374]: "First seen: Mar 11, 7:01:40 AM"
+            - generic [ref=e375]: FINAL AGENT TEST was scheduled to end at 2026-03-11T01:56:48.216570+00:00 UTC.
+            - generic [ref=e376]:
+              - link "View Session →" [ref=e377] [cursor=pointer]:
+                - /url: /sessions/9be7644c-3baa-41b4-b735-0bde41929830
+              - button "Mark Reviewed" [ref=e378] [cursor=pointer]
+          - generic [ref=e379]:
+            - generic [ref=e381]:
+              - generic [ref=e382]:
+                - generic [ref=e383]: COMPLETED - ENDED EARLY
+                - generic [ref=e384]: Bisma Syed (27795)
+                - generic [ref=e385]: FINAL AGENT TEST · TEST-900
+              - generic [ref=e386]: "Last seen: Mar 11, 6:58:05 AM"
+            - generic [ref=e387]: Student ended the session before the exam end time.
+            - generic [ref=e388]:
+              - generic [ref=e389]: "Occurred: 1 time"
+              - generic [ref=e390]: "First seen: Mar 11, 6:58:05 AM"
+            - generic [ref=e391]: FINAL AGENT TEST was scheduled to end at 2026-03-11T01:58:38.440168+00:00 UTC.
+            - generic [ref=e392]:
+              - link "View Session →" [ref=e393] [cursor=pointer]:
+                - /url: /sessions/3ea2ba2a-a655-40bb-b643-ee394a71c74c
+              - button "Mark Reviewed" [ref=e394] [cursor=pointer]
+          - generic [ref=e395]:
+            - generic [ref=e397]:
+              - generic [ref=e398]:
+                - generic [ref=e399]: RESTARTED AFTER REBOOT
+                - generic [ref=e400]: Alishba Atif (28205)
+                - generic [ref=e401]: FINAL AGENT TEST · TEST-900
+              - generic [ref=e402]: "Last seen: Mar 11, 6:28:18 AM"
+            - generic [ref=e403]: The monitoring agent restarted after a reboot or relaunch and monitoring resumed automatically.
+            - generic [ref=e404]:
+              - generic [ref=e405]: "Occurred: 1 time"
+              - generic [ref=e406]: "First seen: Mar 11, 6:28:18 AM"
+            - generic [ref=e407]: Resumed session 9b6ed44b for ERP 28205.
+            - generic [ref=e408]:
+              - link "View Session →" [ref=e409] [cursor=pointer]:
+                - /url: /sessions/9b6ed44b-d4af-40d7-bd53-09e3d589c79c
+              - button "Mark Reviewed" [ref=e410] [cursor=pointer]
+          - generic [ref=e411]:
+            - generic [ref=e413]:
+              - generic [ref=e414]:
+                - generic [ref=e415]: COMPLETED - ENDED EARLY
+                - generic [ref=e416]: Noor Us Saba (28547)
+                - generic [ref=e417]: FINAL AGENT TEST · TEST-900
+              - generic [ref=e418]: "Last seen: Mar 10, 7:29:51 PM"
+            - generic [ref=e419]: Student ended the session before the exam end time.
+            - generic [ref=e420]:
+              - generic [ref=e421]: "Occurred: 1 time"
+              - generic [ref=e422]: "First seen: Mar 10, 7:29:51 PM"
+            - generic [ref=e423]: FINAL AGENT TEST was scheduled to end at 2026-03-10T15:08:04.237052+00:00 UTC.
+            - link "View Session →" [ref=e425] [cursor=pointer]:
+              - /url: /sessions/53cdccce-f595-41bc-a672-8f0ea630dc55
+          - generic [ref=e426]:
+            - generic [ref=e428]:
+              - generic [ref=e429]:
+                - generic [ref=e430]: COMPLETED - ENDED EARLY
+                - generic [ref=e431]: Filza Haq (27979)
+                - generic [ref=e432]: FINAL AGENT TEST · TEST-900
+              - generic [ref=e433]: "Last seen: Mar 10, 7:07:00 PM"
+            - generic [ref=e434]: Student ended the session before the exam end time.
+            - generic [ref=e435]:
+              - generic [ref=e436]: "Occurred: 1 time"
+              - generic [ref=e437]: "First seen: Mar 10, 7:07:00 PM"
+            - generic [ref=e438]: FINAL AGENT TEST was scheduled to end at 2026-03-10T15:08:04.237052+00:00 UTC.
+            - generic [ref=e439]:
+              - link "View Session →" [ref=e440] [cursor=pointer]:
+                - /url: /sessions/9ca076d5-c3a2-4c55-a2d0-3b8c1e5c4f05
+              - button "Mark Reviewed" [ref=e441] [cursor=pointer]
+  - alert [ref=e442]
+```

@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markaz Dashboard - Sessions View</title>
+    <!-- Beautiful, clean sans-serif -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=SF+Pro+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Modern CSS reset */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #0A0A0B; 
+            
+            --surface: rgba(255, 255, 255, 0.03);
+            --surface-hover: rgba(255, 255, 255, 0.05);
+            
+            --border: rgba(255, 255, 255, 0.06);
+            --border-hover: rgba(255, 255, 255, 0.12);
+            
+            --text-primary: #FAFAFA;
+            --text-secondary: #A1A1AA;
+            --text-muted: #52525B;
+            
+            --accent-cyan: #06B6D4;
+            --accent-purple: #8B5CF6;
+            --accent-pink: #EC4899;
+            
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            line-height: 1.5;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Subtle aesthetic gradient */
+        body::before {
+            content: '';
+            position: absolute;
+            top: -20vh;
+            right: -10vw;
+            width: 50vw;
+            height: 50vh;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.08) 0%, rgba(6, 182, 212, 0.05) 50%, transparent 80%);
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* Navbar */
+        nav {
+            position: sticky;
+            top: 0;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            padding: 0 40px;
+            background: rgba(10, 10, 11, 0.7);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            z-index: 50;
+        }
+
+        .logo {
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-primary);
+        }
+
+        .logo-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            color: white;
+            box-shadow: 0 2px 10px rgba(139, 92, 246, 0.3);
+        }
+
+        .nav-links {
+            margin-left: 48px;
+            display: flex;
+            gap: 32px;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-primary);
+        }
+
+        .nav-links a.active {
+            color: var(--text-primary);
+            position: relative;
+        }
+
+        .nav-links a.active::after {
+            content: '';
+            position: absolute;
+            bottom: -22px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: var(--accent-cyan);
+            border-radius: 2px 2px 0 0;
+            box-shadow: 0 -2px 8px rgba(6, 182, 212, 0.4);
+        }
+
+        /* Main Content */
+        main {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 40px 40px;
+        }
+
+        /* Top Navigation Controls (Back Button & Breadcrumbs) */
+        .top-controls {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .back-btn:hover {
+            background: var(--surface-hover);
+            color: var(--text-primary);
+            border-color: var(--border-hover);
+        }
+
+        .breadcrumbs {
+            font-size: 13px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .breadcrumbs span.current {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        /* Page Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 32px;
+        }
+
+        .header-title {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .header-subtitle {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--text-secondary);
+            letter-spacing: 0.05em;
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 600;
+            letter-spacing: -0.03em;
+            color: var(--text-primary);
+        }
+
+        /* Custom Tabs */
+        .tabs-container {
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 32px;
+            display: flex;
+            gap: 32px;
+        }
+
+        .tab {
+            padding: 0 0 16px 0;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            position: relative;
+            transition: color 0.2s;
+        }
+
+        .tab:hover {
+            color: var(--text-primary);
+        }
+
+        .tab.active {
+            color: var(--text-primary);
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+            border-radius: 2px 2px 0 0;
+        }
+
+        /* Sessions Table Container */
+        .table-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Table Styling */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th {
+            background: rgba(0,0,0,0.2);
+            padding: 16px 24px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Table Cell Content */
+        .student-cell {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .student-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .student-erp {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+
+        .status-badge.active-status {
+            color: var(--accent-cyan);
+            background: rgba(6, 182, 212, 0.05);
+            border-color: rgba(6, 182, 212, 0.2);
+        }
+
+        .status-badge.terminated {
+            color: var(--accent-pink);
+            background: rgba(236, 72, 153, 0.05);
+            border-color: rgba(236, 72, 153, 0.2);
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+
+        .status-dot.cyan {
+            background: var(--accent-cyan);
+            box-shadow: 0 0 8px var(--accent-cyan);
+            animation: pulse-cyan 2s infinite;
+        }
+
+        .status-dot.pink {
+            background: var(--accent-pink);
+        }
+
+        @keyframes pulse-cyan {
+            0% { opacity: 0.6; transform: scale(0.9); }
+            50% { opacity: 1; transform: scale(1.1); box-shadow: 0 0 10px var(--accent-cyan); }
+            100% { opacity: 0.6; transform: scale(0.9); }
+        }
+
+        .time-cell {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .flag-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .flag-count.danger {
+            background: rgba(236, 72, 153, 0.1);
+            color: var(--accent-pink);
+            border: 1px solid rgba(236, 72, 153, 0.3);
+        }
+
+        .flag-count.safe {
+            color: var(--text-muted);
+        }
+
+        .action-cell {
+            display: flex;
+            justify-content: flex-end;
+            gap: 16px;
+        }
+
+        .btn-text {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .btn-text:hover {
+            color: var(--text-primary);
+        }
+        
+        .btn-text.danger:hover {
+            color: var(--accent-pink);
+        }
+
+        .btn-text.view:hover {
+            color: var(--accent-cyan);
+        }
+
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div class="logo">
+            <div class="logo-icon">M</div>
+            Markaz
+        </div>
+        <div class="nav-links">
+            <a href="#">Surveillance</a>
+            <a href="#" class="active">Sessions</a>
+            <a href="#">Flags</a>
+        </div>
+    </nav>
+
+    <main>
+        <!-- The Back Arrow Component -->
+        <div class="top-controls">
+            <a href="#" class="back-btn" title="Go Back">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+            </a>
+            <div class="breadcrumbs">
+                <span>Exams</span>
+                <span>/</span>
+                <span class="current">Object Oriented Programming</span>
+            </div>
+        </div>
+
+        <div class="header">
+            <div class="header-title">
+                <span class="header-subtitle">EXAM SESSIONS</span>
+                <h1>Object Oriented Programming</h1>
+            </div>
+        </div>
+
+        <!-- The Upper Side Tabs -->
+        <div class="tabs-container">
+            <button class="tab active">Live Sessions (42)</button>
+            <button class="tab">Add a Student</button>
+            <button class="tab">SQL Snippets & Policies</button>
+            <button class="tab">Archived Data</button>
+        </div>
+
+        <!-- The Table -->
+        <div class="table-card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Status</th>
+                        <th>Last Heartbeat</th>
+                        <th>Flags</th>
+                        <th style="text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <div class="student-cell">
+                                <span class="student-name">Ali Rahman</span>
+                                <span class="student-erp">22451</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="status-badge active-status">
+                                <div class="status-dot cyan"></div>
+                                ACTIVE
+                            </div>
+                        </td>
+                        <td class="time-cell">Just now</td>
+                        <td>
+                            <span class="flag-count safe">—</span>
+                        </td>
+                        <td>
+                            <div class="action-cell">
+                                <button class="btn-text danger">End</button>
+                                <button class="btn-text view">View Timeline</button>
+                            </div>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td>
+                            <div class="student-cell">
+                                <span class="student-name">Fatima Tariq</span>
+                                <span class="student-erp">21890</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="status-badge terminated">
+                                <div class="status-dot pink"></div>
+                                TERMINATED
+                            </div>
+                        </td>
+                        <td class="time-cell">9:41 AM (2 hrs ago)</td>
+                        <td>
+                            <span class="flag-count danger">3 Flags</span>
+                        </td>
+                        <td>
+                            <div class="action-cell">
+                                <button class="btn-text view">View Timeline</button>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>
+                            <div class="student-cell">
+                                <span class="student-name">Hassan Syed</span>
+                                <span class="student-erp">23112</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="status-badge active-status">
+                                <div class="status-dot cyan"></div>
+                                ACTIVE
+                            </div>
+                        </td>
+                        <td class="time-cell">2 sec ago</td>
+                        <td>
+                            <span class="flag-count safe">—</span>
+                        </td>
+                        <td>
+                            <div class="action-cell">
+                                <button class="btn-text danger">End</button>
+                                <button class="btn-text view">View Timeline</button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+</body>
+</html>

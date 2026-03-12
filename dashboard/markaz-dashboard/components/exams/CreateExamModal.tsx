@@ -1,9 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { THEME } from "@/constants/theme";
-import Card from "@/components/ui/Card";
-
 import { type Exam } from "@/lib/exams";
 
 interface CreateExamModalProps {
@@ -35,131 +32,72 @@ export default function CreateExamModal({ isOpen, onClose, onSubmit }: CreateExa
         }
     };
 
-    const inputStyle: React.CSSProperties = {
-        width: "100%",
-        background: "rgba(255,255,255,0.04)",
-        border: `1px solid ${THEME.cardBorder}`,
-        borderRadius: "10px",
-        padding: "11px 14px",
-        color: THEME.textPrimary,
-        fontFamily: THEME.fontSans,
-        fontSize: "14px",
-        outline: "none",
-        marginBottom: "18px",
-    };
-
-    const labelStyle: React.CSSProperties = {
-        display: "block",
-        color: THEME.textSecondary,
-        fontSize: "13px",
-        fontWeight: 500,
-        marginBottom: "8px",
-    };
-
-    const secondaryButtonStyle: React.CSSProperties = {
-        minWidth: "110px",
-        background: "transparent",
-        border: `1px solid ${THEME.cardBorder}`,
-        color: THEME.textSecondary,
-        borderRadius: "10px",
-        padding: "11px 16px",
-        fontWeight: 600,
-        cursor: isSubmitting ? "not-allowed" : "pointer",
-    };
-
     return (
         <div
-            style={{
-                position: "fixed",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: "rgba(0,0,0,0.72)",
-                backdropFilter: "blur(4px)",
-                zIndex: 100,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "20px",
-            }}
+            className="fixed inset-0 bg-[#000000]/75 backdrop-blur-md z-[100] flex items-center justify-center p-5"
             onClick={onClose}
         >
             <div
                 onClick={(e) => e.stopPropagation()}
-                style={{
-                    width: "100%",
-                    maxWidth: "500px",
-                    zIndex: 101,
-                }}
+                className="w-full max-w-[500px] z-[101]"
             >
-                <Card style={{ padding: "28px", display: "flex", flexDirection: "column", gap: "22px" }}>
-                    <h2 style={{ color: THEME.textPrimary, fontWeight: 600, fontSize: "21px", letterSpacing: "-0.01em", margin: 0 }}>
-                        Create New Exam
+                <div className="aesthetic-card p-7 gap-6">
+                    <h2 className="text-[var(--text-primary)] font-semibold text-[21px] tracking-[-0.01em] m-0">
+                        Deploy New Configuration
                     </h2>
 
                     {errorMsg && (
-                        <div style={{ color: THEME.pink, fontSize: "14px", background: `${THEME.pink}12`, border: `1px solid ${THEME.pink}30`, padding: "12px", borderRadius: "10px" }}>
+                        <div className="text-[var(--accent-pink)] text-sm bg-[var(--accent-pink)]/10 border border-[var(--accent-pink)]/30 p-3 rounded-lg">
                             {errorMsg}
                         </div>
                     )}
 
-                    <form onSubmit={handleSubmit} style={{ margin: 0 }}>
-                        <div>
-                            <label style={labelStyle}>Exam Name</label>
-                            <input name="exam_name" type="text" required style={inputStyle} />
+                    <form onSubmit={handleSubmit} className="m-0">
+                        <div className="mb-[18px]">
+                            <label className="block text-[var(--text-secondary)] text-[13px] font-medium mb-2">Configuration Name</label>
+                            <input name="exam_name" type="text" required className="w-full bg-[var(--surface-hover)] border border-[var(--border)] rounded-lg px-3.5 py-2.5 text-[var(--text-primary)] font-sans text-sm focus:outline-none focus:border-[var(--border-hover)] transition-colors" />
                         </div>
 
-                        <div>
-                            <label style={labelStyle}>Class Number</label>
-                            <input name="class_number" type="text" placeholder="e.g. BS-CS Section B" required style={inputStyle} />
+                        <div className="mb-[18px]">
+                            <label className="block text-[var(--text-secondary)] text-[13px] font-medium mb-2">Target Audience / Class</label>
+                            <input name="class_number" type="text" placeholder="e.g. BS-CS Section B" required className="w-full bg-[var(--surface-hover)] border border-[var(--border)] rounded-lg px-3.5 py-2.5 text-[var(--text-primary)] font-sans text-sm focus:outline-none focus:border-[var(--border-hover)] transition-colors" />
                         </div>
 
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                        <div className="grid grid-cols-2 gap-4 mb-[18px]">
                             <div>
-                                <label style={labelStyle}>Start Time</label>
-                                <input name="start_time" type="datetime-local" required style={inputStyle} />
+                                <label className="block text-[var(--text-secondary)] text-[13px] font-medium mb-2">Deploy Time</label>
+                                <input name="start_time" type="datetime-local" required className="w-full bg-[var(--surface-hover)] border border-[var(--border)] rounded-lg px-3.5 py-2.5 text-[var(--text-primary)] font-sans text-sm focus:outline-none focus:border-[var(--border-hover)] transition-colors" />
                             </div>
                             <div>
-                                <label style={labelStyle}>End Time</label>
-                                <input name="end_time" type="datetime-local" required style={inputStyle} />
+                                <label className="block text-[var(--text-secondary)] text-[13px] font-medium mb-2">Termination Time</label>
+                                <input name="end_time" type="datetime-local" required className="w-full bg-[var(--surface-hover)] border border-[var(--border)] rounded-lg px-3.5 py-2.5 text-[var(--text-primary)] font-sans text-sm focus:outline-none focus:border-[var(--border-hover)] transition-colors" />
                             </div>
                         </div>
 
-                        <div>
-                            <label style={labelStyle}>Access Code</label>
-                            <input name="access_code" type="text" placeholder="e.g. SPRING25" required style={{ ...inputStyle, marginBottom: "24px" }} />
+                        <div className="mb-6">
+                            <label className="block text-[var(--text-secondary)] text-[13px] font-medium mb-2">Terminal Access Code</label>
+                            <input name="access_code" type="text" placeholder="e.g. SPRING25" required className="w-full bg-[var(--surface-hover)] border border-[var(--border)] rounded-lg px-3.5 py-2.5 text-[var(--text-primary)] font-sans text-sm focus:outline-none focus:border-[var(--border-hover)] transition-colors" />
                         </div>
 
-                        <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", flexWrap: "wrap" }}>
+                        <div className="flex justify-end gap-3 flex-wrap">
                             <button
                                 type="button"
                                 onClick={onClose}
                                 disabled={isSubmitting}
-                                style={secondaryButtonStyle}
+                                className="min-w-[110px] bg-transparent border border-[var(--border)] text-[var(--text-secondary)] rounded-lg px-4 py-2.5 font-semibold transition-colors hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Cancel
                             </button>
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
-                                style={{
-                                    minWidth: "140px",
-                                    background: THEME.cyan,
-                                    border: "none",
-                                    color: THEME.bg,
-                                    borderRadius: "10px",
-                                    padding: "11px 16px",
-                                    fontWeight: 600,
-                                    cursor: isSubmitting ? "wait" : "pointer",
-                                    opacity: isSubmitting ? 0.7 : 1,
-                                }}
+                                className="min-w-[140px] bg-[var(--text-primary)] border-none text-[var(--bg)] rounded-lg px-4 py-2.5 font-semibold transition-all hover:-translate-y-px hover:shadow-[0_4px_12px_rgba(255,255,255,0.1)] disabled:opacity-70 disabled:cursor-not-allowed"
                             >
-                                {isSubmitting ? "Creating..." : "Create Exam"}
+                                {isSubmitting ? "Deploying..." : "Deploy Config"}
                             </button>
                         </div>
                     </form>
-                </Card>
+                </div>
             </div>
         </div>
     );

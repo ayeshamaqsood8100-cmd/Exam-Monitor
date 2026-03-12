@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from backend.services.analysis.models import (
     ClipboardEntry,
     KeystrokeGroup,
@@ -171,11 +173,16 @@ def normalize_offline_period_rows(rows: list[dict]) -> list[OfflinePeriod]:
     for row in rows:
         synced_at = str(row.get("synced_at")) if row.get("synced_at") else None
         for period in row.get("offline_periods") or []:
+            start = period.get("start") or period.get("disconnected_at")
+            end = period.get("end") or period.get("reconnected_at")
+            duration_seconds = period.get("duration_seconds")
+            if duration_seconds is None:
+                duration_seconds = _compute_offline_duration_seconds(start, end)
             periods.append(
                 OfflinePeriod(
-                    start=period.get("start"),
-                    end=period.get("end"),
-                    duration_seconds=period.get("duration_seconds"),
+                    start=start,
+                    end=end,
+                    duration_seconds=duration_seconds,
                     synced_at=synced_at,
                 )
             )
@@ -199,3 +206,22 @@ def build_input_stats(
         keystroke_groups=len(keystroke_groups),
         empty_telemetry=total_events == 0,
     )
+
+
+def _compute_offline_duration_seconds(start: str | None, end: str | None) -> int | None:
+    if not start or not end:
+        return None
+
+    try:
+        start_dt = datetime.fromisoformat(str(start).replace("Z", "+00:00"))
+        end_dt = datetime.fromisoformat(str(end).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+    if start_dt.tzinfo is None:
+        start_dt = start_dt.replace(tzinfo=timezone.utc)
+    if end_dt.tzinfo is None:
+        end_dt = end_dt.replace(tzinfo=timezone.utc)
+
+    duration = int((end_dt - start_dt).total_seconds())
+    return max(duration, 0)

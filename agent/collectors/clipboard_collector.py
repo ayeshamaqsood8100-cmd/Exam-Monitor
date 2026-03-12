@@ -5,6 +5,7 @@ Polls the system clipboard for text changes and buffers them thread-safely.
 import threading
 import time
 from datetime import datetime, timezone
+from .. import platform_compat  # noqa: F401
 import pyperclip
 import pygetwindow
 

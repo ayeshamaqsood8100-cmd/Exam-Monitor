@@ -1,16 +1,19 @@
 "use client";
+
 import React from "react";
 import Link from "next/link";
 import { type SessionWithStudent } from "@/lib/sessions";
-import { THEME } from "@/constants/theme";
+
 interface SessionRowProps {
     session: SessionWithStudent;
     onForceStop: (sessionId: string) => void;
     isStopping: boolean;
 }
+
 export default function SessionRow({ session, onForceStop, isStopping }: SessionRowProps): React.JSX.Element {
     const { flag_count, student } = session;
     const isTerminated = session.display_status === "TERMINATED";
+
     const formatDate = (dateString: string | null): string => {
         if (!dateString) return "Never";
         return new Date(dateString).toLocaleTimeString("en-US", {
@@ -20,122 +23,105 @@ export default function SessionRow({ session, onForceStop, isStopping }: Session
             second: "2-digit"
         });
     };
-    let dotColor = THEME.textMuted;
-    let dotAnimation = "none";
-    let badgeColor = THEME.textMuted;
-    const badgeLabel = session.display_status;
+
+    let dotColorClass = "bg-[#a1a1aa]";
+    let badgeColorClass = "text-[#a1a1aa] bg-[#a1a1aa]/10 border-[#a1a1aa]/30";
+    let pulseClass = "";
+
     switch (session.display_status) {
         case "ACTIVE":
-            dotColor = THEME.cyan;
-            dotAnimation = "breathe 2s infinite";
-            badgeColor = THEME.cyan;
+            dotColorClass = "bg-[#06b6d4] shadow-[0_0_8px_#06b6d4]";
+            badgeColorClass = "text-[#06b6d4] bg-[#06b6d4]/10 border-[#06b6d4]/30";
+            pulseClass = "badge-pulse";
             break;
         case "PAUSED":
-            dotColor = THEME.yellow;
-            badgeColor = THEME.yellow;
+            dotColorClass = "bg-[#ffd166]";
+            badgeColorClass = "text-[#ffd166] bg-[#ffd166]/10 border-[#ffd166]/30";
             break;
         case "COMPLETED":
-            dotColor = THEME.cyan;
-            badgeColor = THEME.cyan;
-            break;
         case "COMPLETED - ENDED EARLY":
-            dotColor = THEME.yellow;
-            badgeColor = THEME.yellow;
+            dotColorClass = "bg-[#8b5cf6]";
+            badgeColorClass = "text-[#8b5cf6] bg-[#8b5cf6]/10 border-[#8b5cf6]/30";
             break;
         case "COMPLETED - ENDED LATE":
-            dotColor = THEME.blue;
-            badgeColor = THEME.blue;
+            dotColorClass = "bg-[#3b82f6]";
+            badgeColorClass = "text-[#3b82f6] bg-[#3b82f6]/10 border-[#3b82f6]/30";
             break;
         case "TERMINATED":
-            dotColor = THEME.pink;
-            badgeColor = THEME.pink;
+        case "AGENT KILLED":
+            dotColorClass = "bg-[#ef4444]";
+            badgeColorClass = "text-[#ef4444] bg-[#ef4444]/10 border-[#ef4444]/30";
+            if (session.display_status === "AGENT KILLED") pulseClass = "animate-pulse";
             break;
         case "AGENT LOST":
-        case "AGENT KILLED":
-            dotColor = THEME.pink;
-            badgeColor = THEME.pink;
-            dotAnimation = "breathe 2s infinite";
+            dotColorClass = "bg-[#ec4899]";
+            badgeColorClass = "text-[#ec4899] bg-[#ec4899]/10 border-[#ec4899]/30";
+            pulseClass = "animate-pulse";
             break;
         case "RESTARTED AFTER REBOOT":
-            dotColor = THEME.yellow;
-            badgeColor = THEME.yellow;
-            break;
-        default:
+            dotColorClass = "bg-[#ffd166]";
+            badgeColorClass = "text-[#ffd166] bg-[#ffd166]/10 border-[#ffd166]/30";
             break;
     }
-    const rowBaseStyle: React.CSSProperties = {
-        borderBottom: "1px solid rgba(255,255,255,0.04)",
-        transition: "background 0.15s ease",
-    };
-    const attentionStyle: React.CSSProperties = {
-        ...rowBaseStyle,
-        borderLeft: `3px solid ${THEME.pink}`,
-        background: `${THEME.pink}08`,
-    };
-    const activeRowStyle = session.needs_attention ? attentionStyle : rowBaseStyle;
+
+    const needsAttention = session.needs_attention;
+    
     return (
-        <tr
-            style={activeRowStyle}
-            onMouseEnter={(e) => {
-                if (!session.needs_attention) {
-                    e.currentTarget.style.background = "rgba(255,255,255,0.02)";
-                }
-            }}
-            onMouseLeave={(e) => {
-                if (!session.needs_attention) {
-                    e.currentTarget.style.background = "transparent";
-                }
-            }}
-        >
-            <td style={{ padding: "14px 16px" }}>
-                <div style={{ color: THEME.textPrimary, fontWeight: "bold", fontSize: "14px" }}>{student.name}</div>
-                <div style={{ color: THEME.textSecondary, fontFamily: THEME.fontMono, fontSize: "12px", marginTop: "2px" }}>{student.erp}</div>
-                {session.needs_attention && (
-                    <div style={{ marginTop: "8px" }}>
-                        <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.04em", padding: "3px 8px", borderRadius: "999px", color: THEME.pink, backgroundColor: `${THEME.pink}15`, border: `1px solid ${THEME.pink}30` }}>
+        <tr className={`border-b border-white/5 transition-colors duration-150 ${needsAttention ? 'border-l-[3px] border-l-[#ef4444] bg-[#ef4444]/5 hover:bg-[#ef4444]/10' : 'hover:bg-white/[0.02]'}`}>
+            <td className="px-5 py-4">
+                <div className="text-[var(--text-primary)] font-bold text-sm">{student.name}</div>
+                <div className="text-[var(--text-secondary)] font-mono text-xs mt-0.5">{student.erp}</div>
+                {needsAttention && (
+                    <div className="mt-2">
+                        <span className="text-[10px] font-bold tracking-[0.04em] px-2 py-0.5 rounded-full text-[#ef4444] bg-[#ef4444]/10 border border-[#ef4444]/30">
                             NEEDS ATTENTION
                         </span>
                     </div>
                 )}
             </td>
-            <td style={{ padding: "14px 16px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: dotColor, animation: dotAnimation }} />
-                    <span style={{ fontSize: "11px", fontWeight: 700, padding: "2px 8px", borderRadius: "6px", color: badgeColor, backgroundColor: `${badgeColor}15`, border: `1px solid ${badgeColor}30` }}>
-                        {badgeLabel}
+            
+            <td className="px-5 py-4">
+                <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${dotColorClass} ${pulseClass}`} />
+                    <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md border ${badgeColorClass}`}>
+                        {session.display_status}
                     </span>
                 </div>
                 {session.attention_reason && (
-                    <div style={{ marginTop: "8px", fontSize: "12px", color: THEME.textSecondary, maxWidth: "280px" }}>
+                    <div className="mt-2 text-xs text-[var(--text-secondary)] max-w-[280px]">
                         {session.attention_reason}
                     </div>
                 )}
             </td>
-            <td style={{ padding: "14px 16px" }}>
-                <div style={{ color: badgeColor, fontFamily: THEME.fontMono, fontSize: "12px" }}>
+            
+            <td className="px-5 py-4">
+                <div className="text-[var(--text-primary)] font-mono text-xs opacity-90">
                     {formatDate(session.last_heartbeat_at)}
                 </div>
             </td>
-            <td style={{ padding: "14px 16px" }}>
-                <div style={{ color: THEME.textSecondary, fontFamily: THEME.fontMono, fontSize: "12px" }}>
+            
+            <td className="px-5 py-4">
+                <div className="text-[var(--text-secondary)] font-mono text-xs">
                     {formatDate(session.session_start)}
                 </div>
             </td>
-            <td style={{ padding: "14px 16px" }}>
+            
+            <td className="px-5 py-4">
                 {flag_count > 0 ? (
-                    <span style={{ fontSize: "11px", fontWeight: 700, padding: "2px 8px", borderRadius: "6px", color: THEME.pink, backgroundColor: `${THEME.pink}15`, border: `1px solid ${THEME.pink}30` }}>
+                    <span className="inline-flex items-center justify-center whitespace-nowrap text-[11px] font-bold px-2 py-0.5 rounded-md text-[#ec4899] bg-[#ec4899]/10 border border-[#ec4899]/30 tracking-wide">
                         {flag_count} {flag_count === 1 ? "flag" : "flags"}
                     </span>
                 ) : (
-                    <span style={{ color: THEME.textMuted, fontFamily: THEME.fontMono, fontSize: "12px" }}>—</span>
+                    <span className="text-[var(--text-muted)] font-mono text-xs">—</span>
                 )}
             </td>
-            <td style={{ padding: "14px 16px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                    <Link href={`/sessions/${session.id}`} style={{ color: THEME.cyan, fontFamily: THEME.fontMono, fontSize: "12px", textDecoration: "none" }}>
-                        View
+            
+            <td className="px-5 py-4">
+                <div className="flex items-center gap-3">
+                    <Link href={`/sessions/${session.id}`} className="text-[var(--accent-cyan)] hover:text-white font-medium text-xs no-underline transition-colors">
+                        View Feed
                     </Link>
-                    {isTerminated ? null : (
+                    {!isTerminated && (
                         <button
                             onClick={() => {
                                 if (confirm("End & remove this student's agent now? This cannot be restarted.")) {
@@ -143,11 +129,9 @@ export default function SessionRow({ session, onForceStop, isStopping }: Session
                                 }
                             }}
                             disabled={isStopping}
-                            style={{ background: "transparent", border: `1px solid ${THEME.pink}`, color: THEME.pink, padding: "4px 10px", borderRadius: "6px", fontSize: "11px", fontWeight: 600, cursor: isStopping ? "wait" : "pointer", opacity: isStopping ? 0.5 : 1 }}
-                            onMouseEnter={(e) => { if (!isStopping) e.currentTarget.style.background = `${THEME.pink}15`; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                            className={`bg-transparent border border-[var(--accent-pink)] text-[var(--accent-pink)] px-2.5 py-1 rounded-md text-[11px] font-bold transition-colors ${isStopping ? 'opacity-50 cursor-wait' : 'hover:bg-[var(--accent-pink)]/10 cursor-pointer'}`}
                         >
-                            {isStopping ? "Ending..." : "End & Remove"}
+                            {isStopping ? "Ending..." : "End Session"}
                         </button>
                     )}
                 </div>

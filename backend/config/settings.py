@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import logging
 from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -34,6 +35,9 @@ class AnalysisRuntimeConfig:
     dedup_time_tolerance_seconds: int
 
 
+logger = logging.getLogger(__name__)
+
+
 class Settings(BaseSettings):
     SUPABASE_URL: str
     SUPABASE_SERVICE_ROLE_KEY: str
@@ -42,7 +46,7 @@ class Settings(BaseSettings):
     STUDENT_AGENT_TOKEN_SECRET: str | None = None
     STUDENT_AGENT_TOKEN_TTL_SECONDS: int = 604800
 
-    AI_PROVIDER_ORDER: str = "deepseek,groq,openrouter"
+    AI_PROVIDER_ORDER: str = "groq,deepseek,openrouter"
     AI_TIMEOUT_SECONDS: float = 45.0
     AI_MAX_RETRIES_PER_PROVIDER: int = 2
     AI_RETRY_BACKOFF_SECONDS: float = 2.0
@@ -95,30 +99,36 @@ class Settings(BaseSettings):
             seen.add(name)
 
             if name == "deepseek":
-                providers.append(self._build_provider_config(
+                provider = self._build_provider_config(
                     name="deepseek",
                     api_key=self.DEEPSEEK_API_KEY,
                     model=self.DEEPSEEK_MODEL,
                     max_input_tokens=self.DEEPSEEK_MAX_INPUT_TOKENS,
-                ))
+                )
+                if provider:
+                    providers.append(provider)
                 continue
 
             if name == "groq":
-                providers.append(self._build_provider_config(
+                provider = self._build_provider_config(
                     name="groq",
                     api_key=self.GROQ_API_KEY,
                     model=self.GROQ_MODEL,
                     max_input_tokens=self.GROQ_MAX_INPUT_TOKENS,
-                ))
+                )
+                if provider:
+                    providers.append(provider)
                 continue
 
             if name == "openrouter":
-                providers.append(self._build_provider_config(
+                provider = self._build_provider_config(
                     name="openrouter",
                     api_key=self.OPENROUTER_API_KEY,
                     model=self.OPENROUTER_MODEL,
                     max_input_tokens=self.OPENROUTER_MAX_INPUT_TOKENS,
-                ))
+                )
+                if provider:
+                    providers.append(provider)
                 continue
 
             raise AnalysisConfigError(f"Unsupported AI provider '{name}' in AI_PROVIDER_ORDER.")
@@ -145,15 +155,21 @@ class Settings(BaseSettings):
         api_key: str | None,
         model: str | None,
         max_input_tokens: int,
-    ) -> ProviderConfig:
+    ) -> ProviderConfig | None:
         if not api_key:
-            raise AnalysisConfigError(
-                f"{name.upper()}_API_KEY is required because '{name}' is listed in AI_PROVIDER_ORDER."
+            logger.warning(
+                "Skipping AI provider '%s' because %s_API_KEY is not configured.",
+                name,
+                name.upper(),
             )
+            return None
         if not model:
-            raise AnalysisConfigError(
-                f"{name.upper()}_MODEL is required because '{name}' is listed in AI_PROVIDER_ORDER."
+            logger.warning(
+                "Skipping AI provider '%s' because %s_MODEL is not configured.",
+                name,
+                name.upper(),
             )
+            return None
         if name == "openrouter" and "/" not in model:
             raise AnalysisConfigError(
                 "OPENROUTER_MODEL must use a namespaced provider/model format such as 'deepseek/deepseek-chat'."

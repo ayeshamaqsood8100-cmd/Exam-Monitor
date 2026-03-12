@@ -25,6 +25,7 @@ export interface SessionSummaryData {
     exam: {
         name: string;
         class_number: string;
+        scheduled_end: string | null;
     };
     session: {
         start: string;
@@ -32,6 +33,7 @@ export interface SessionSummaryData {
         status: string;
         display_status: string;
         last_heartbeat: string | null;
+        can_restart: boolean;
     };
     stats: {
         keystrokes: number;
@@ -99,11 +101,13 @@ function formatDateToKarachi(dateString: string | null): string {
 
 function deriveSessionDisplayStatus(status: string, lastHeartbeatAt: string | null, agentEvents: { flag_type: string; reviewed: boolean }[]): string {
     const hasUnreviewedEarlyEnd = agentEvents.some((event) => event.flag_type === "system_session_ended_before_exam_end" && !event.reviewed);
+    const hasUnreviewedLateEnd = agentEvents.some((event) => event.flag_type === "system_session_ended_after_exam_end" && !event.reviewed);
     const hasUnreviewedKill = agentEvents.some((event) => event.flag_type === "system_agent_process_exited_unexpectedly" && !event.reviewed);
     const hasUnreviewedReboot = agentEvents.some((event) => event.flag_type === "system_agent_restarted_after_reboot" && !event.reviewed);
     const heartbeatLost = status === "active" && (!lastHeartbeatAt || new Date(lastHeartbeatAt).getTime() < Date.now() - HEARTBEAT_LOST_THRESHOLD_MS);
 
     if (status === "completed" && hasUnreviewedEarlyEnd) return "COMPLETED - ENDED EARLY";
+    if (status === "completed" && hasUnreviewedLateEnd) return "COMPLETED - ENDED LATE";
     if (status === "terminated") return "TERMINATED";
     if (status === "completed") return "COMPLETED";
     if (status === "paused" && hasUnreviewedKill) return "AGENT KILLED";
@@ -129,7 +133,7 @@ export async function getSessionSummary(sessionId: string): Promise<SessionSumma
         supabase.from("exam_sessions").select(`
       session_start, session_end, status, last_heartbeat_at, exam_id,
       students (name, erp),
-      exams (exam_name, class_number)
+      exams (exam_name, class_number, end_time)
     `).eq("id", sessionId).single(),
 
         supabase.from("consent_logs").select("consented_at, agent_version").eq("session_id", sessionId).maybeSingle(),
@@ -169,7 +173,7 @@ export async function getSessionSummary(sessionId: string): Promise<SessionSumma
         status: string;
         last_heartbeat_at: string | null;
         students: { name: string; erp: string } | { name: string; erp: string }[] | null;
-        exams: { exam_name: string; class_number: string } | { exam_name: string; class_number: string }[] | null;
+        exams: { exam_name: string; class_number: string; end_time: string | null } | { exam_name: string; class_number: string; end_time: string | null }[] | null;
     };
 
     const data = sessionRes.data as unknown as JoinedSessionData;
@@ -206,14 +210,16 @@ export async function getSessionSummary(sessionId: string): Promise<SessionSumma
         },
         exam: {
             name: exam?.exam_name || "Unknown",
-            class_number: exam?.class_number || "Unknown"
+            class_number: exam?.class_number || "Unknown",
+            scheduled_end: formatDateToKarachi(exam?.end_time || null),
         },
         session: {
             start: formatDateToKarachi(data.session_start),
             end: formatDateToKarachi(data.session_end),
             status: data.status,
             display_status: displayStatus,
-            last_heartbeat: formatDateToKarachi(data.last_heartbeat_at)
+            last_heartbeat: formatDateToKarachi(data.last_heartbeat_at),
+            can_restart: data.status === "paused",
         },
         stats: {
             keystrokes: keystrokeCount,

@@ -2,11 +2,8 @@ import React from "react";
 import Link from "next/link";
 import { getExamById, getSessionsForExam } from "@/lib/sessions";
 import SessionsPageClient from "@/components/sessions/SessionsPageClient";
-import Card from "@/components/ui/Card";
-import Breadcrumb from "@/components/ui/Breadcrumb";
-import { THEME } from "@/constants/theme";
-import { forceStopSessionAction, analyzeSessionsAction } from "@/app/sessions/actions";
-import AnalyzeButton from "@/components/sessions/AnalyzeButton";
+import BackButton from "@/components/ui/BackButton";
+import { forceStopSessionAction, terminateExamAction, acknowledgeSessionAction } from "@/app/sessions/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -15,26 +12,18 @@ export default async function SessionsPage({ searchParams }: { searchParams: { e
 
     if (!examId) {
         return (
-            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "50vh" }}>
-                <Card style={{ padding: "48px", textAlign: "center", maxWidth: "400px" }}>
-                    <div style={{ color: THEME.textSecondary, marginBottom: "24px", fontSize: "16px" }}>
+            <div className="flex justify-center items-center min-h-[50vh]">
+                <div className="aesthetic-card p-12 text-center max-w-[400px]">
+                    <div className="text-[var(--text-secondary)] mb-6 text-base">
                         No exam selected. Go back to Exams.
                     </div>
                     <Link
                         href="/exams"
-                        style={{
-                            display: "inline-block",
-                            background: THEME.cyan,
-                            color: THEME.bg,
-                            padding: "10px 24px",
-                            borderRadius: "8px",
-                            fontWeight: "bold",
-                            textDecoration: "none"
-                        }}
+                        className="inline-block bg-[var(--accent-cyan)] text-[var(--bg)] px-6 py-2.5 rounded-lg font-bold no-underline hover:-translate-y-0.5 transition-transform"
                     >
                         &larr; Return to Exams
                     </Link>
-                </Card>
+                </div>
             </div>
         );
     }
@@ -47,20 +36,16 @@ export default async function SessionsPage({ searchParams }: { searchParams: { e
 
         return (
             <div>
-                <div style={{ padding: "24px 24px 0", maxWidth: "1200px", margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <Breadcrumb
-                        segments={[
-                            { label: "Exams", href: "/exams" },
-                            { label: exam.exam_name, href: undefined }
-                        ]}
-                    />
-                    <AnalyzeButton examId={examId} analyzeAction={analyzeSessionsAction} />
+                <div className="flex justify-between items-center mb-0">
+                    <BackButton href="/exams" breadcrumbs={["Surveillance", exam.exam_name]} />
                 </div>
                 <SessionsPageClient
                     examId={examId}
                     initialSessions={initialSessions}
                     exam={exam}
                     onForceStopSession={forceStopSessionAction}
+                    onTerminateExam={terminateExamAction}
+                    onAcknowledgeSession={acknowledgeSessionAction}
                 />
             </div>
         );
@@ -68,30 +53,21 @@ export default async function SessionsPage({ searchParams }: { searchParams: { e
         const msg = error instanceof Error ? error.message : "Unknown error";
 
         return (
-            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "50vh" }}>
-                <Card style={{ padding: "48px", textAlign: "center", maxWidth: "480px", borderLeft: `3px solid ${THEME.pink}` }}>
-                    <h2 style={{ color: THEME.pink, fontSize: "20px", fontWeight: "bold", marginBottom: "16px", marginTop: 0 }}>
+            <div className="flex justify-center items-center min-h-[50vh]">
+                <div className="aesthetic-card p-12 text-center max-w-[480px] border-l-[3px] border-l-[var(--accent-pink)]">
+                    <h2 className="text-[var(--accent-pink)] text-xl font-bold mb-4 mt-0">
                         Error Loading Sessions
                     </h2>
-                    <div style={{ color: THEME.textSecondary, marginBottom: "24px", wordBreak: "break-word" }}>
+                    <div className="text-[var(--text-secondary)] mb-6 break-words">
                         {msg}
                     </div>
                     <Link
                         href="/exams"
-                        style={{
-                            display: "inline-block",
-                            background: "transparent",
-                            border: `1px solid ${THEME.textMuted}`,
-                            color: THEME.textPrimary,
-                            padding: "10px 24px",
-                            borderRadius: "8px",
-                            fontWeight: "bold",
-                            textDecoration: "none"
-                        }}
+                        className="inline-block bg-transparent border border-[var(--text-muted)] text-[var(--text-primary)] px-6 py-2.5 rounded-lg font-bold no-underline hover:bg-[var(--surface-hover)] transition-colors"
                     >
                         &larr; Return to Exams
                     </Link>
-                </Card>
+                </div>
             </div>
         );
     }

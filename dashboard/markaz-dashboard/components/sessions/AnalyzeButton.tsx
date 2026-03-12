@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { THEME } from "@/constants/theme";
 
 interface AnalyzeButtonProps {
     examId: string;
@@ -35,9 +34,9 @@ export default function AnalyzeButton({ examId, analyzeAction }: AnalyzeButtonPr
 
     if (status === "done") {
         return (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
-                <span style={{ color: THEME.cyan, fontWeight: "bold" }}>Analysis Complete ✓</span>
-                <span style={{ color: THEME.textSecondary, fontSize: "12px", marginTop: "4px" }}>
+            <div className="flex flex-col items-end">
+                <span className="text-[var(--accent-cyan)] font-bold">Analysis Complete ✓</span>
+                <span className="text-[var(--text-secondary)] text-xs mt-1">
                     {result}
                 </span>
             </div>
@@ -51,38 +50,14 @@ export default function AnalyzeButton({ examId, analyzeAction }: AnalyzeButtonPr
         <button
             onClick={handleAnalyze}
             disabled={isLoading}
-            style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                background: THEME.bg,
-                border: `1px solid ${isError ? THEME.pink : THEME.cyan}`,
-                color: isError ? THEME.pink : THEME.cyan,
-                padding: "8px 16px",
-                borderRadius: "8px",
-                fontWeight: 600,
-                cursor: isLoading ? "not-allowed" : "pointer",
-                opacity: isLoading ? 0.7 : 1,
-                transition: "all 0.2s ease"
-            }}
+            className={`flex items-center gap-2 bg-[var(--surface-hover)] border px-4 py-2 rounded-lg font-semibold cursor-pointer transition-all duration-200 
+                ${isError ? 'border-[var(--accent-pink)] text-[var(--accent-pink)] hover:bg-[var(--accent-pink)]/10' : 'border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)]'} 
+                ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
         >
             {isLoading && (
-                <div style={{
-                    width: "14px",
-                    height: "14px",
-                    border: `2px solid ${THEME.cyan}`,
-                    borderTopColor: "transparent",
-                    borderRadius: "50%",
-                    animation: "spin 1s linear infinite"
-                }}>
-                    <style>{`
-                        @keyframes spin {
-                            to { transform: rotate(360deg); }
-                        }
-                    `}</style>
-                </div>
+                <div className="w-3.5 h-3.5 border-2 border-[var(--text-secondary)] border-t-transparent rounded-full animate-spin" />
             )}
-            {isLoading ? "Analyzing..." : isError ? "Analysis Failed — Retry" : "Analyze Sessions"}
+            {isLoading ? "Analyzing..." : isError ? "Analysis Failed — Retry" : "Analyze AI Flags"}
         </button>
     );
 }

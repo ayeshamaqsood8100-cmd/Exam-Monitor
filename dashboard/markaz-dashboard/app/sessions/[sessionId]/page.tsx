@@ -2,9 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { getSessionSummary } from "@/lib/sessionSummary";
 import SessionSummaryClient from "@/components/sessionSummary/SessionSummaryClient";
-import Card from "@/components/ui/Card";
-import Breadcrumb from "@/components/ui/Breadcrumb";
-import { THEME } from "@/constants/theme";
+import BackButton from "@/components/ui/BackButton";
 
 export const dynamic = "force-dynamic";
 
@@ -13,44 +11,31 @@ export default async function SessionSummaryPage({ params }: { params: { session
 
     if (!data) {
         return (
-            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "50vh" }}>
-                <Card style={{ padding: "48px", textAlign: "center", maxWidth: "400px" }}>
-                    <div style={{ color: THEME.textSecondary, marginBottom: "24px", fontSize: "16px" }}>
+            <div className="flex justify-center items-center min-h-[50vh]">
+                <div className="aesthetic-card p-12 text-center max-w-[400px]">
+                    <div className="text-[var(--text-secondary)] mb-6 text-base">
                         Session not found or invalid ID.
                     </div>
                     <Link
                         href="/exams"
-                        style={{
-                            display: "inline-block",
-                            background: "transparent",
-                            border: `1px solid ${THEME.textMuted}`,
-                            color: THEME.textPrimary,
-                            padding: "10px 24px",
-                            borderRadius: "8px",
-                            fontWeight: "bold",
-                            textDecoration: "none"
-                        }}
+                        className="inline-block bg-transparent border border-[var(--text-muted)] text-[var(--text-primary)] px-6 py-2.5 rounded-lg font-bold no-underline hover:bg-[var(--surface-hover)] transition-colors"
                     >
                         &larr; Return to Dashboard
                     </Link>
-                </Card>
+                </div>
             </div>
         );
     }
 
     return (
         <div>
-            <div style={{ padding: "24px 24px 0", maxWidth: "1200px", margin: "0 auto" }}>
-                <Breadcrumb
-                    segments={[
-                        { label: "Exams", href: "/exams" },
-                        { label: data.exam.name, href: `/sessions?exam_id=${data.exam_id}` },
-                        { label: data.student.name, href: undefined }
-                    ]}
+            <div className="pt-6 px-6 max-w-[1200px] mx-auto">
+                <BackButton 
+                    href={`/sessions?exam_id=${data.exam_id}`}
+                    breadcrumbs={["Exams", data.exam.name, data.student.name]}
                 />
             </div>
             <SessionSummaryClient data={data} />
         </div>
     );
-
 }

@@ -3,8 +3,6 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { type Exam } from "@/lib/exams";
-import { THEME } from "@/constants/theme";
-import Card from "@/components/ui/Card";
 
 interface ExamCardProps {
     exam: Exam;
@@ -12,7 +10,6 @@ interface ExamCardProps {
 }
 
 export default function ExamCard({ exam, onEndAndRemove }: ExamCardProps): React.JSX.Element {
-    const [isHovered, setIsHovered] = useState(false);
     const [isToggling, setIsToggling] = useState(false);
 
     const formatDate = (dateString: string): string => {
@@ -30,122 +27,67 @@ export default function ExamCard({ exam, onEndAndRemove }: ExamCardProps): React
     };
 
     const isStopped = exam.force_stop;
-    const badgeColor = isStopped ? THEME.pink : THEME.cyan;
-
-    const secondaryButtonStyle: React.CSSProperties = {
-        background: "transparent",
-        border: `1px solid ${THEME.cardBorder}`,
-        color: THEME.textPrimary,
-        padding: "9px 14px",
-        borderRadius: "8px",
-        fontSize: "13px",
-        fontWeight: 600,
-        textDecoration: "none",
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        cursor: "pointer",
-    };
 
     return (
-        <div
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-            style={{
-                transform: isHovered ? "translateY(-2px)" : "none",
-                transition: "transform 0.2s ease",
-                height: "100%",
-            }}
-        >
-            <Card
-                style={{
-                    padding: "22px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "18px",
-                    height: "100%",
-                    borderColor: isHovered ? "rgba(255,255,255,0.12)" : THEME.cardBorder,
-                    transition: "border-color 0.2s ease",
-                }}
-            >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px" }}>
-                    <div>
-                        <div style={{ color: THEME.textMuted, fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "6px" }}>
-                            {exam.class_number}
-                        </div>
-                        <div style={{ color: THEME.textPrimary, fontSize: "20px", fontWeight: 600, letterSpacing: "-0.01em", lineHeight: 1.25 }}>
-                            {exam.exam_name}
-                        </div>
-                    </div>
-
-                    <span
-                        style={{
-                            fontSize: "11px",
-                            fontWeight: 700,
-                            padding: "4px 10px",
-                            borderRadius: "999px",
-                            color: badgeColor,
-                            backgroundColor: `${badgeColor}12`,
-                            border: `1px solid ${badgeColor}30`,
-                            whiteSpace: "nowrap",
-                        }}
-                    >
-                        {isStopped ? "ENDED" : "RUNNING"}
+        <div className="aesthetic-card p-7 gap-6">
+            {/* Header Section */}
+            <div className="flex justify-between items-start">
+                <div className="flex flex-col gap-1">
+                    <span className="text-[12px] font-medium text-[var(--text-secondary)] uppercase tracking-[0.05em]">
+                        {exam.class_number}
                     </span>
+                    <h2 className="text-[20px] font-semibold text-[var(--text-primary)] leading-[1.3] tracking-[-0.01em]">
+                        {exam.exam_name}
+                    </h2>
+                </div>
+                
+                {/* Status Badge */}
+                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-[12px] font-semibold tracking-[0.02em] ${isStopped ? 'bg-[var(--accent-pink)]/5 border-[var(--accent-pink)]/20 text-[var(--text-primary)]' : 'bg-white/5 border-[var(--border)] text-[var(--text-primary)]'}`}>
+                    <div className={`w-2 h-2 rounded-full ${isStopped ? 'bg-[var(--accent-pink)]' : 'bg-[var(--accent-cyan)] shadow-[0_0_10px_var(--accent-cyan)]'}`}></div>
+                    {isStopped ? "Ended" : "Live"}
+                </div>
+            </div>
+
+            {/* Data Grid Section */}
+            <div className="grid grid-cols-2 gap-5 pt-5 border-t border-[var(--border)]">
+                <div className="flex flex-col gap-1.5">
+                    <span className="text-[12px] font-medium text-[var(--text-muted)] uppercase tracking-[0.05em]">Start Time</span>
+                    <span className="text-[15px] font-medium text-[var(--text-primary)] font-mono">{formatDate(exam.start_time)}</span>
+                </div>
+                
+                <div className="flex flex-col gap-1.5">
+                    <span className="text-[12px] font-medium text-[var(--text-muted)] uppercase tracking-[0.05em]">End Time</span>
+                    <span className="text-[15px] font-medium text-[var(--text-primary)] font-mono">{formatDate(exam.end_time)}</span>
                 </div>
 
-                <div
-                    style={{
-                        height: "1px",
-                        background: "rgba(255,255,255,0.06)",
-                    }}
-                />
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-                    <div>
-                        <div style={{ color: THEME.textMuted, fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "4px" }}>Start Time</div>
-                        <div style={{ color: THEME.textPrimary, fontFamily: THEME.fontMono, fontSize: "13px", lineHeight: 1.5 }}>{formatDate(exam.start_time)}</div>
-                    </div>
-                    <div>
-                        <div style={{ color: THEME.textMuted, fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "4px" }}>End Time</div>
-                        <div style={{ color: THEME.textPrimary, fontFamily: THEME.fontMono, fontSize: "13px", lineHeight: 1.5 }}>{formatDate(exam.end_time)}</div>
-                    </div>
-                    <div>
-                        <div style={{ color: THEME.textMuted, fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "4px" }}>Access Code</div>
-                        <div style={{ color: THEME.yellow, fontFamily: THEME.fontMono, fontSize: "13px", fontWeight: 500 }}>{exam.access_code}</div>
-                    </div>
-                    <div>
-                        <div style={{ color: THEME.textMuted, fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "4px" }}>Created</div>
-                        <div style={{ color: THEME.textSecondary, fontFamily: THEME.fontMono, fontSize: "12px", lineHeight: 1.5 }}>{formatDate(exam.created_at)}</div>
-                    </div>
+                <div className="flex flex-col gap-1.5 col-span-2 sm:col-span-1">
+                    <span className="text-[12px] font-medium text-[var(--text-muted)] uppercase tracking-[0.05em]">Keys</span>
+                    <span className="text-[15px] font-medium text-[var(--accent-cyan)] font-mono drop-shadow-[0_0_12px_rgba(6,182,212,0.3)]">{exam.access_code}</span>
                 </div>
 
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap", marginTop: "auto" }}>
-                    <button
-                        onClick={handleEndRemove}
-                        disabled={isToggling || isStopped}
-                        style={{
-                            ...secondaryButtonStyle,
-                            border: `1px solid ${isStopped ? THEME.cardBorder : THEME.pink}`,
-                            color: isStopped ? THEME.textMuted : THEME.pink,
-                            cursor: isToggling ? "wait" : "pointer",
-                            opacity: isToggling ? 0.5 : 1,
-                        }}
-                    >
-                        {isStopped ? "Ended" : "End & Remove All"}
-                    </button>
-
-                    <Link
-                        href={`/sessions?exam_id=${exam.id}`}
-                        style={{
-                            ...secondaryButtonStyle,
-                            color: THEME.cyan,
-                        }}
-                    >
-                        View Sessions
-                    </Link>
+                <div className="flex flex-col gap-1.5 col-span-2 sm:col-span-1">
+                    <span className="text-[12px] font-medium text-[var(--text-muted)] uppercase tracking-[0.05em]">Created</span>
+                    <span className="text-[14px] font-medium text-[var(--text-secondary)] font-mono">{formatDate(exam.created_at)}</span>
                 </div>
-            </Card>
+            </div>
+
+            {/* Actions Section */}
+            <div className="flex justify-between items-center mt-auto pt-6">
+                <button
+                    onClick={handleEndRemove}
+                    disabled={isToggling || isStopped}
+                    className={`bg-transparent border-none font-sans text-[14px] font-medium transition-colors duration-200 ${isStopped ? 'text-[var(--text-muted)] cursor-not-allowed' : 'text-[var(--text-muted)] hover:text-[var(--accent-pink)] cursor-pointer'}`}
+                >
+                    {isStopped ? "Already Ended" : "End Deployment"}
+                </button>
+
+                <Link
+                    href={`/sessions?exam_id=${exam.id}`}
+                    className="flex items-center gap-1.5 bg-transparent border-none font-sans text-[14px] font-medium cursor-pointer text-[var(--text-primary)] hover:text-[var(--accent-purple)] transition-colors duration-200"
+                >
+                    Enter Stream →
+                </Link>
+            </div>
         </div>
     );
 }

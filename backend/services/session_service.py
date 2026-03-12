@@ -6,6 +6,9 @@ import threading
 from backend.services.database import db
 from backend.services.alert_service import create_system_alert
 
+EARLY_END_GRACE_MINUTES = 15
+EARLY_END_GRACE_SECONDS = EARLY_END_GRACE_MINUTES * 60
+
 
 TRANSIENT_ERROR_MARKERS = (
     "timeout",
@@ -221,21 +224,30 @@ def _record_end_timing_alert(session_id_str: str, session_row: dict) -> None:
 
         now_dt = datetime.now(timezone.utc)
         exam_name = exam_join.get("exam_name", "Exam") if isinstance(exam_join, dict) else "Exam"
+        seconds_from_scheduled_end = (now_dt - exam_end_dt).total_seconds()
 
-        if exam_end_dt > now_dt:
+        if seconds_from_scheduled_end < -EARLY_END_GRACE_SECONDS:
+            minutes_early = int(abs(seconds_from_scheduled_end) // 60)
             create_system_alert(
                 session_id_str,
                 "system_session_ended_before_exam_end",
                 "Student ended the session before the exam end time.",
-                evidence=f"{exam_name} was scheduled to end at {exam_end_dt.isoformat()} UTC.",
+                evidence=(
+                    f"{exam_name} was scheduled to end at {exam_end_dt.isoformat()} UTC. "
+                    f"Student ended approximately {minutes_early} minute(s) early."
+                ),
                 severity="MED",
             )
-        elif exam_end_dt < now_dt:
+        elif seconds_from_scheduled_end > 0:
+            minutes_late = int(seconds_from_scheduled_end // 60)
             create_system_alert(
                 session_id_str,
                 "system_session_ended_after_exam_end",
                 "Student ended the session after the exam end time.",
-                evidence=f"{exam_name} was scheduled to end at {exam_end_dt.isoformat()} UTC.",
+                evidence=(
+                    f"{exam_name} was scheduled to end at {exam_end_dt.isoformat()} UTC. "
+                    f"Student ended approximately {minutes_late} minute(s) late."
+                ),
                 severity="LOW",
             )
     except Exception:

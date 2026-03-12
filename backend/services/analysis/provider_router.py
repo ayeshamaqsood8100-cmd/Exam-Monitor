@@ -27,12 +27,15 @@ def analyze_request(
     *,
     runtime_config: AnalysisRuntimeConfig,
     client: httpx.Client,
+    wall_clock_budget_seconds: float | None = None,
 ) -> ProviderExecutionResult:
     providers = [_build_provider(provider_cfg) for provider_cfg in runtime_config.provider_order]
     attempts: list[ProviderAttemptRecord] = []
     last_error = "All configured providers failed."
+    deadline = time.monotonic() + wall_clock_budget_seconds if wall_clock_budget_seconds is not None else None
 
     for provider_index, provider in enumerate(providers):
+        _ensure_time_remaining(deadline, provider.name)
         attempted_at = datetime.now(timezone.utc).isoformat()
         chunks = build_prompt_chunks(
             request,
@@ -46,12 +49,14 @@ def analyze_request(
         try:
             provider_flags = []
             for chunk in chunks:
+                _ensure_time_remaining(deadline, provider.name)
                 prompt = build_prompt(request, chunk)
                 raw_result = _send_with_retries(
                     provider,
                     prompt=prompt,
                     client=client,
                     runtime_config=runtime_config,
+                    deadline=deadline,
                 )
                 total_latency_ms += raw_result.latency_ms
                 last_http_status = raw_result.http_status
@@ -149,15 +154,21 @@ def _send_with_retries(
     prompt: str,
     client: httpx.Client,
     runtime_config: AnalysisRuntimeConfig,
+    deadline: float | None = None,
 ):
     total_attempts = max(runtime_config.max_retries_per_provider, 0) + 1
     last_failure: ProviderFailure | None = None
     for attempt in range(total_attempts):
+        timeout_seconds = _remaining_timeout_seconds(
+            deadline,
+            runtime_config.timeout_seconds,
+            provider.name,
+        )
         try:
             return provider.send_prompt(
                 prompt=prompt,
                 client=client,
-                timeout_seconds=runtime_config.timeout_seconds,
+                timeout_seconds=timeout_seconds,
                 max_output_tokens=runtime_config.output_token_reserve,
             )
         except ProviderFailure as exc:
@@ -165,11 +176,53 @@ def _send_with_retries(
             if not exc.retryable or attempt == total_attempts - 1:
                 raise
             backoff_seconds = runtime_config.retry_backoff_seconds * (attempt + 1)
+            if deadline is not None:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise ProviderFailure(
+                        f"Interactive analysis time budget exceeded before retrying {provider.name}.",
+                        provider=provider.name,
+                        model=provider.model,
+                        outcome="timeout_budget_exceeded",
+                    ) from exc
+                backoff_seconds = min(backoff_seconds, max(remaining, 0))
             time.sleep(backoff_seconds)
 
     if last_failure is not None:
         raise last_failure
     raise RuntimeError("Provider retry loop exited unexpectedly.")
+
+
+def _ensure_time_remaining(deadline: float | None, provider_name: str) -> None:
+    if deadline is None:
+        return
+    if deadline - time.monotonic() <= 0:
+        raise ProviderFailure(
+            f"Interactive analysis time budget exceeded before contacting {provider_name}.",
+            provider=provider_name,
+            model="unknown",
+            outcome="timeout_budget_exceeded",
+        )
+
+
+def _remaining_timeout_seconds(
+    deadline: float | None,
+    configured_timeout_seconds: float,
+    provider_name: str,
+) -> float:
+    if deadline is None:
+        return configured_timeout_seconds
+
+    remaining = deadline - time.monotonic()
+    if remaining <= 0:
+        raise ProviderFailure(
+            f"Interactive analysis time budget exceeded before receiving a response from {provider_name}.",
+            provider=provider_name,
+            model="unknown",
+            outcome="timeout_budget_exceeded",
+        )
+
+    return min(configured_timeout_seconds, remaining)
 
 
 def _build_provider(provider_config: ProviderConfig) -> BaseProvider:

@@ -3,10 +3,8 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { type Exam } from "@/lib/exams";
-import { THEME } from "@/constants/theme";
 import ExamCard from "@/components/exams/ExamCard";
 import CreateExamModal from "@/components/exams/CreateExamModal";
-import Card from "@/components/ui/Card";
 import { endAndRemoveExamAction, createExamAction } from "@/app/exams/actions";
 
 interface ExamsPageClientProps {
@@ -51,34 +49,25 @@ export default function ExamsPageClient({ exams: initialExams }: ExamsPageClient
     };
 
     return (
-        <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
-                <h1 style={{ color: THEME.textPrimary, fontSize: "28px", fontWeight: 600, letterSpacing: "-0.02em", margin: 0 }}>
-                    Exams
+        <div className="flex flex-col gap-10">
+            <div className="flex justify-between items-center mb-2">
+                <h1 className="text-[28px] font-semibold tracking-[-0.03em] text-[var(--text-primary)]">
+                    Active Configurations
                 </h1>
                 <button
                     onClick={() => setIsModalOpen(true)}
-                    style={{
-                        background: THEME.cyan,
-                        color: THEME.bg,
-                        border: "none",
-                        borderRadius: "10px",
-                        padding: "10px 18px",
-                        fontSize: "14px",
-                        fontWeight: 600,
-                        cursor: "pointer",
-                    }}
+                    className="flex items-center gap-2 bg-[var(--text-primary)] text-[var(--bg)] border-none px-5 py-2.5 rounded-lg text-sm font-semibold cursor-pointer transition-all duration-200 hover:-translate-y-px hover:shadow-[0_4px_12px_rgba(255,255,255,0.1)]"
                 >
-                    New Exam
+                    Deploy Exam
                 </button>
             </div>
 
             {exams.length === 0 ? (
-                <Card style={{ padding: "44px", textAlign: "center", color: THEME.textSecondary, fontSize: "15px" }}>
-                    No exams yet. Create your first exam to get started.
-                </Card>
+                <div className="aesthetic-card p-11 text-center text-[15px] text-[var(--text-secondary)]">
+                    No active configurations found. Deploy an exam to begin monitoring.
+                </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {exams.map((exam) => (
                         <ExamCard
                             key={exam.id}
