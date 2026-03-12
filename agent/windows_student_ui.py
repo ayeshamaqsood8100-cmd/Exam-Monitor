@@ -26,7 +26,7 @@ def is_windows_packaged_runtime() -> bool:
     return platform.system() == "Windows" and bool(getattr(sys, "frozen", False))
 
 def is_gui_mode() -> bool:
-    # Enable GUI for testing on Mac as well as packaged builds.
+    # Enable GUI for both platforms to ensure consistent experience
     return True
 
 
@@ -39,6 +39,7 @@ def show_error_dialog(title: str, message: str) -> None:
 
 
 def _add_close_button(parent: tk.Widget, cancel_cmd: Callable[[], None]) -> None:
+    """Adds the standardized unanimous 'X' close button to popups."""
     btn = tk.Label(
         parent,
         text="✕",
@@ -53,6 +54,16 @@ def _add_close_button(parent: tk.Widget, cancel_cmd: Callable[[], None]) -> None
     btn.bind("<Leave>", lambda _: btn.configure(fg=_TEXT_MUTED))
 
 
+def _center_window(root: tk.Tk, w: int, h: int) -> None:
+    """Perfectly centers a window on the primary screen."""
+    root.update_idletasks()
+    sw = root.winfo_screenwidth()
+    sh = root.winfo_screenheight()
+    x = max((sw - w) // 2, 0)
+    y = max((sh - h) // 2, 0)
+    root.geometry(f"{w}x{h}+{x}+{y}")
+
+
 def request_student_erp() -> str | None:
     result: dict[str, str | None] = {"erp": None}
     
@@ -64,13 +75,8 @@ def request_student_erp() -> str | None:
     root.configure(bg=_BG_BASE)
     root.attributes("-topmost", True)
     
-    root.update_idletasks()
-    sw = root.winfo_screenwidth()
-    sh = root.winfo_screenheight()
     w, h = 460, 380
-    x = max((sw - w) // 2, 0)
-    y = max((sh - h) // 2, 0)
-    root.geometry(f"{w}x{h}+{x}+{y}")
+    _center_window(root, w, h)
     root.lift()
     root.focus_force()
     
@@ -160,13 +166,8 @@ def request_student_erp_with_session_start(
     root.configure(bg=_BG_BASE)
     root.attributes("-topmost", True)
     
-    root.update_idletasks()
-    sw = root.winfo_screenwidth()
-    sh = root.winfo_screenheight()
     w, h = 460, 380
-    x = max((sw - w) // 2, 0)
-    y = max((sh - h) // 2, 0)
-    root.geometry(f"{w}x{h}+{x}+{y}")
+    _center_window(root, w, h)
     root.lift()
     root.focus_force()
     
@@ -250,13 +251,13 @@ def request_student_erp_with_session_start(
             def animate() -> None:
                 if not state["busy"]:
                     return
-                w = max(strip_canvas.winfo_width(), 1)
-                seg_w = max(w // 5, 56)
+                w_cv = max(strip_canvas.winfo_width(), 1)
+                seg_w = max(w_cv // 5, 56)
                 start = getattr(card, "_strip_pos", 0)
-                end = min(start + seg_w, w)
+                end = min(start + seg_w, w_cv)
                 strip_canvas.coords(segment_id, start, 0, end, 2)
-                nxt = start + max(w // 18, 18)
-                if nxt >= w: nxt = -seg_w
+                nxt = start + max(w_cv // 18, 18)
+                if nxt >= w_cv: nxt = -seg_w
                 card._strip_pos = nxt  # type: ignore[attr-defined]
                 card._strip_job = strip_canvas.after(30, animate)  # type: ignore[attr-defined]
             animate()
@@ -337,13 +338,9 @@ def request_consent_confirmation() -> bool:
     root.configure(bg=_BG_BASE)
     root.attributes("-topmost", True)
     
-    root.update_idletasks()
-    sw = root.winfo_screenwidth()
-    sh = root.winfo_screenheight()
-    w, h = 500, 560
-    x = max((sw - w) // 2, 0)
-    y = max((sh - h) // 2, 0)
-    root.geometry(f"{w}x{h}+{x}+{y}")
+    # Shrink consent window slightly for a cleaner look
+    w, h = 480, 520
+    _center_window(root, w, h)
     root.lift()
     root.focus_force()
     
