@@ -19,16 +19,18 @@ from typing import Callable
 
 
 _IS_MAC = platform.system() == "Darwin"
-_WIDGET_BG = "#06080D"
-_WIDGET_BORDER = "#173B47"
-_PANEL_BG = "#0A0E14"
-_PANEL_BORDER = "#1C2832"
-_TEXT_PRIMARY = "#F4F8FF"
-_TEXT_MUTED = "#8D98A4"
-_TEXT_SUBTLE = "#6D7884"
-_TEXT_CYAN = "#67E8F9"
-_TEXT_ROSE = "#FDA4AF"
-_ERROR = "#FB7185"
+_BG_BASE = "#000000"
+_BG_SURFACE = "#060606"
+_BG_INPUT = "#0A0A0A"
+_BORDER_SUBTLE = "#1C1C1C"
+
+_NEON_CYAN = "#00B8D9"
+_NEON_ROSE = "#FF3366"
+
+_TEXT_PRIMARY = "#FFFFFF"
+_TEXT_MUTED = "#888888"
+_TEXT_SUBTITLE = "#AAAAAA"
+_TEXT_ERROR = "#FF3366"
 _INPUT_FONT_FAMILY = "Consolas"
 _END_SESSION_INPUT_FONT = (_INPUT_FONT_FAMILY, 16, "bold")
 
@@ -116,99 +118,66 @@ def _bind_drag(widget: tk.Widget, *, on_drag_start, on_drag_motion, on_drag_rele
 
 
 def _build_side_widget(
-    root: tk.Tk | tk.Toplevel,
+    root: tk.Tk,
     *,
     student_name: str,
     erp: str,
     access_code: str,
     on_end_session: Callable[[], None],
-    on_drag_start,
-    on_drag_motion,
-    on_drag_release,
+    on_drag_start: Callable[[tk.Event], None],
+    on_drag_motion: Callable[[tk.Event], None],
+    on_drag_release: Callable[[tk.Event], None],
 ) -> tuple[int, int]:
-    width = 196
-    height = 1
+    root.configure(bg=_BG_BASE)
+    
+    card = tk.Frame(root, bg=_BG_SURFACE, highlightbackground=_BORDER_SUBTLE, highlightthickness=1)
+    card.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
+    
+    tk.Frame(card, bg=_NEON_CYAN, height=2).pack(fill=tk.X)
 
-    outer = tk.Frame(root, bg="#000000", padx=8, pady=8)
-    outer.pack(fill=tk.BOTH, expand=True)
+    handle = tk.Frame(card, bg=_BG_SURFACE, cursor="fleur")
+    handle.pack(fill=tk.X, expand=True)
+    handle.bind("<Button-1>", on_drag_start)
+    handle.bind("<B1-Motion>", on_drag_motion)
+    handle.bind("<ButtonRelease-1>", on_drag_release)
 
-    card = tk.Frame(
-        outer,
-        bg=_WIDGET_BG,
-        highlightbackground=_WIDGET_BORDER,
-        highlightthickness=1,
-        bd=0,
-        padx=14,
-        pady=14,
-    )
-    card.pack(fill=tk.BOTH, expand=True)
+    name_lbl = tk.Label(handle, text=student_name, bg=_BG_SURFACE, fg=_TEXT_PRIMARY, font=("Segoe UI Semibold", 9))
+    name_lbl.pack(pady=(15, 0))
+    name_lbl.bind("<Button-1>", on_drag_start)
+    name_lbl.bind("<B1-Motion>", on_drag_motion)
+    name_lbl.bind("<ButtonRelease-1>", on_drag_release)
 
-    tk.Frame(card, bg=_TEXT_CYAN, height=2).pack(fill=tk.X, side=tk.TOP, pady=(0, 10))
+    erp_lbl = tk.Label(handle, text=f"ERP - {erp}", bg=_BG_SURFACE, fg=_TEXT_MUTED, font=("Segoe UI", 8))
+    erp_lbl.pack(pady=(2, 12))
+    erp_lbl.bind("<Button-1>", on_drag_start)
+    erp_lbl.bind("<B1-Motion>", on_drag_motion)
+    erp_lbl.bind("<ButtonRelease-1>", on_drag_release)
 
-    header = tk.Frame(card, bg=_WIDGET_BG)
-    header.pack(fill=tk.X)
-    tk.Label(
-        header,
-        text=student_name,
-        bg=_WIDGET_BG,
-        fg=_TEXT_PRIMARY,
-        font=("Segoe UI Semibold", 14),
-        wraplength=150,
-        justify=tk.CENTER,
-    ).pack(anchor="center")
-    tk.Label(
-        header,
-        text=f"ERP - {erp}",
-        bg=_WIDGET_BG,
-        fg=_TEXT_MUTED,
-        font=("Segoe UI", 9),
-    ).pack(anchor="center", pady=(5, 0))
+    panel = tk.Frame(card, bg=_BG_BASE, bd=0, highlightbackground=_BORDER_SUBTLE, highlightthickness=1)
+    panel.pack(fill=tk.X, padx=10)
 
-    code_panel = tk.Frame(
-        card,
-        bg=_PANEL_BG,
-        highlightbackground=_PANEL_BORDER,
-        highlightthickness=1,
-        bd=0,
-        padx=12,
-        pady=12,
-    )
-    code_panel.pack(fill=tk.X, pady=(14, 0))
+    tk.Label(panel, text="ACCESS CODE", bg=_BG_BASE, fg=_TEXT_SUBTITLE, font=("Segoe UI", 7, "bold")).pack(pady=(8, 2))
+    tk.Label(panel, text=access_code or "---", bg=_BG_BASE, fg=_NEON_CYAN, font=("Consolas", 11, "bold")).pack(pady=(0, 8))
 
-    tk.Label(
-        code_panel,
-        text="ACCESS CODE",
-        bg=_PANEL_BG,
-        fg=_TEXT_SUBTLE,
-        font=("Segoe UI", 8, "bold"),
-    ).pack(anchor="center")
-    tk.Label(
-        code_panel,
-        text=access_code,
-        bg=_PANEL_BG,
-        fg=_TEXT_CYAN,
-        font=("Consolas", 15, "bold"),
-        pady=7,
-    ).pack(anchor="center")
-
-    button = _make_button(
+    tk.Button(
         card,
         text="End Session",
+        font=("Segoe UI Semibold", 9),
+        bg=_BG_BASE,
+        fg=_NEON_ROSE,
+        bd=0,
+        highlightbackground=_BORDER_SUBTLE,
+        highlightthickness=1,
+        cursor="hand2",
         command=on_end_session,
-        fill="#3A0B17",
-        outline="#6F1930",
-        text_color=_TEXT_ROSE,
-        active_fill="#4B0D1D",
-        width=11,
-    )
-    button.pack(fill=tk.X, pady=(14, 0))
+    ).pack(fill=tk.X, padx=10, pady=(12, 12), ipady=5)
 
     _bind_drag(card, on_drag_start=on_drag_start, on_drag_motion=on_drag_motion, on_drag_release=on_drag_release)
-    _bind_drag(header, on_drag_start=on_drag_start, on_drag_motion=on_drag_motion, on_drag_release=on_drag_release)
-    _bind_drag(code_panel, on_drag_start=on_drag_start, on_drag_motion=on_drag_motion, on_drag_release=on_drag_release)
+    _bind_drag(handle, on_drag_start=on_drag_start, on_drag_motion=on_drag_motion, on_drag_release=on_drag_release)
+    _bind_drag(panel, on_drag_start=on_drag_start, on_drag_motion=on_drag_motion, on_drag_release=on_drag_release)
 
     root.update_idletasks()
-    return max(width, outer.winfo_reqwidth()), max(height, outer.winfo_reqheight())
+    return 140, 170
 
 
 def _show_end_session_modal(
@@ -217,97 +186,65 @@ def _show_end_session_modal(
     access_code: str,
     on_confirm: Callable[[], None],
 ) -> None:
-    overlay = tk.Toplevel(parent)
-    overlay.withdraw()
-    overlay.overrideredirect(True)
-    overlay.wm_attributes("-topmost", True)
-    overlay.wm_attributes("-alpha", 0.58)
-    overlay.configure(bg="#05070B")
-
-    screen_width = parent.winfo_screenwidth()
-    screen_height = parent.winfo_screenheight()
-    overlay.geometry(f"{screen_width}x{screen_height}+0+0")
-    _try_enable_windows_blur(overlay)
-    overlay.deiconify()
+    # Prevent multiple modals from opening
+    if getattr(parent, "_modal_open", False):
+        return
+    parent._modal_open = True
 
     dialog = tk.Toplevel(parent)
-    dialog.withdraw()
-    _configure_floating_window(dialog, "End Session")
-    dialog.geometry("430x340+0+0")
+    dialog.title("End Session")
+    dialog.configure(bg=_BG_BASE)
+    dialog.resizable(False, False)
+    dialog.attributes("-topmost", True)
+    dialog.transient(parent)
 
-    outer = tk.Frame(dialog, bg="#000000", padx=18, pady=18)
-    outer.pack(fill=tk.BOTH, expand=True)
+    dialog.update_idletasks()
+    dialog_width = 460
+    dialog_height = 400
+    screen_width = parent.winfo_screenwidth()
+    screen_height = parent.winfo_screenheight()
+    x = max((screen_width - dialog_width) // 2, 0)
+    y = max((screen_height - dialog_height) // 2, 0)
+    dialog.geometry(f"{dialog_width}x{dialog_height}+{x}+{y}")
+    
+    card = tk.Frame(dialog, bg=_BG_SURFACE, highlightbackground=_BORDER_SUBTLE, highlightthickness=1)
+    card.pack(fill=tk.BOTH, expand=True, padx=25, pady=25)
+    tk.Frame(card, bg=_NEON_ROSE, height=2).pack(fill=tk.X)
 
-    card = tk.Frame(
-        outer,
-        bg=_WIDGET_BG,
-        highlightbackground=_WIDGET_BORDER,
-        highlightthickness=1,
-        bd=0,
-        padx=24,
-        pady=22,
-    )
-    card.pack(fill=tk.BOTH, expand=True)
-    tk.Frame(card, bg=_TEXT_ROSE, height=2).pack(fill=tk.X, side=tk.TOP, pady=(0, 16))
+    top_frame = tk.Frame(card, bg=_BG_SURFACE, padx=30, pady=25)
+    top_frame.pack(fill=tk.X)
+    tk.Label(top_frame, text="SECURITY CHECK", bg=_BG_SURFACE, fg=_NEON_ROSE, font=("Segoe UI", 9, "bold")).pack(anchor="w")
+    tk.Label(top_frame, text="End Session?", bg=_BG_SURFACE, fg=_TEXT_PRIMARY, font=("Segoe UI Semibold", 22)).pack(anchor="w", pady=(8, 0))
+    tk.Label(top_frame, text="This will end monitoring and remove the agent from this device. This action cannot be undone.", bg=_BG_SURFACE, fg=_TEXT_MUTED, font=("Segoe UI", 10), wraplength=340, justify=tk.LEFT).pack(anchor="w", pady=(8, 0))
 
-    tk.Label(card, text="SECURITY CHECK", bg=_WIDGET_BG, fg=_TEXT_ROSE, font=("Segoe UI", 9, "bold")).pack(anchor="w")
-    tk.Label(card, text="End Session?", bg=_WIDGET_BG, fg=_TEXT_PRIMARY, font=("Segoe UI Semibold", 22)).pack(anchor="w", pady=(10, 0))
-    tk.Label(
-        card,
-        text="This will end monitoring and remove the agent from this device. This action cannot be undone.",
-        bg=_WIDGET_BG,
-        fg=_TEXT_MUTED,
-        font=("Segoe UI", 10),
-        wraplength=340,
-        justify=tk.LEFT,
-    ).pack(anchor="w", pady=(10, 0))
+    panel = tk.Frame(card, bg=_BG_BASE, highlightbackground=_BORDER_SUBTLE, highlightthickness=1, padx=20, pady=20)
+    panel.pack(fill=tk.X, padx=25, pady=(0, 25))
 
-    panel = tk.Frame(
-        card,
-        bg=_PANEL_BG,
-        highlightbackground=_PANEL_BORDER,
-        highlightthickness=1,
-        bd=0,
-        padx=16,
-        pady=16,
-    )
-    panel.pack(fill=tk.X, pady=(18, 0))
+    tk.Label(panel, text="CONFIRM WITH CODE", bg=_BG_BASE, fg=_TEXT_SUBTITLE, font=("Segoe UI", 9, "bold")).pack(anchor="w")
 
-    tk.Label(panel, text="CONFIRM WITH CODE", bg=_PANEL_BG, fg=_TEXT_SUBTLE, font=("Segoe UI", 9, "bold")).pack(anchor="w")
-
-    entry_shell = tk.Frame(
-        panel,
-        bg="#0B1118",
-        highlightbackground="#1D4B5A",
-        highlightthickness=1,
-        bd=0,
-        padx=1,
-        pady=1,
-    )
-    entry_shell.configure(height=68)
-    entry_shell.pack_propagate(False)
+    entry_shell = tk.Frame(panel, bg=_BG_INPUT, highlightbackground=_BORDER_SUBTLE, highlightthickness=1)
     entry_shell.pack(fill=tk.X, pady=(10, 0))
     entry = tk.Entry(
         entry_shell,
         justify="center",
-        font=_END_SESSION_INPUT_FONT,
-        bg="#0B1118",
+        font=("Consolas", 18, "bold"),
+        bg=_BG_INPUT,
         fg=_TEXT_PRIMARY,
-        insertbackground=_TEXT_CYAN,
+        insertbackground=_NEON_ROSE,
+        disabledbackground=_BG_INPUT,
+        disabledforeground=_TEXT_MUTED,
+        readonlybackground=_BG_INPUT,
         relief=tk.FLAT,
         bd=0,
         highlightthickness=0,
-        insertwidth=2,
     )
-    entry.place(relx=0.5, rely=0.5, anchor="center", relwidth=0.9, height=34)
-    entry_shell.bind("<Button-1>", lambda _event: entry.focus_set())
-    panel.bind("<Button-1>", lambda _event: entry.focus_set())
+    entry.pack(fill=tk.X, padx=18, pady=12, ipady=4)
 
-    error_label = tk.Label(panel, text="", bg=_PANEL_BG, fg=_ERROR, font=("Segoe UI", 9))
-    error_label.pack(anchor="w", pady=(10, 0))
+    error_label = tk.Label(panel, text="", bg=_BG_BASE, fg=_TEXT_ERROR, font=("Segoe UI", 9))
+    error_label.pack(anchor="w", pady=(8, 0))
 
-    action_row = tk.Frame(card, bg=_WIDGET_BG)
-    action_row.pack(fill=tk.X, pady=(18, 0))
+    action_row = tk.Frame(card, bg=_BG_SURFACE)
+    action_row.pack(fill=tk.X, padx=25, pady=(0, 25))
 
     def close_modal() -> None:
         try:
@@ -316,8 +253,7 @@ def _show_end_session_modal(
             pass
         if dialog.winfo_exists():
             dialog.destroy()
-        if overlay.winfo_exists():
-            overlay.destroy()
+        parent._modal_open = False
 
     def cancel(_event=None) -> str:
         close_modal()
@@ -338,40 +274,24 @@ def _show_end_session_modal(
         entry.focus_set()
         return "break"
 
-    _make_button(
-        action_row,
-        text="Cancel",
-        command=lambda: cancel(),
-        fill="#0E1014",
-        outline="#1E2530",
-        text_color=_TEXT_PRIMARY,
-        active_fill="#151A21",
-        width=11,
+    tk.Button(
+        action_row, text="Cancel", font=("Segoe UI", 10), bg=_BG_BASE, fg=_TEXT_PRIMARY, bd=0, highlightbackground=_BORDER_SUBTLE, highlightthickness=1, padx=18, pady=10, width=12, cursor="hand2", command=lambda: cancel()
     ).pack(side=tk.LEFT)
-    _make_button(
-        action_row,
-        text="Confirm End",
-        command=lambda: submit(),
-        fill="#3A0B17",
-        outline="#6F1930",
-        text_color=_TEXT_ROSE,
-        active_fill="#4B0D1D",
-        width=14,
+    
+    tk.Button(
+        action_row, text="Confirm End", font=("Segoe UI Semibold", 10), bg=_BG_BASE, fg=_NEON_ROSE, bd=0, highlightbackground=_BORDER_SUBTLE, highlightthickness=1, padx=18, pady=10, width=14, cursor="hand2", command=lambda: submit()
     ).pack(side=tk.RIGHT)
 
     dialog.bind("<Return>", submit)
     dialog.bind("<KP_Enter>", submit)
     dialog.bind("<Escape>", cancel)
+    dialog.protocol("WM_DELETE_WINDOW", cancel)
+
     dialog.update_idletasks()
-    dialog_width = dialog.winfo_width()
-    dialog_height = dialog.winfo_height()
-    dialog.geometry(
-        f"{dialog_width}x{dialog_height}+{(screen_width - dialog_width) // 2}+{(screen_height - dialog_height) // 2}"
-    )
-    dialog.deiconify()
     dialog.lift()
     dialog.grab_set()
     entry.focus_set()
+    dialog.after(80, lambda: (entry.focus_force(), entry.icursor(tk.END)))
 
 
 def _run_widget_process(
@@ -435,7 +355,7 @@ def _run_widget_process(
             end_requested = True
             event_queue.put({"type": "end_session"})
 
-        _show_end_session_modal(root, access_code=access_code or "", on_confirm=confirm)
+        root.after(0, lambda: _show_end_session_modal(root, access_code=access_code or "", on_confirm=confirm))
 
     def poll_commands() -> None:
         try:
@@ -695,4 +615,5 @@ class MonitoringWidget:
             if self.on_end_session:
                 threading.Thread(target=self.on_end_session, daemon=True).start()
 
-        _show_end_session_modal(self.root, access_code=self.access_code or "", on_confirm=confirm)
+        if self.root:
+            self.root.after(0, lambda: _show_end_session_modal(self.root, access_code=self.access_code or "", on_confirm=confirm))
