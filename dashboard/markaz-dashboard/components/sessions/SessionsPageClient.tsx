@@ -116,7 +116,7 @@ export default function SessionsPageClient({ examId, initialSessions, exam, onFo
     const [activeTab, setActiveTab] = useState<"LIVE" | "SQL">("LIVE");
     const [isTerminating, setIsTerminating] = useState(false);
     const [terminateResult, setTerminateResult] = useState<string | null>(null);
-    const [acknowledgedIds, setAcknowledgedIds] = useState<Set<string>>(new Set());
+    const [acknowledgingIds, setAcknowledgingIds] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         setIsMounted(true);
@@ -142,11 +142,9 @@ export default function SessionsPageClient({ examId, initialSessions, exam, onFo
                 {
                     ...s,
                     status: "terminated",
-                    heartbeat_status: "terminated",
                     display_status: "TERMINATED",
                     needs_attention: false,
                     attention_reason: null,
-                    can_restart: false,
                     session_end: new Date().toISOString(),
                 } : s
         ));
@@ -154,6 +152,27 @@ export default function SessionsPageClient({ examId, initialSessions, exam, onFo
         await onForceStopSession(sessionId);
 
         setStoppingIds(prev => {
+            const next = new Set(prev);
+            next.delete(sessionId);
+            return next;
+        });
+    };
+
+    const handleAcknowledge = async (sessionId: string) => {
+        setAcknowledgingIds(prev => {
+            const next = new Set(prev);
+            next.add(sessionId);
+            return next;
+        });
+
+        // Optimistic UI update
+        setSessions(prev => prev.map(s =>
+            s.id === sessionId ? { ...s, needs_attention: false, attention_reason: null } : s
+        ));
+
+        await onAcknowledgeSession(sessionId);
+
+        setAcknowledgingIds(prev => {
             const next = new Set(prev);
             next.delete(sessionId);
             return next;
@@ -249,7 +268,7 @@ export default function SessionsPageClient({ examId, initialSessions, exam, onFo
                                 <>
                                     <div className="w-3 h-3 border-2 border-[#ef4444]/30 border-t-[#ef4444] rounded-full animate-spin" />
                                     Terminating...
-                                </>
+                                  </>
                             ) : (
                                 <>🛑 End All Sessions</>
                             )}
@@ -292,16 +311,9 @@ export default function SessionsPageClient({ examId, initialSessions, exam, onFo
                 <SessionsTable
                     sessions={sessions}
                     onForceStop={handleForceStop}
+                    onAcknowledge={handleAcknowledge}
                     stoppingIds={stoppingIds}
-                    onAcknowledge={async (sessionId: string) => {
-                        setAcknowledgedIds(prev => {
-                            const next = new Set(prev);
-                            next.add(sessionId);
-                            return next;
-                        });
-                        await onAcknowledgeSession(sessionId);
-                    }}
-                    acknowledgedIds={acknowledgedIds}
+                    acknowledgingIds={acknowledgingIds}
                 />
             ) : (
                 <div className="animate-in fade-in duration-300">

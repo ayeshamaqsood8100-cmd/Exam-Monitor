@@ -7,10 +7,12 @@ import SessionRow from "./SessionRow";
 interface SessionsTableProps {
     sessions: SessionWithStudent[];
     onForceStop: (sessionId: string) => void;
+    onAcknowledge: (sessionId: string) => void;
     stoppingIds: Set<string>;
+    acknowledgingIds: Set<string>;
 }
 
-export default function SessionsTable({ sessions, onForceStop, stoppingIds }: SessionsTableProps): React.JSX.Element {
+export default function SessionsTable({ sessions, onForceStop, onAcknowledge, stoppingIds, acknowledgingIds }: SessionsTableProps): React.JSX.Element {
     return (
         <div className="aesthetic-card p-0 overflow-hidden">
             <div className="overflow-x-auto">
@@ -38,7 +40,9 @@ export default function SessionsTable({ sessions, onForceStop, stoppingIds }: Se
                                     key={session.id}
                                     session={session}
                                     onForceStop={onForceStop}
+                                    onAcknowledge={onAcknowledge}
                                     isStopping={stoppingIds.has(session.id)}
+                                    isAcknowledging={acknowledgingIds.has(session.id)}
                                 />
                             ))
                         )}

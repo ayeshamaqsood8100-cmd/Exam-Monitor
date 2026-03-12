@@ -7,10 +7,12 @@ import { type SessionWithStudent } from "@/lib/sessions";
 interface SessionRowProps {
     session: SessionWithStudent;
     onForceStop: (sessionId: string) => void;
+    onAcknowledge: (sessionId: string) => void;
     isStopping: boolean;
+    isAcknowledging: boolean;
 }
 
-export default function SessionRow({ session, onForceStop, isStopping }: SessionRowProps): React.JSX.Element {
+export default function SessionRow({ session, onForceStop, onAcknowledge, isStopping, isAcknowledging }: SessionRowProps): React.JSX.Element {
     const { flag_count, student } = session;
     const isTerminated = session.display_status === "TERMINATED";
 
@@ -69,10 +71,30 @@ export default function SessionRow({ session, onForceStop, isStopping }: Session
     return (
         <tr className={`border-b border-white/5 transition-colors duration-150 ${needsAttention ? 'border-l-[3px] border-l-[#ef4444] bg-[#ef4444]/5 hover:bg-[#ef4444]/10' : 'hover:bg-white/[0.02]'}`}>
             <td className="px-5 py-4">
-                <div className="text-[var(--text-primary)] font-bold text-sm">{student.name}</div>
-                <div className="text-[var(--text-secondary)] font-mono text-xs mt-0.5">{student.erp}</div>
+                <div className="flex items-start justify-between">
+                    <div>
+                        <div className="text-[var(--text-primary)] font-bold text-sm">{student.name}</div>
+                        <div className="text-[var(--text-secondary)] font-mono text-xs mt-0.5">{student.erp}</div>
+                    </div>
+                    {needsAttention && (
+                        <button
+                            onClick={() => onAcknowledge(session.id)}
+                            disabled={isAcknowledging}
+                            title="Acknowledge/Dismiss Alert"
+                            className={`flex items-center justify-center p-1 rounded-md border border-[#ef4444]/30 text-[#ef4444] hover:bg-[#ef4444]/20 transition-all ${isAcknowledging ? 'opacity-50 cursor-wait' : 'cursor-pointer'}`}
+                        >
+                            {isAcknowledging ? (
+                                <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                                </svg>
+                            )}
+                        </button>
+                    )}
+                </div>
                 {needsAttention && (
-                    <div className="mt-2">
+                    <div className="mt-2 text-left">
                         <span className="text-[10px] font-bold tracking-[0.04em] px-2 py-0.5 rounded-full text-[#ef4444] bg-[#ef4444]/10 border border-[#ef4444]/30">
                             NEEDS ATTENTION
                         </span>
