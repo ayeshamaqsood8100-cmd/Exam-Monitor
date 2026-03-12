@@ -5,6 +5,7 @@ pyperclip==1.11.0
 pycparser==3.0
 cffi==2.0.0
 cryptography==46.0.5
+pywebview==6.1
 httpx
 python-dotenv==1.2.1
 pydantic-settings==2.2.1

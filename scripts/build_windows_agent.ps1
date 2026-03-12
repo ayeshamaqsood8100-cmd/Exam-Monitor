@@ -7,7 +7,10 @@ param(
     [string]$ExamId,
 
     [Parameter(Mandatory = $true)]
-    [string]$OutputLabel
+    [string]$OutputLabel,
+
+    [ValidateSet("onefile", "onedir")]
+    [string]$BundleMode = "onedir"
 )
 
 Set-StrictMode -Version Latest
@@ -25,8 +28,11 @@ if ([string]::IsNullOrWhiteSpace($SafeLabel)) {
     throw "OutputLabel must contain at least one letter or number."
 }
 
-$ArtifactName = "MarkazSentinel-$SafeLabel"
+$ArtifactName = $SafeLabel
 $ExePath = Join-Path $DistDir "$ArtifactName.exe"
+$BundleDir = Join-Path $DistDir $ArtifactName
+$BuildTargetPath = if ($BundleMode -eq "onefile") { $ExePath } else { $BundleDir }
+$ExecutableOutputPath = if ($BundleMode -eq "onefile") { $ExePath } else { Join-Path $BundleDir "$ArtifactName.exe" }
 $ZipPath = Join-Path $ReleaseDir "$ArtifactName.zip"
 
 function Get-BootstrapPython {
@@ -79,15 +85,21 @@ if (Test-Path $ExePath) {
     Remove-Item $ExePath -Force
 }
 
+if (Test-Path $BundleDir) {
+    Remove-Item $BundleDir -Recurse -Force
+}
+
 if (Test-Path $ZipPath) {
     Remove-Item $ZipPath -Force
 }
+
+$pyInstallerModeFlag = if ($BundleMode -eq "onefile") { "--onefile" } else { "--onedir" }
 
 $pyInstallerArgs = @(
     "-m", "PyInstaller",
     "--noconfirm",
     "--clean",
-    "--onefile",
+    $pyInstallerModeFlag,
     "--noconsole",
     "--name", $ArtifactName,
     "--distpath", $DistDir,
@@ -95,6 +107,7 @@ $pyInstallerArgs = @(
     "--specpath", $BuildDir,
     "--paths", $RepoRoot,
     "--collect-submodules", "pynput",
+    "--collect-submodules", "webview",
     "--hidden-import", "pygetwindow",
     "--hidden-import", "pyperclip",
     (Join-Path $RepoRoot "agent\windows_entry.py")
@@ -107,13 +120,13 @@ try {
     Pop-Location
 }
 
-if (-not (Test-Path $ExePath)) {
-    throw "Build did not produce the expected executable at $ExePath"
+if (-not (Test-Path $ExecutableOutputPath)) {
+    throw "Build did not produce the expected executable at $ExecutableOutputPath"
 }
 
-Compress-Archive -Path $ExePath -DestinationPath $ZipPath -Force
+Compress-Archive -Path $BuildTargetPath -DestinationPath $ZipPath -Force
 
 Write-Host ""
 Write-Host "Build complete."
-Write-Host "EXE: $ExePath"
+Write-Host "EXE: $ExecutableOutputPath"
 Write-Host "ZIP: $ZipPath"

@@ -9,6 +9,7 @@ process and forwards events back to the main agent process.
 """
 from __future__ import annotations
 
+import ctypes
 import multiprocessing as mp
 import platform
 import queue
@@ -18,15 +19,359 @@ from typing import Callable
 
 
 _IS_MAC = platform.system() == "Darwin"
+_WIDGET_BG = "#06080D"
+_WIDGET_BORDER = "#173B47"
+_PANEL_BG = "#0A0E14"
+_PANEL_BORDER = "#1C2832"
+_TEXT_PRIMARY = "#F4F8FF"
+_TEXT_MUTED = "#8D98A4"
+_TEXT_SUBTLE = "#6D7884"
+_TEXT_CYAN = "#67E8F9"
+_TEXT_ROSE = "#FDA4AF"
+_ERROR = "#FB7185"
+_INPUT_FONT_FAMILY = "Consolas"
+_END_SESSION_INPUT_FONT = (_INPUT_FONT_FAMILY, 16, "bold")
 
 
-def _create_round_rect(cvs: tk.Canvas, x1: int, y1: int, x2: int, y2: int, r: int, **kwargs):
-    pts = [
-        x1 + r, y1, x1 + r, y1, x2 - r, y1, x2 - r, y1, x2, y1, x2, y1 + r, x2, y1 + r,
-        x2, y2 - r, x2, y2 - r, x2, y2, x2 - r, y2, x2 - r, y2, x1 + r, y2, x1 + r, y2,
-        x1, y2, x1, y2 - r, x1, y2 - r, x1, y1 + r, x1, y1 + r, x1, y1,
-    ]
-    return cvs.create_polygon(pts, smooth=True, **kwargs)
+def _try_enable_windows_blur(window: tk.Toplevel) -> bool:
+    if platform.system() != "Windows":
+        return False
+
+    try:
+        class ACCENT_POLICY(ctypes.Structure):
+            _fields_ = [
+                ("AccentState", ctypes.c_int),
+                ("AccentFlags", ctypes.c_int),
+                ("GradientColor", ctypes.c_uint),
+                ("AnimationId", ctypes.c_int),
+            ]
+
+        class WINDOWCOMPOSITIONATTRIBDATA(ctypes.Structure):
+            _fields_ = [
+                ("Attribute", ctypes.c_int),
+                ("Data", ctypes.c_void_p),
+                ("SizeOfData", ctypes.c_size_t),
+            ]
+
+        accent = ACCENT_POLICY()
+        accent.AccentState = 3
+        accent.AccentFlags = 2
+        accent.GradientColor = 0x8A05070B
+        accent.AnimationId = 0
+
+        data = WINDOWCOMPOSITIONATTRIBDATA()
+        data.Attribute = 19
+        data.Data = ctypes.addressof(accent)
+        data.SizeOfData = ctypes.sizeof(accent)
+
+        hwnd = window.winfo_id()
+        api = ctypes.windll.user32.SetWindowCompositionAttribute
+        return bool(api(hwnd, ctypes.byref(data)))
+    except Exception:
+        return False
+
+
+def _configure_floating_window(root: tk.Tk | tk.Toplevel, title: str) -> None:
+    root.title(title)
+    root.overrideredirect(True)
+    root.wm_attributes("-topmost", True)
+    root.configure(bg="#000000")
+
+
+def _make_button(
+    parent: tk.Widget,
+    *,
+    text: str,
+    command: Callable[[], None],
+    fill: str,
+    outline: str,
+    text_color: str,
+    active_fill: str,
+    width: int,
+) -> tk.Button:
+    return tk.Button(
+        parent,
+        text=text,
+        command=command,
+        font=("Segoe UI", 10, "bold"),
+        bg=fill,
+        fg=text_color,
+        activebackground=active_fill,
+        activeforeground=text_color,
+        highlightbackground=outline,
+        highlightthickness=1,
+        bd=0,
+        relief=tk.FLAT,
+        padx=14,
+        pady=9,
+        width=width,
+        cursor="hand2",
+    )
+
+
+def _bind_drag(widget: tk.Widget, *, on_drag_start, on_drag_motion, on_drag_release) -> None:
+    widget.bind("<ButtonPress-1>", on_drag_start)
+    widget.bind("<B1-Motion>", on_drag_motion)
+    widget.bind("<ButtonRelease-1>", on_drag_release)
+
+
+def _build_side_widget(
+    root: tk.Tk | tk.Toplevel,
+    *,
+    student_name: str,
+    erp: str,
+    access_code: str,
+    on_end_session: Callable[[], None],
+    on_drag_start,
+    on_drag_motion,
+    on_drag_release,
+) -> tuple[int, int]:
+    width = 196
+    height = 1
+
+    outer = tk.Frame(root, bg="#000000", padx=8, pady=8)
+    outer.pack(fill=tk.BOTH, expand=True)
+
+    card = tk.Frame(
+        outer,
+        bg=_WIDGET_BG,
+        highlightbackground=_WIDGET_BORDER,
+        highlightthickness=1,
+        bd=0,
+        padx=14,
+        pady=14,
+    )
+    card.pack(fill=tk.BOTH, expand=True)
+
+    tk.Frame(card, bg=_TEXT_CYAN, height=2).pack(fill=tk.X, side=tk.TOP, pady=(0, 10))
+
+    header = tk.Frame(card, bg=_WIDGET_BG)
+    header.pack(fill=tk.X)
+    tk.Label(
+        header,
+        text=student_name,
+        bg=_WIDGET_BG,
+        fg=_TEXT_PRIMARY,
+        font=("Segoe UI Semibold", 14),
+        wraplength=150,
+        justify=tk.CENTER,
+    ).pack(anchor="center")
+    tk.Label(
+        header,
+        text=f"ERP - {erp}",
+        bg=_WIDGET_BG,
+        fg=_TEXT_MUTED,
+        font=("Segoe UI", 9),
+    ).pack(anchor="center", pady=(5, 0))
+
+    code_panel = tk.Frame(
+        card,
+        bg=_PANEL_BG,
+        highlightbackground=_PANEL_BORDER,
+        highlightthickness=1,
+        bd=0,
+        padx=12,
+        pady=12,
+    )
+    code_panel.pack(fill=tk.X, pady=(14, 0))
+
+    tk.Label(
+        code_panel,
+        text="ACCESS CODE",
+        bg=_PANEL_BG,
+        fg=_TEXT_SUBTLE,
+        font=("Segoe UI", 8, "bold"),
+    ).pack(anchor="center")
+    tk.Label(
+        code_panel,
+        text=access_code,
+        bg=_PANEL_BG,
+        fg=_TEXT_CYAN,
+        font=("Consolas", 15, "bold"),
+        pady=7,
+    ).pack(anchor="center")
+
+    button = _make_button(
+        card,
+        text="End Session",
+        command=on_end_session,
+        fill="#3A0B17",
+        outline="#6F1930",
+        text_color=_TEXT_ROSE,
+        active_fill="#4B0D1D",
+        width=11,
+    )
+    button.pack(fill=tk.X, pady=(14, 0))
+
+    _bind_drag(card, on_drag_start=on_drag_start, on_drag_motion=on_drag_motion, on_drag_release=on_drag_release)
+    _bind_drag(header, on_drag_start=on_drag_start, on_drag_motion=on_drag_motion, on_drag_release=on_drag_release)
+    _bind_drag(code_panel, on_drag_start=on_drag_start, on_drag_motion=on_drag_motion, on_drag_release=on_drag_release)
+
+    root.update_idletasks()
+    return max(width, outer.winfo_reqwidth()), max(height, outer.winfo_reqheight())
+
+
+def _show_end_session_modal(
+    parent: tk.Tk | tk.Toplevel,
+    *,
+    access_code: str,
+    on_confirm: Callable[[], None],
+) -> None:
+    overlay = tk.Toplevel(parent)
+    overlay.withdraw()
+    overlay.overrideredirect(True)
+    overlay.wm_attributes("-topmost", True)
+    overlay.wm_attributes("-alpha", 0.58)
+    overlay.configure(bg="#05070B")
+
+    screen_width = parent.winfo_screenwidth()
+    screen_height = parent.winfo_screenheight()
+    overlay.geometry(f"{screen_width}x{screen_height}+0+0")
+    _try_enable_windows_blur(overlay)
+    overlay.deiconify()
+
+    dialog = tk.Toplevel(parent)
+    dialog.withdraw()
+    _configure_floating_window(dialog, "End Session")
+    dialog.geometry("430x340+0+0")
+
+    outer = tk.Frame(dialog, bg="#000000", padx=18, pady=18)
+    outer.pack(fill=tk.BOTH, expand=True)
+
+    card = tk.Frame(
+        outer,
+        bg=_WIDGET_BG,
+        highlightbackground=_WIDGET_BORDER,
+        highlightthickness=1,
+        bd=0,
+        padx=24,
+        pady=22,
+    )
+    card.pack(fill=tk.BOTH, expand=True)
+    tk.Frame(card, bg=_TEXT_ROSE, height=2).pack(fill=tk.X, side=tk.TOP, pady=(0, 16))
+
+    tk.Label(card, text="SECURITY CHECK", bg=_WIDGET_BG, fg=_TEXT_ROSE, font=("Segoe UI", 9, "bold")).pack(anchor="w")
+    tk.Label(card, text="End Session?", bg=_WIDGET_BG, fg=_TEXT_PRIMARY, font=("Segoe UI Semibold", 22)).pack(anchor="w", pady=(10, 0))
+    tk.Label(
+        card,
+        text="This will end monitoring and remove the agent from this device. This action cannot be undone.",
+        bg=_WIDGET_BG,
+        fg=_TEXT_MUTED,
+        font=("Segoe UI", 10),
+        wraplength=340,
+        justify=tk.LEFT,
+    ).pack(anchor="w", pady=(10, 0))
+
+    panel = tk.Frame(
+        card,
+        bg=_PANEL_BG,
+        highlightbackground=_PANEL_BORDER,
+        highlightthickness=1,
+        bd=0,
+        padx=16,
+        pady=16,
+    )
+    panel.pack(fill=tk.X, pady=(18, 0))
+
+    tk.Label(panel, text="CONFIRM WITH CODE", bg=_PANEL_BG, fg=_TEXT_SUBTLE, font=("Segoe UI", 9, "bold")).pack(anchor="w")
+
+    entry_shell = tk.Frame(
+        panel,
+        bg="#0B1118",
+        highlightbackground="#1D4B5A",
+        highlightthickness=1,
+        bd=0,
+        padx=1,
+        pady=1,
+    )
+    entry_shell.configure(height=68)
+    entry_shell.pack_propagate(False)
+    entry_shell.pack(fill=tk.X, pady=(10, 0))
+    entry = tk.Entry(
+        entry_shell,
+        justify="center",
+        font=_END_SESSION_INPUT_FONT,
+        bg="#0B1118",
+        fg=_TEXT_PRIMARY,
+        insertbackground=_TEXT_CYAN,
+        relief=tk.FLAT,
+        bd=0,
+        highlightthickness=0,
+        insertwidth=2,
+    )
+    entry.place(relx=0.5, rely=0.5, anchor="center", relwidth=0.9, height=34)
+    entry_shell.bind("<Button-1>", lambda _event: entry.focus_set())
+    panel.bind("<Button-1>", lambda _event: entry.focus_set())
+
+    error_label = tk.Label(panel, text="", bg=_PANEL_BG, fg=_ERROR, font=("Segoe UI", 9))
+    error_label.pack(anchor="w", pady=(10, 0))
+
+    action_row = tk.Frame(card, bg=_WIDGET_BG)
+    action_row.pack(fill=tk.X, pady=(18, 0))
+
+    def close_modal() -> None:
+        try:
+            dialog.grab_release()
+        except tk.TclError:
+            pass
+        if dialog.winfo_exists():
+            dialog.destroy()
+        if overlay.winfo_exists():
+            overlay.destroy()
+
+    def cancel(_event=None) -> str:
+        close_modal()
+        return "break"
+
+    def submit(_event=None) -> str:
+        if not access_code.strip():
+            error_label.configure(text="Session code unavailable.")
+            entry.delete(0, tk.END)
+            entry.focus_set()
+            return "break"
+        if entry.get().strip() == access_code:
+            close_modal()
+            on_confirm()
+            return "break"
+        error_label.configure(text="Incorrect passcode. Access denied.")
+        entry.delete(0, tk.END)
+        entry.focus_set()
+        return "break"
+
+    _make_button(
+        action_row,
+        text="Cancel",
+        command=lambda: cancel(),
+        fill="#0E1014",
+        outline="#1E2530",
+        text_color=_TEXT_PRIMARY,
+        active_fill="#151A21",
+        width=11,
+    ).pack(side=tk.LEFT)
+    _make_button(
+        action_row,
+        text="Confirm End",
+        command=lambda: submit(),
+        fill="#3A0B17",
+        outline="#6F1930",
+        text_color=_TEXT_ROSE,
+        active_fill="#4B0D1D",
+        width=14,
+    ).pack(side=tk.RIGHT)
+
+    dialog.bind("<Return>", submit)
+    dialog.bind("<KP_Enter>", submit)
+    dialog.bind("<Escape>", cancel)
+    dialog.update_idletasks()
+    dialog_width = dialog.winfo_width()
+    dialog_height = dialog.winfo_height()
+    dialog.geometry(
+        f"{dialog_width}x{dialog_height}+{(screen_width - dialog_width) // 2}+{(screen_height - dialog_height) // 2}"
+    )
+    dialog.deiconify()
+    dialog.lift()
+    dialog.grab_set()
+    entry.focus_set()
 
 
 def _run_widget_process(
@@ -38,56 +383,12 @@ def _run_widget_process(
 ) -> None:
     end_requested = False
     root = tk.Tk()
-    root.title("Markaz Sentinel")
-    root.overrideredirect(True)
-    root.wm_attributes("-topmost", True)
-
-    bg_main = "#2a2a2c"
-    bg_box = "#3D3D3F"
-
-    frame = tk.Frame(root, padx=6, pady=6, bg=bg_main, highlightbackground="#404040", highlightthickness=1)
-    frame.pack(fill=tk.BOTH, expand=True)
-
-    info_frame = tk.Frame(frame, bg=bg_main)
-    info_frame.pack(fill=tk.X, pady=(0, 4))
-
-    name_label = tk.Label(
-        info_frame,
-        text=student_name,
-        font=("Segoe UI", 10, "bold"),
-        bg=bg_main,
-        fg="#ffffff",
-        wraplength=140,
-        justify=tk.CENTER,
-    )
-    name_label.pack(anchor=tk.CENTER, pady=(0, 1))
-
-    tk.Label(info_frame, text=f"ERP: {erp}", font=("Segoe UI", 8), bg=bg_main, fg="#b3b3b3").pack(anchor=tk.CENTER)
-
-    code_frame = tk.Frame(frame, bg=bg_box, padx=4, pady=6)
-    code_frame.pack(fill=tk.X, pady=(0, 6))
-    tk.Label(code_frame, text="CODE", font=("Segoe UI", 8, "bold"), bg=bg_box, fg="#d1d1d1").pack(anchor=tk.CENTER, pady=(0, 2))
-    tk.Label(code_frame, text=access_code, font=("Consolas", 16, "bold"), bg=bg_box, fg="#ffffff").pack(anchor=tk.CENTER)
-
-    btn_canvas = tk.Canvas(frame, bg=bg_main, highlightthickness=0, height=36, cursor="hand2")
-    btn_canvas.pack(fill=tk.X, pady=(4, 0))
+    _configure_floating_window(root, "Markaz Sentinel")
 
     start_x = 0
     start_y = 0
     start_win_x = 0
     start_win_y = 0
-
-    def draw_main_btn(w: int, h: int, hover: bool = False) -> None:
-        if w < 10 or h < 10:
-            return
-        btn_canvas.delete("all")
-        r = 6
-        _create_round_rect(btn_canvas, 1, 3, w - 1, h, r, fill="#040710", tags="btn")
-        fill_color = "#D02046" if hover else "#B81537"
-        _create_round_rect(btn_canvas, 0, 0, w, h - 2, r, fill=fill_color, tags="btn")
-        highlight_color = "#E62F56" if hover else "#D12146"
-        _create_round_rect(btn_canvas, 1, 1, w - 1, h - 4, r - 1, fill=highlight_color, tags="btn")
-        btn_canvas.create_text(w / 2, (h - 2) / 2, text="End Session", font=("Segoe UI", 10, "bold"), fill="#ffffff", tags="btn")
 
     def on_drag_start(event) -> None:
         nonlocal start_x, start_y, start_win_x, start_win_y
@@ -102,169 +403,39 @@ def _run_widget_process(
         new_x = start_win_x + dx
         new_y = start_win_y + dy
 
-        sw = root.winfo_screenwidth()
-        sh = root.winfo_screenheight()
-        ww = root.winfo_width()
-        wh = root.winfo_height()
+        screen_width = root.winfo_screenwidth()
+        screen_height = root.winfo_screenheight()
+        width = root.winfo_width()
+        height = root.winfo_height()
 
-        new_x = max(0, min(new_x, sw - ww))
-        new_y = max(0, min(new_y, sh - wh))
+        new_x = max(0, min(new_x, screen_width - width))
+        new_y = max(0, min(new_y, screen_height - height))
         root.geometry(f"+{new_x}+{new_y}")
 
     def on_drag_release(_event) -> None:
         root.update_idletasks()
-        sw = root.winfo_screenwidth()
-        sh = root.winfo_screenheight()
-        ww = root.winfo_width()
-        wh = root.winfo_height()
+        screen_width = root.winfo_screenwidth()
+        screen_height = root.winfo_screenheight()
+        width = root.winfo_width()
+        height = root.winfo_height()
         x = root.winfo_x()
         y = root.winfo_y()
-        new_x = max(0, min(x, sw - ww))
-        new_y = max(0, min(y, sh - wh))
+        new_x = max(0, min(x, screen_width - width))
+        new_y = max(0, min(y, screen_height - height))
         if x != new_x or y != new_y:
             root.geometry(f"+{new_x}+{new_y}")
-
-    def bind_drag_recursive(widget: tk.Widget) -> None:
-        widget.bind("<ButtonPress-1>", on_drag_start)
-        widget.bind("<B1-Motion>", on_drag_motion)
-        widget.bind("<ButtonRelease-1>", on_drag_release)
-        for child in widget.winfo_children():
-            bind_drag_recursive(child)
 
     def prompt_end_session() -> None:
         nonlocal end_requested
         if end_requested:
             return
 
-        overlay = tk.Toplevel(root)
-        overlay.overrideredirect(True)
-        overlay.wm_attributes("-topmost", True)
-        overlay.wm_attributes("-alpha", 0.6)
-        overlay.configure(bg="black")
-        sw = root.winfo_screenwidth()
-        sh = root.winfo_screenheight()
-        overlay.geometry(f"{sw}x{sh}+0+0")
-
-        dialog = tk.Toplevel(root)
-        dialog.overrideredirect(True)
-        dialog.wm_attributes("-topmost", True)
-
-        bg_modal = "#212121"
-        bg_input = "#333333"
-
-        modal_frame = tk.Frame(dialog, padx=24, pady=24, bg=bg_modal, highlightbackground="#404040", highlightthickness=1)
-        modal_frame.pack(fill=tk.BOTH, expand=True)
-
-        tk.Label(modal_frame, text="End Session?", font=("Segoe UI", 16, "bold"), bg=bg_modal, fg="#ffffff").pack(anchor=tk.W, pady=(0, 6))
-        msg = "This will end monitoring and remove the agent from this device. This action cannot be undone."
-        tk.Label(
-            modal_frame,
-            text=msg,
-            font=("Segoe UI", 9),
-            bg=bg_modal,
-            fg="#d1d1d1",
-            justify=tk.LEFT,
-            wraplength=260,
-        ).pack(anchor=tk.W, pady=(0, 16))
-
-        tk.Label(modal_frame, text="CONFIRM WITH CODE", font=("Segoe UI", 8, "bold"), bg=bg_modal, fg="#b3b3b3").pack(anchor=tk.W, pady=(0, 4))
-
-        input_cvs = tk.Canvas(modal_frame, bg=bg_modal, highlightthickness=0, height=44)
-        input_cvs.pack(fill=tk.X, pady=(0, 6))
-        entry = tk.Entry(
-            input_cvs,
-            justify="center",
-            font=("Consolas", 18, "bold"),
-            show="*",
-            bg=bg_input,
-            fg="#ffffff",
-            insertbackground="#ffffff",
-            relief=tk.FLAT,
-            bd=0,
-            highlightthickness=0,
-        )
-
-        def draw_input(cvs: tk.Canvas, w: int, h: int) -> None:
-            if w < 10 or h < 10:
-                return
-            cvs.delete("all")
-            _create_round_rect(cvs, 0, 0, w, h, 28, fill=bg_input, tags="bg")
-            cvs.create_window(w / 2, h / 2, window=entry, width=w - 30, height=h - 20)
-
-        input_cvs.bind("<Configure>", lambda e: draw_input(input_cvs, e.width, e.height))
-        entry.focus_set()
-
-        error_label = tk.Label(modal_frame, text="", bg=bg_modal, fg="#ff4d60", font=("Segoe UI", 11, "bold"))
-        error_label.pack(pady=(0, 15))
-
-        def submit(_event=None) -> None:
+        def confirm() -> None:
             nonlocal end_requested
-            if not access_code.strip():
-                error_label.config(text="Session code unavailable")
-                entry.delete(0, tk.END)
-                return
-            if entry.get().strip() == access_code:
-                end_requested = True
-                dialog.destroy()
-                overlay.destroy()
-                event_queue.put({"type": "end_session"})
-            else:
-                error_label.config(text="Incorrect passcode. Access denied.")
-                entry.delete(0, tk.END)
+            end_requested = True
+            event_queue.put({"type": "end_session"})
 
-        def cancel(_event=None) -> None:
-            dialog.destroy()
-            overlay.destroy()
-
-        btn_frame = tk.Frame(modal_frame, bg=bg_modal)
-        btn_frame.pack(fill=tk.X, pady=(10, 0))
-
-        cancel_cvs = tk.Canvas(btn_frame, bg=bg_modal, highlightthickness=0, height=44, cursor="hand2")
-        cancel_cvs.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(0, 5))
-
-        confirm_cvs = tk.Canvas(btn_frame, bg=bg_modal, highlightthickness=0, height=44, cursor="hand2")
-        confirm_cvs.pack(side=tk.RIGHT, expand=True, fill=tk.X, padx=(5, 0))
-
-        def draw_dialog_btn(cvs: tk.Canvas, w: int, h: int, text: str, color_bg: str, color_hover: str, hover: bool = False) -> None:
-            if w < 10 or h < 10:
-                return
-            cvs.delete("all")
-            r = 20
-            current_bg = color_hover if hover else color_bg
-            _create_round_rect(
-                cvs,
-                1,
-                1,
-                w - 2,
-                h - 2,
-                r,
-                fill=current_bg,
-                outline="#555555" if color_bg == "#333333" else "",
-                width=1,
-                tags="btn",
-            )
-            cvs.create_text(w / 2, h / 2, text=text, font=("Segoe UI", 14, "bold"), fill="#ffffff", tags="btn")
-
-        cancel_cvs.bind("<Configure>", lambda e: draw_dialog_btn(cancel_cvs, e.width, e.height, "Cancel", "#333333", "#4d4d4d"))
-        cancel_cvs.bind("<Enter>", lambda _e: draw_dialog_btn(cancel_cvs, cancel_cvs.winfo_width(), cancel_cvs.winfo_height(), "Cancel", "#333333", "#4d4d4d", True))
-        cancel_cvs.bind("<Leave>", lambda _e: draw_dialog_btn(cancel_cvs, cancel_cvs.winfo_width(), cancel_cvs.winfo_height(), "Cancel", "#333333", "#4d4d4d", False))
-        cancel_cvs.tag_bind("btn", "<ButtonRelease-1>", cancel)
-
-        confirm_cvs.bind("<Configure>", lambda e: draw_dialog_btn(confirm_cvs, e.width, e.height, "Confirm End", "#b0243b", "#c22a42"))
-        confirm_cvs.bind("<Enter>", lambda _e: draw_dialog_btn(confirm_cvs, confirm_cvs.winfo_width(), confirm_cvs.winfo_height(), "Confirm End", "#b0243b", "#c22a42", True))
-        confirm_cvs.bind("<Leave>", lambda _e: draw_dialog_btn(confirm_cvs, confirm_cvs.winfo_width(), confirm_cvs.winfo_height(), "Confirm End", "#b0243b", "#c22a42", False))
-        confirm_cvs.tag_bind("btn", "<ButtonRelease-1>", submit)
-
-        dialog.bind("<Return>", submit)
-        dialog.bind("<Escape>", cancel)
-        dialog.update_idletasks()
-
-        target_dw = 320
-        dh = dialog.winfo_reqheight()
-        new_x = (sw - target_dw) // 2
-        new_y = (sh - dh) // 2
-        dialog.geometry(f"{target_dw}x{dh}+{new_x}+{new_y}")
-        dialog.grab_set()
+        _show_end_session_modal(root, access_code=access_code or "", on_confirm=confirm)
 
     def poll_commands() -> None:
         try:
@@ -283,17 +454,18 @@ def _run_widget_process(
 
         root.after(150, poll_commands)
 
-    btn_canvas.bind("<Configure>", lambda e: draw_main_btn(e.width, e.height))
-    btn_canvas.bind("<Enter>", lambda _e: draw_main_btn(btn_canvas.winfo_width(), btn_canvas.winfo_height(), hover=True))
-    btn_canvas.bind("<Leave>", lambda _e: draw_main_btn(btn_canvas.winfo_width(), btn_canvas.winfo_height(), hover=False))
-    btn_canvas.tag_bind("btn", "<ButtonRelease-1>", lambda _e: prompt_end_session())
-
-    bind_drag_recursive(frame)
-    root.update_idletasks()
-    target_width = 160
-    target_height = root.winfo_reqheight()
-    sw = root.winfo_screenwidth()
-    root.geometry(f"{target_width}x{target_height}+{sw - target_width - 20}+20")
+    target_width, target_height = _build_side_widget(
+        root,
+        student_name=student_name,
+        erp=erp,
+        access_code=access_code,
+        on_end_session=prompt_end_session,
+        on_drag_start=on_drag_start,
+        on_drag_motion=on_drag_motion,
+        on_drag_release=on_drag_release,
+    )
+    screen_width = root.winfo_screenwidth()
+    root.geometry(f"{target_width}x{target_height}+{screen_width - target_width - 20}+20")
     event_queue.put({"type": "ready"})
     root.after(150, poll_commands)
 
@@ -317,6 +489,7 @@ class MonitoringWidget:
         self._command_queue = None
         self._event_queue = None
         self._listener_thread: threading.Thread | None = None
+        self._uses_process_backend = False
 
         self._start_x = 0
         self._start_y = 0
@@ -325,7 +498,7 @@ class MonitoringWidget:
 
     def start(self) -> None:
         if _IS_MAC:
-            self._start_macos_widget()
+            self._start_process_widget(_run_widget_process, ready_timeout=8.0)
             return
 
         if self._thread and self._thread.is_alive():
@@ -338,7 +511,7 @@ class MonitoringWidget:
         self._ready_event.wait(timeout=5.0)
 
     def show(self) -> None:
-        if _IS_MAC:
+        if self._uses_process_backend:
             self._send_process_command("show")
             return
 
@@ -349,7 +522,7 @@ class MonitoringWidget:
                 pass
 
     def hide(self) -> None:
-        if _IS_MAC:
+        if self._uses_process_backend:
             self._send_process_command("hide")
             return
 
@@ -360,8 +533,8 @@ class MonitoringWidget:
                 pass
 
     def stop(self) -> None:
-        if _IS_MAC:
-            self._stop_macos_widget()
+        if self._uses_process_backend:
+            self._stop_process_widget()
             return
 
         if self.root:
@@ -372,10 +545,11 @@ class MonitoringWidget:
         if self._thread and self._thread.is_alive() and threading.current_thread() is not self._thread:
             self._thread.join(timeout=2.5)
 
-    def _start_macos_widget(self) -> None:
+    def _start_process_widget(self, target, *, ready_timeout: float) -> bool:
         if self._process and self._process.is_alive():
             self.show()
-            return
+            self._uses_process_backend = True
+            return True
 
         ctx = mp.get_context("spawn")
         self._command_queue = ctx.Queue()
@@ -383,7 +557,7 @@ class MonitoringWidget:
         self._ready_event.clear()
         self._listener_stop.clear()
         self._process = ctx.Process(
-            target=_run_widget_process,
+            target=target,
             args=(self.student_name, self.erp, self.access_code or "", self._command_queue, self._event_queue),
             daemon=True,
         )
@@ -391,7 +565,12 @@ class MonitoringWidget:
 
         self._listener_thread = threading.Thread(target=self._listen_process_events, daemon=True)
         self._listener_thread.start()
-        self._ready_event.wait(timeout=8.0)
+        if self._ready_event.wait(timeout=ready_timeout):
+            self._uses_process_backend = True
+            return True
+
+        self._stop_process_widget()
+        return False
 
     def _listen_process_events(self) -> None:
         while not self._listener_stop.is_set():
@@ -421,7 +600,7 @@ class MonitoringWidget:
             except Exception:
                 pass
 
-    def _stop_macos_widget(self) -> None:
+    def _stop_process_widget(self) -> None:
         self._listener_stop.set()
         self._send_process_command("stop")
 
@@ -430,74 +609,48 @@ class MonitoringWidget:
             if self._process.is_alive():
                 self._process.terminate()
                 self._process.join(timeout=2.0)
+            if self._process.is_alive():
+                self._process.kill()
+                self._process.join(timeout=1.0)
             self._process = None
 
         if self._listener_thread and self._listener_thread.is_alive():
             self._listener_thread.join(timeout=1.5)
 
+        if self._command_queue:
+            try:
+                self._command_queue.close()
+                self._command_queue.cancel_join_thread()
+            except Exception:
+                pass
+        if self._event_queue:
+            try:
+                self._event_queue.close()
+                self._event_queue.cancel_join_thread()
+            except Exception:
+                pass
+
         self._command_queue = None
         self._event_queue = None
         self._listener_thread = None
+        self._uses_process_backend = False
 
     def _run_app(self) -> None:
         self.root = tk.Tk()
-        self.root.title("Markaz Sentinel")
-        self.root.overrideredirect(True)
-        self.root.wm_attributes("-topmost", True)
+        _configure_floating_window(self.root, "Markaz Sentinel")
 
-        bg_main = "#2a2a2c"
-        bg_box = "#3D3D3F"
-
-        frame = tk.Frame(self.root, padx=6, pady=6, bg=bg_main, highlightbackground="#404040", highlightthickness=1)
-        frame.pack(fill=tk.BOTH, expand=True)
-
-        info_frame = tk.Frame(frame, bg=bg_main)
-        info_frame.pack(fill=tk.X, pady=(0, 4))
-
-        name_label = tk.Label(info_frame, text=self.student_name, font=("Segoe UI", 10, "bold"), bg=bg_main, fg="#ffffff", wraplength=140, justify=tk.CENTER)
-        name_label.pack(anchor=tk.CENTER, pady=(0, 1))
-
-        tk.Label(info_frame, text=f"ERP: {self.erp}", font=("Segoe UI", 8), bg=bg_main, fg="#b3b3b3").pack(anchor=tk.CENTER)
-
-        code_frame = tk.Frame(frame, bg=bg_box, padx=4, pady=6)
-        code_frame.pack(fill=tk.X, pady=(0, 6))
-        tk.Label(code_frame, text="CODE", font=("Segoe UI", 8, "bold"), bg=bg_box, fg="#d1d1d1").pack(anchor=tk.CENTER, pady=(0, 2))
-        tk.Label(code_frame, text=self.access_code, font=("Consolas", 16, "bold"), bg=bg_box, fg="#ffffff").pack(anchor=tk.CENTER)
-
-        btn_canvas = tk.Canvas(frame, bg=bg_main, highlightthickness=0, height=36, cursor="hand2")
-        btn_canvas.pack(fill=tk.X, pady=(4, 0))
-
-        def draw_main_btn(w, h, hover=False):
-            if w < 10 or h < 10:
-                return
-            btn_canvas.delete("all")
-            r = 6
-            _create_round_rect(btn_canvas, 1, 3, w - 1, h, r, fill="#040710", tags="btn")
-            fill_color = "#D02046" if hover else "#B81537"
-            _create_round_rect(btn_canvas, 0, 0, w, h - 2, r, fill=fill_color, tags="btn")
-            highlight_color = "#E62F56" if hover else "#D12146"
-            _create_round_rect(btn_canvas, 1, 1, w - 1, h - 4, r - 1, fill=highlight_color, tags="btn")
-            btn_canvas.create_text(w / 2, (h - 2) / 2, text="End Session", font=("Segoe UI", 10, "bold"), fill="#ffffff", tags="btn")
-
-        btn_canvas.bind("<Configure>", lambda e: draw_main_btn(e.width, e.height))
-        btn_canvas.bind("<Enter>", lambda _e: draw_main_btn(btn_canvas.winfo_width(), btn_canvas.winfo_height(), hover=True))
-        btn_canvas.bind("<Leave>", lambda _e: draw_main_btn(btn_canvas.winfo_width(), btn_canvas.winfo_height(), hover=False))
-        btn_canvas.tag_bind("btn", "<ButtonRelease-1>", lambda _e: self._prompt_end_session())
-
-        def bind_drag_recursive(widget):
-            widget.bind("<ButtonPress-1>", self._on_drag_start)
-            widget.bind("<B1-Motion>", self._on_drag_motion)
-            widget.bind("<ButtonRelease-1>", self._on_drag_release)
-            for child in widget.winfo_children():
-                bind_drag_recursive(child)
-
-        bind_drag_recursive(frame)
-
-        self.root.update_idletasks()
-        target_width = 160
-        target_height = self.root.winfo_reqheight()
-        sw = self.root.winfo_screenwidth()
-        self.root.geometry(f"{target_width}x{target_height}+{sw - target_width - 20}+20")
+        target_width, target_height = _build_side_widget(
+            self.root,
+            student_name=self.student_name,
+            erp=self.erp,
+            access_code=self.access_code,
+            on_end_session=self._prompt_end_session,
+            on_drag_start=self._on_drag_start,
+            on_drag_motion=self._on_drag_motion,
+            on_drag_release=self._on_drag_release,
+        )
+        screen_width = self.root.winfo_screenwidth()
+        self.root.geometry(f"{target_width}x{target_height}+{screen_width - target_width - 20}+20")
         self._ready_event.set()
         self.root.mainloop()
         self.root = None
@@ -514,126 +667,32 @@ class MonitoringWidget:
         new_x = self._start_win_x + dx
         new_y = self._start_win_y + dy
 
-        sw = self.root.winfo_screenwidth()
-        sh = self.root.winfo_screenheight()
-        ww = self.root.winfo_width()
-        wh = self.root.winfo_height()
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        width = self.root.winfo_width()
+        height = self.root.winfo_height()
 
-        new_x = max(0, min(new_x, sw - ww))
-        new_y = max(0, min(new_y, sh - wh))
+        new_x = max(0, min(new_x, screen_width - width))
+        new_y = max(0, min(new_y, screen_height - height))
         self.root.geometry(f"+{new_x}+{new_y}")
 
     def _on_drag_release(self, _event) -> None:
         self.root.update_idletasks()
-        sw = self.root.winfo_screenwidth()
-        sh = self.root.winfo_screenheight()
-        ww = self.root.winfo_width()
-        wh = self.root.winfo_height()
-
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        width = self.root.winfo_width()
+        height = self.root.winfo_height()
         x = self.root.winfo_x()
         y = self.root.winfo_y()
-        new_x = max(0, min(x, sw - ww))
-        new_y = max(0, min(y, sh - wh))
+        new_x = max(0, min(x, screen_width - width))
+        new_y = max(0, min(y, screen_height - height))
 
         if x != new_x or y != new_y:
             self.root.geometry(f"+{new_x}+{new_y}")
 
     def _prompt_end_session(self) -> None:
-        overlay = tk.Toplevel(self.root)
-        overlay.overrideredirect(True)
-        overlay.wm_attributes("-topmost", True)
-        overlay.wm_attributes("-alpha", 0.6)
-        overlay.configure(bg="black")
-        sw = self.root.winfo_screenwidth()
-        sh = self.root.winfo_screenheight()
-        overlay.geometry(f"{sw}x{sh}+0+0")
+        def confirm() -> None:
+            if self.on_end_session:
+                threading.Thread(target=self.on_end_session, daemon=True).start()
 
-        dialog = tk.Toplevel(self.root)
-        dialog.overrideredirect(True)
-        dialog.wm_attributes("-topmost", True)
-
-        bg_modal = "#212121"
-        bg_input = "#333333"
-
-        frame = tk.Frame(dialog, padx=24, pady=24, bg=bg_modal, highlightbackground="#404040", highlightthickness=1)
-        frame.pack(fill=tk.BOTH, expand=True)
-
-        tk.Label(frame, text="End Session?", font=("Segoe UI", 16, "bold"), bg=bg_modal, fg="#ffffff").pack(anchor=tk.W, pady=(0, 6))
-        msg = "This will end monitoring and remove the agent from this device. This action cannot be undone."
-        tk.Label(frame, text=msg, font=("Segoe UI", 9), bg=bg_modal, fg="#d1d1d1", justify=tk.LEFT, wraplength=260).pack(anchor=tk.W, pady=(0, 16))
-        tk.Label(frame, text="CONFIRM WITH CODE", font=("Segoe UI", 8, "bold"), bg=bg_modal, fg="#b3b3b3").pack(anchor=tk.W, pady=(0, 4))
-
-        input_cvs = tk.Canvas(frame, bg=bg_modal, highlightthickness=0, height=44)
-        input_cvs.pack(fill=tk.X, pady=(0, 6))
-        entry = tk.Entry(input_cvs, justify="center", font=("Consolas", 18, "bold"), show="*", bg=bg_input, fg="#ffffff", insertbackground="#ffffff", relief=tk.FLAT, bd=0, highlightthickness=0)
-
-        def draw_input(cvs, w, h):
-            if w < 10 or h < 10:
-                return
-            cvs.delete("all")
-            _create_round_rect(cvs, 0, 0, w, h, 28, fill=bg_input, tags="bg")
-            cvs.create_window(w / 2, h / 2, window=entry, width=w - 30, height=h - 20)
-
-        input_cvs.bind("<Configure>", lambda e: draw_input(input_cvs, e.width, e.height))
-        entry.focus_set()
-
-        error_label = tk.Label(frame, text="", bg=bg_modal, fg="#ff4d60", font=("Segoe UI", 11, "bold"))
-        error_label.pack(pady=(0, 15))
-
-        def on_submit(_e=None) -> None:
-            if not self.access_code or self.access_code.strip() == "":
-                error_label.config(text="Session code unavailable")
-                entry.delete(0, tk.END)
-                return
-
-            if entry.get().strip() == self.access_code:
-                dialog.destroy()
-                overlay.destroy()
-                if self.on_end_session:
-                    threading.Thread(target=self.on_end_session, daemon=True).start()
-            else:
-                error_label.config(text="Incorrect passcode. Access denied.")
-                entry.delete(0, tk.END)
-
-        def on_cancel(_e=None) -> None:
-            dialog.destroy()
-            overlay.destroy()
-
-        btn_frame = tk.Frame(frame, bg=bg_modal)
-        btn_frame.pack(fill=tk.X, pady=(10, 0))
-
-        cancel_cvs = tk.Canvas(btn_frame, bg=bg_modal, highlightthickness=0, height=44, cursor="hand2")
-        cancel_cvs.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(0, 5))
-
-        confirm_cvs = tk.Canvas(btn_frame, bg=bg_modal, highlightthickness=0, height=44, cursor="hand2")
-        confirm_cvs.pack(side=tk.RIGHT, expand=True, fill=tk.X, padx=(5, 0))
-
-        def draw_dialog_btn(cvs, w, h, text, color_bg, color_hover, hover=False):
-            if w < 10 or h < 10:
-                return
-            cvs.delete("all")
-            r = 20
-            current_bg = color_hover if hover else color_bg
-            _create_round_rect(cvs, 1, 1, w - 2, h - 2, r, fill=current_bg, outline="#555555" if color_bg == "#333333" else "", width=1, tags="btn")
-            cvs.create_text(w / 2, h / 2, text=text, font=("Segoe UI", 14, "bold"), fill="#ffffff", tags="btn")
-
-        cancel_cvs.bind("<Configure>", lambda e: draw_dialog_btn(cancel_cvs, e.width, e.height, "Cancel", "#333333", "#4d4d4d"))
-        cancel_cvs.bind("<Enter>", lambda _e: draw_dialog_btn(cancel_cvs, cancel_cvs.winfo_width(), cancel_cvs.winfo_height(), "Cancel", "#333333", "#4d4d4d", True))
-        cancel_cvs.bind("<Leave>", lambda _e: draw_dialog_btn(cancel_cvs, cancel_cvs.winfo_width(), cancel_cvs.winfo_height(), "Cancel", "#333333", "#4d4d4d", False))
-        cancel_cvs.tag_bind("btn", "<ButtonRelease-1>", on_cancel)
-
-        confirm_cvs.bind("<Configure>", lambda e: draw_dialog_btn(confirm_cvs, e.width, e.height, "Confirm End", "#b0243b", "#c22a42"))
-        confirm_cvs.bind("<Enter>", lambda _e: draw_dialog_btn(confirm_cvs, confirm_cvs.winfo_width(), confirm_cvs.winfo_height(), "Confirm End", "#b0243b", "#c22a42", True))
-        confirm_cvs.bind("<Leave>", lambda _e: draw_dialog_btn(confirm_cvs, confirm_cvs.winfo_width(), confirm_cvs.winfo_height(), "Confirm End", "#b0243b", "#c22a42", False))
-        confirm_cvs.tag_bind("btn", "<ButtonRelease-1>", on_submit)
-
-        dialog.bind("<Return>", on_submit)
-        dialog.bind("<Escape>", on_cancel)
-        dialog.update_idletasks()
-
-        target_dw = 320
-        dh = dialog.winfo_reqheight()
-        new_x = (sw - target_dw) // 2
-        new_y = (sh - dh) // 2
-        dialog.geometry(f"{target_dw}x{dh}+{new_x}+{new_y}")
-        dialog.grab_set()
+        _show_end_session_modal(self.root, access_code=self.access_code or "", on_confirm=confirm)
