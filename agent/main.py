@@ -21,7 +21,12 @@ from .widget import MonitoringWidget
 from . import session_persist
 from . import autostart
 from .http_client import close_http_client, get_http_client
-from .windows_student_ui import is_windows_packaged_runtime, request_student_erp, show_error_dialog
+from .windows_student_ui import (
+    is_windows_packaged_runtime,
+    request_student_erp,
+    request_student_erp_with_session_start,
+    show_error_dialog,
+)
 
 KEYSTROKE_HEALTH_CHECK_INTERVAL_SECONDS = 15.0
 KEYSTROKE_HEALTH_STALE_AFTER_SECONDS = 90.0
@@ -230,10 +235,26 @@ class AgentOrchestrator:
         if not self.session_id:
             # Loop to ensure the student enters a valid 5-digit ERP number
             if is_windows_packaged_runtime():
-                entered_erp = request_student_erp()
+                self.session_manager = SessionManager()
+                entered_erp, started_session = request_student_erp_with_session_start(self.session_manager.start)
                 if not entered_erp:
                     sys.exit(0)
                 self.erp = entered_erp
+                if started_session:
+                    self.session_id, self.student_name, self.session_token = started_session
+                    set_session_token(self.session_token)
+
+                    print("\nSession started successfully.")
+                    print(f"Session ID: {self.session_id}\n")
+
+                    session_persist.save_session(
+                        self.session_id,
+                        self.erp,
+                        self.student_name,
+                        session_token=self.session_token,
+                    )
+                    print("[PERSIST] Session saved for crash recovery")
+                    session_persist.clear_restart_marker()
             else:
                 while True:
                     entered_erp = input("Please enter your student ERP number: ").strip()
