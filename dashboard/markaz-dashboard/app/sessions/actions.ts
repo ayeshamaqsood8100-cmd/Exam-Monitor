@@ -1,6 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { postToBackend } from "@/lib/backendApi";
+import { terminateExamDirectly } from "@/lib/exams";
 import { markSessionAgentAlertsReviewed } from "@/lib/alerts";
 
 interface AnalyzeSessionsResponse {
@@ -46,7 +47,6 @@ export async function analyzeSessionsAction(examId: string): Promise<AnalyzeSess
 
 export async function terminateExamAction(examId: string): Promise<{ error?: string; count?: number }> {
     try {
-        const { terminateExamDirectly } = await import("@/lib/exams");
         const count = await terminateExamDirectly(examId);
         revalidatePath("/sessions");
         revalidatePath("/exams");
