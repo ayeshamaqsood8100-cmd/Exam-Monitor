@@ -38,6 +38,21 @@ def show_error_dialog(title: str, message: str) -> None:
     root.destroy()
 
 
+def _add_close_button(parent: tk.Widget, cancel_cmd: Callable[[], None]) -> None:
+    btn = tk.Label(
+        parent,
+        text="✕",
+        bg=_BG_SURFACE,
+        fg=_TEXT_MUTED,
+        font=("Segoe UI", 12),
+        cursor="hand2",
+    )
+    btn.place(relx=1.0, rely=0.0, anchor="ne", x=-10, y=10)
+    btn.bind("<Button-1>", lambda _: cancel_cmd())
+    btn.bind("<Enter>", lambda _: btn.configure(fg=_TEXT_PRIMARY))
+    btn.bind("<Leave>", lambda _: btn.configure(fg=_TEXT_MUTED))
+
+
 def request_student_erp() -> str | None:
     result: dict[str, str | None] = {"erp": None}
     
@@ -61,6 +76,13 @@ def request_student_erp() -> str | None:
     
     card = tk.Frame(root, bg=_BG_SURFACE, highlightbackground=_BORDER_SUBTLE, highlightthickness=1)
     card.pack(fill=tk.BOTH, expand=True, padx=25, pady=25)
+
+    def cancel() -> None:
+        result["erp"] = None
+        root.destroy()
+
+    _add_close_button(card, cancel)
+
     strip_canvas = tk.Canvas(card, bg=_BG_SURFACE, height=2, highlightthickness=0, bd=0)
     strip_canvas.pack(fill=tk.X)
     strip_canvas.create_rectangle(0, 0, 9999, 2, fill=_NEON_CYAN, outline="")
@@ -103,10 +125,6 @@ def request_student_erp() -> str | None:
     button_row = tk.Frame(card, bg=_BG_SURFACE)
     button_row.pack(fill=tk.X, padx=25, pady=(0, 25))
 
-    def cancel() -> None:
-        result["erp"] = None
-        root.destroy()
-
     def submit(_event=None) -> None:
         erp = entry.get().strip()
         if len(erp) == 5 and erp.isdigit():
@@ -121,6 +139,7 @@ def request_student_erp() -> str | None:
     continue_button.pack(side=tk.RIGHT)
 
     root.bind("<Return>", submit)
+    root.bind("<Escape>", lambda _event: cancel())
     root.protocol("WM_DELETE_WINDOW", cancel)
     root.deiconify()
     root.mainloop()
@@ -131,7 +150,7 @@ def request_student_erp_with_session_start(
     start_session: Callable[[str], tuple[str, str, str]],
 ) -> tuple[str | None, tuple[str, str, str] | None]:
     result: dict[str, object | None] = {"erp": None, "session": None}
-    state = {"busy": False}
+    state = {"busy": False, "closing": False, "request_id": 0}
     
     root = tk.Tk()
     root.title("Markaz Sentinel")
@@ -153,6 +172,18 @@ def request_student_erp_with_session_start(
     
     card = tk.Frame(root, bg=_BG_SURFACE, highlightbackground=_BORDER_SUBTLE, highlightthickness=1)
     card.pack(fill=tk.BOTH, expand=True, padx=25, pady=25)
+
+    def cancel() -> None:
+        state["closing"] = True
+        state["request_id"] += 1
+        set_busy(False)
+        result["erp"] = None
+        result["session"] = None
+        if root.winfo_exists():
+            root.destroy()
+
+    _add_close_button(card, cancel)
+
     strip_canvas = tk.Canvas(card, bg=_BG_SURFACE, height=2, highlightthickness=0, bd=0)
     strip_canvas.pack(fill=tk.X)
     base_id = strip_canvas.create_rectangle(0, 0, 9999, 2, fill=_NEON_CYAN, outline="")
@@ -200,10 +231,12 @@ def request_student_erp_with_session_start(
     button_row.pack(fill=tk.X, padx=25, pady=(0, 25))
 
     def set_busy(busy: bool) -> None:
+        if state["closing"] and busy:
+            return
         state["busy"] = busy
         entry.configure(state=tk.DISABLED if busy else tk.NORMAL)
         continue_button.configure(text="Connecting..." if busy else "Confirm", state=tk.DISABLED if busy else tk.NORMAL)
-        exit_button.configure(state=tk.DISABLED if busy else tk.NORMAL)
+        exit_button.configure(text="Close" if busy else "Exit", state=tk.NORMAL)
         
         # Stop existing animation
         job = getattr(card, "_strip_job", None)
@@ -231,22 +264,15 @@ def request_student_erp_with_session_start(
             strip_canvas.itemconfigure(segment_id, state="hidden")
             entry.focus_set()
 
-    def cancel() -> None:
-        if state["busy"]:
-            return
-        result["erp"] = None
-        result["session"] = None
-        root.destroy()
-
-    def complete_success(erp: str, session_info: tuple[str, str, str]) -> None:
-        if not root.winfo_exists():
+    def complete_success(request_id: int, erp: str, session_info: tuple[str, str, str]) -> None:
+        if state["closing"] or request_id != state["request_id"] or not root.winfo_exists():
             return
         result["erp"] = erp
         result["session"] = session_info
         root.destroy()
 
-    def complete_error(message: str) -> None:
-        if not root.winfo_exists():
+    def complete_error(request_id: int, message: str) -> None:
+        if state["closing"] or request_id != state["request_id"] or not root.winfo_exists():
             return
         set_busy(False)
         error_var.set(message or "Unable to start session.")
@@ -263,14 +289,26 @@ def request_student_erp_with_session_start(
 
         error_var.set("Connecting...")
         set_busy(True)
+        state["request_id"] += 1
+        current_request_id = int(state["request_id"])
 
         def worker() -> None:
             try:
                 session_info = start_session(erp)
             except Exception as exc:
-                root.after(0, lambda: complete_error(str(exc)))
+                if state["closing"] or current_request_id != state["request_id"]:
+                    return
+                try:
+                    root.after(0, lambda: complete_error(current_request_id, str(exc)))
+                except RuntimeError:
+                    pass
                 return
-            root.after(0, lambda: complete_success(erp, session_info))
+            if state["closing"] or current_request_id != state["request_id"]:
+                return
+            try:
+                root.after(0, lambda: complete_success(current_request_id, erp, session_info))
+            except RuntimeError:
+                pass
 
         threading.Thread(target=worker, daemon=True).start()
         return "break"
@@ -281,6 +319,7 @@ def request_student_erp_with_session_start(
     continue_button.pack(side=tk.RIGHT)
 
     root.bind("<Return>", submit)
+    root.bind("<Escape>", lambda _event: cancel())
     root.protocol("WM_DELETE_WINDOW", cancel)
     root.deiconify()
     root.mainloop()
@@ -310,6 +349,14 @@ def request_consent_confirmation() -> bool:
     
     card = tk.Frame(root, bg=_BG_SURFACE, highlightbackground=_BORDER_SUBTLE, highlightthickness=1)
     card.pack(fill=tk.BOTH, expand=True, padx=25, pady=25)
+
+    def exit_app() -> None:
+        result["submitted"] = True
+        result["accepted"] = False
+        root.destroy()
+
+    _add_close_button(card, exit_app)
+
     strip_canvas = tk.Canvas(card, bg=_BG_SURFACE, height=2, highlightthickness=0, bd=0)
     strip_canvas.pack(fill=tk.X)
     strip_canvas.create_rectangle(0, 0, 9999, 2, fill=_NEON_CYAN, outline="")
@@ -359,11 +406,6 @@ def request_consent_confirmation() -> bool:
     button_row = tk.Frame(card, bg=_BG_SURFACE)
     button_row.pack(fill=tk.X, padx=25, pady=(0, 25))
 
-    def exit_app() -> None:
-        result["submitted"] = True
-        result["accepted"] = False
-        root.destroy()
-
     def submit(_event=None) -> None:
         choice = entry.get().strip().upper()
         if choice == "YES":
@@ -384,5 +426,3 @@ def request_consent_confirmation() -> bool:
     root.deiconify()
     root.mainloop()
     return bool(result["submitted"] and result["accepted"])
-
-

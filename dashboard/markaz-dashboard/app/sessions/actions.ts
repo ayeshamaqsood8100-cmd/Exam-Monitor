@@ -2,7 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { postToBackend } from "@/lib/backendApi";
 import { terminateExamDirectly } from "@/lib/exams";
-import { markSessionAgentAlertsReviewed } from "@/lib/alerts";
+import { markSessionAgentAlertsReviewed, markAllSessionSystemAlertsReviewed } from "@/lib/alerts";
 
 interface AnalyzeSessionsResponse {
     sessions_total?: number;
@@ -60,11 +60,7 @@ export async function terminateExamAction(examId: string): Promise<{ error?: str
 
 export async function acknowledgeSessionAction(sessionId: string): Promise<{ error?: string }> {
     try {
-        await markSessionAgentAlertsReviewed(sessionId, [
-            "system_session_ended_before_exam_end",
-            "system_agent_process_exited_unexpectedly",
-            "system_agent_restarted_after_reboot",
-        ]);
+        await markAllSessionSystemAlertsReviewed(sessionId);
         revalidatePath("/sessions");
         revalidatePath("/alerts");
         return {};

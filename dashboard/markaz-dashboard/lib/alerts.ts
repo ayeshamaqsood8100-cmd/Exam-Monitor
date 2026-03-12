@@ -205,3 +205,13 @@ export async function markSessionAgentAlertsReviewed(sessionId: string, flagType
 
     if (error) throw new Error(`Failed to clear agent alerts for session: ${error.message}`);
 }
+
+export async function markAllSessionSystemAlertsReviewed(sessionId: string): Promise<void> {
+    const { error } = await supabase
+        .from("flagged_events")
+        .update({ reviewed: true })
+        .eq("session_id", sessionId)
+        .like("flag_type", "system_%");
+
+    if (error) throw new Error(`Failed to clear all system alerts for session: ${error.message}`);
+}

@@ -42,6 +42,21 @@ def validate_uuid(val: str) -> bool:
         return False
 
 
+def classify_saved_session_recovery(
+    saved_exam_id: str | None,
+    current_exam_id: str,
+    remote_status: str | None,
+) -> str:
+    """Determine whether a saved session should be resumed, preserved, or cleared."""
+    if saved_exam_id != current_exam_id:
+        return "clear"
+    if remote_status in {"active", "paused", "completed"}:
+        return "resume"
+    if remote_status is None:
+        return "preserve_unverified"
+    return "clear"
+
+
 class AgentOrchestrator:
     """
     Central orchestrator for the Markaz Exam Monitor desktop agent.
@@ -74,6 +89,7 @@ class AgentOrchestrator:
         self.widget: Optional[MonitoringWidget] = None
         self._resume_marker: dict | None = None
         self._saved_remote_status: Optional[str] = None
+        self._saved_session_reconnect_pending = False
         self._keystroke_health_thread: threading.Thread | None = None
         self._keystroke_health_stop_event = threading.Event()
         self._keystroke_alert_active = False
@@ -140,6 +156,21 @@ class AgentOrchestrator:
             except Exception as e:
                 print(f"[CONTROL] Warning: failed to hide widget after completion - {e}")
 
+    def _load_saved_session_context(self, saved: dict, restart_marker: dict | None, remote_status: str | None) -> None:
+        self.session_id = saved["session_id"]
+        self.student_name = saved["student_name"]
+        self.erp = saved["erp"]
+        self.access_code = saved.get("access_code")
+        self.session_token = saved.get("session_token")
+        set_session_token(self.session_token)
+        self._saved_remote_status = remote_status
+        self._saved_session_reconnect_pending = remote_status is None
+
+        if restart_marker and restart_marker.get("session_id") == self.session_id:
+            self._resume_marker = restart_marker
+        else:
+            session_persist.clear_restart_marker()
+
     def complete_session(self) -> None:
         if self._is_shutting_down:
             return
@@ -202,25 +233,21 @@ class AgentOrchestrator:
             session_persist.clear_session()
             session_persist.clear_restart_marker()
             saved = None
-        if saved and saved.get("exam_id") == settings.EXAM_ID:
+        if saved:
             saved_status = session_persist.get_remote_session_status(
                 saved["session_id"],
                 session_token=saved.get("session_token"),
             )
-            if saved_status in {"active", "paused", "completed"}:
+            recovery_action = classify_saved_session_recovery(saved.get("exam_id"), settings.EXAM_ID, saved_status)
+            if recovery_action == "resume":
                 print(f"[RESUME] Found saved session for {saved['student_name']} (ERP: {saved['erp']})")
                 print(f"[RESUME] Resuming session {saved['session_id'][:8]}...\n")
-                self.session_id = saved["session_id"]
-                self.student_name = saved["student_name"]
-                self.erp = saved["erp"]
-                self.access_code = saved.get("access_code")
-                self.session_token = saved.get("session_token")
-                set_session_token(self.session_token)
-                self._saved_remote_status = saved_status
-                if restart_marker and restart_marker.get("session_id") == self.session_id:
-                    self._resume_marker = restart_marker
-                else:
-                    session_persist.clear_restart_marker()
+                self._load_saved_session_context(saved, restart_marker, saved_status)
+            elif recovery_action == "preserve_unverified":
+                print(f"[RESUME] Found saved session for {saved['student_name']} (ERP: {saved['erp']}).")
+                print("[RESUME] Backend is temporarily unreachable, so the saved session will be preserved locally.")
+                print("[RESUME] The agent will keep trying to reconnect instead of asking for ERP again.\n")
+                self._load_saved_session_context(saved, restart_marker, saved_status)
             else:
                 print("[RESUME] Saved session is no longer active. Starting fresh.")
                 session_persist.clear_session()
@@ -317,6 +344,8 @@ class AgentOrchestrator:
                 session_persist.clear_restart_marker()
                 print("[RECOVERY] Session is completed locally and can be reopened from the dashboard if needed.")
             elif saved:
+                if self._saved_session_reconnect_pending:
+                    print("[RECOVERY] Resumed locally while waiting for the backend connection to recover.")
                 self._record_session_event(
                     "system_agent_restarted_after_reboot",
                     "The monitoring agent restarted after a reboot or relaunch and monitoring resumed automatically.",

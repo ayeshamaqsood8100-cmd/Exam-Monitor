@@ -56,8 +56,8 @@ export default function SessionRow({ session, onForceStop, onAcknowledge, isStop
             if (session.display_status === "AGENT KILLED") pulseClass = "animate-pulse";
             break;
         case "AGENT LOST":
-            dotColorClass = "bg-[#ec4899]";
-            badgeColorClass = "text-[#ec4899] bg-[#ec4899]/10 border-[#ec4899]/30";
+            dotColorClass = "bg-[#ef4444]";
+            badgeColorClass = "text-[#ef4444] bg-[#ef4444]/10 border-[#ef4444]/30";
             pulseClass = "animate-pulse";
             break;
         case "RESTARTED AFTER REBOOT":
@@ -95,7 +95,7 @@ export default function SessionRow({ session, onForceStop, onAcknowledge, isStop
                 </div>
                 {needsAttention && (
                     <div className="mt-2 text-left">
-                        <span className="text-[10px] font-bold tracking-[0.04em] px-2 py-0.5 rounded-full text-[#ef4444] bg-[#ef4444]/10 border border-[#ef4444]/30">
+                        <span className="text-[10px] font-bold tracking-[0.04em] px-2 py-0.5 rounded-full text-[#ef4444] bg-[#ef4444]/10 border border-[#ef4444]/30 whitespace-nowrap">
                             NEEDS ATTENTION
                         </span>
                     </div>

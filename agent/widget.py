@@ -142,7 +142,12 @@ def _build_side_widget(
     handle.bind("<B1-Motion>", on_drag_motion)
     handle.bind("<ButtonRelease-1>", on_drag_release)
 
-    name_lbl = tk.Label(handle, text=student_name, bg=_BG_SURFACE, fg=_TEXT_PRIMARY, font=("Segoe UI Semibold", 9))
+    # Truncate student name if too long to fit sophisticatedly
+    display_name = student_name
+    if len(display_name) > 20:
+        display_name = display_name[:17] + "..."
+
+    name_lbl = tk.Label(handle, text=display_name, bg=_BG_SURFACE, fg=_TEXT_PRIMARY, font=("Segoe UI Semibold", 9))
     name_lbl.pack(pady=(15, 0))
     name_lbl.bind("<Button-1>", on_drag_start)
     name_lbl.bind("<B1-Motion>", on_drag_motion)
@@ -210,6 +215,25 @@ def _show_end_session_modal(
     
     card = tk.Frame(dialog, bg=_BG_SURFACE, highlightbackground=_BORDER_SUBTLE, highlightthickness=1)
     card.pack(fill=tk.BOTH, expand=True, padx=25, pady=25)
+    
+    close_btn = tk.Label(
+        card,
+        text="✕",
+        bg=_BG_SURFACE,
+        fg=_TEXT_MUTED,
+        font=("Segoe UI", 12),
+        cursor="hand2",
+    )
+    close_btn.place(relx=1.0, rely=0.0, anchor="ne", x=-10, y=10)
+    
+    def on_close_click(_event=None):
+        # We need to define close_modal first, or use a lambda that calls it
+        cancel()
+
+    close_btn.bind("<Button-1>", on_close_click)
+    close_btn.bind("<Enter>", lambda _: close_btn.configure(fg=_TEXT_PRIMARY))
+    close_btn.bind("<Leave>", lambda _: close_btn.configure(fg=_TEXT_MUTED))
+
     tk.Frame(card, bg=_NEON_ROSE, height=2).pack(fill=tk.X)
 
     top_frame = tk.Frame(card, bg=_BG_SURFACE, padx=30, pady=25)
