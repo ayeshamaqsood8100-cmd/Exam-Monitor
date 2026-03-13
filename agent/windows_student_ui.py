@@ -9,9 +9,9 @@ from typing import Callable, Any
 
 
 _BG_BASE = "#000000"
-_BG_SURFACE = "#060606"
-_BG_INPUT = "#0A0A0A"
-_BORDER_SUBTLE = "#1C1C1C"
+_BG_SURFACE = "#000000"
+_BG_INPUT = "#000000"
+_BORDER_SUBTLE = "#111111"
 
 _NEON_CYAN = "#00B8D9"
 _NEON_ROSE = "#FF3366"
@@ -42,13 +42,13 @@ def show_error_dialog(title: str, message: str) -> None:
 def _add_close_button(parent: tk.Widget, cancel_cmd: Callable[[], None]) -> None:
     btn = tk.Label(
         parent,
-        text="✕",
-        bg=_BG_SURFACE,
+        text="×",
+        bg=_BG_BASE,
         fg=_TEXT_MUTED,
-        font=("Segoe UI", 12),
+        font=("Segoe UI", 16),
         cursor="hand2",
     )
-    btn.place(relx=1.0, rely=0.0, anchor="ne", x=-10, y=10)
+    btn.place(relx=0.0, rely=0.0, anchor="nw", x=15, y=10)
     btn.bind("<Button-1>", lambda _: cancel_cmd())
     btn.bind("<Enter>", lambda _: btn.configure(fg=_TEXT_PRIMARY))
     btn.bind("<Leave>", lambda _: btn.configure(fg=_TEXT_MUTED))
@@ -88,44 +88,52 @@ def request_student_erp() -> str | None:
 
     _add_close_button(card, cancel)
 
-    strip_canvas = tk.Canvas(card, bg=_BG_SURFACE, height=2, highlightthickness=0, bd=0)
-    strip_canvas.pack(fill=tk.X)
-    strip_canvas.create_rectangle(0, 0, 9999, 2, fill=_NEON_CYAN, outline="")
+    strip_canvas = tk.Canvas(card, bg=_BG_SURFACE, height=0, highlightthickness=0, bd=0) # Hidden strip to keep var references if needed
+    strip_canvas.pack()
     
     error_var = tk.StringVar(value="")
 
-    top_frame = tk.Frame(card, bg=_BG_SURFACE, padx=30, pady=20)
-    top_frame.pack(fill=tk.X)
-    tk.Label(top_frame, text="STEP 1", bg=_BG_SURFACE, fg=_NEON_CYAN, font=("Segoe UI", 9, "bold")).pack(anchor="w")
-    tk.Label(top_frame, text="Verify Your ERP", bg=_BG_SURFACE, fg=_TEXT_PRIMARY, font=("Segoe UI Semibold", 22)).pack(anchor="w", pady=(8, 0))
-    tk.Label(top_frame, text="Enter your 5-digit ERP to begin the exam session.", bg=_BG_SURFACE, fg=_TEXT_MUTED, font=("Segoe UI", 10)).pack(anchor="w", pady=(8, 0))
+    content = tk.Frame(card, bg=_BG_BASE, padx=40, pady=40)
+    content.pack(fill=tk.BOTH, expand=True)
 
-    panel = tk.Frame(card, bg=_BG_BASE, highlightbackground=_BORDER_SUBTLE, highlightthickness=1, padx=20, pady=20)
-    panel.pack(fill=tk.X, padx=25, pady=(0, 20))
+    tk.Label(content, text="STEP 1", bg=_BG_BASE, fg=_NEON_CYAN, font=("Segoe UI", 8, "bold")).pack(anchor="center", pady=(10, 0))
+    tk.Label(content, text="Verify Your ERP", bg=_BG_BASE, fg=_TEXT_PRIMARY, font=("Segoe UI Light", 24)).pack(anchor="center")
+    tk.Label(content, text="Enter your 5-digit ERP to begin the exam session.", bg=_BG_BASE, fg=_TEXT_MUTED, font=("Segoe UI", 9)).pack(anchor="center", pady=(5, 20))
 
-    tk.Label(panel, text="ERP NUMBER", bg=_BG_BASE, fg=_TEXT_SUBTITLE, font=("Segoe UI", 9, "bold")).pack(anchor="w")
+    entry_frame = tk.Frame(content, bg=_BG_BASE)
+    entry_frame.pack(fill=tk.X, padx=40)
 
-    entry_shell = tk.Frame(panel, bg=_BG_INPUT, highlightbackground=_BORDER_SUBTLE, highlightthickness=1)
-    entry_shell.pack(fill=tk.X, pady=(10, 0))
     entry = tk.Entry(
-        entry_shell,
+        entry_frame,
         font=("Consolas", 18, "bold"),
         justify="center",
-        bg=_BG_INPUT,
+        bg=_BG_BASE,
         fg=_TEXT_PRIMARY,
         insertbackground=_NEON_CYAN,
-        disabledbackground=_BG_INPUT,
+        disabledbackground=_BG_BASE,
         disabledforeground=_TEXT_MUTED,
-        readonlybackground=_BG_INPUT,
+        readonlybackground=_BG_BASE,
         relief=tk.FLAT,
         bd=0,
         highlightthickness=0,
     )
-    entry.pack(fill=tk.X, padx=18, pady=12, ipady=4)
+    entry.pack(fill=tk.X, pady=(5, 5))
+    
+    line = tk.Frame(entry_frame, bg="#333333", height=1)
+    line.pack(fill=tk.X)
+    
+    def on_focus_in(e):
+        line.configure(bg=_NEON_CYAN, height=2)
+    def on_focus_out(e):
+        line.configure(bg="#333333", height=1)
+
+    entry.bind("<FocusIn>", on_focus_in)
+    entry.bind("<FocusOut>", on_focus_out)
+    
     entry.focus_set()
 
-    error_label = tk.Label(panel, textvariable=error_var, bg=_BG_BASE, fg=_TEXT_STATUS, font=("Segoe UI", 9))
-    error_label.pack(anchor=tk.W, pady=(8, 0))
+    error_label = tk.Label(content, textvariable=error_var, bg=_BG_BASE, fg=_TEXT_STATUS, font=("Segoe UI", 9))
+    error_label.pack(anchor="center", pady=(8, 0))
 
     def submit(_event=None) -> None:
         erp = entry.get().strip()
@@ -175,7 +183,7 @@ def request_student_erp_with_session_start(
     _add_close_button(card, cancel)
 
     strip_canvas = tk.Canvas(card, bg=_BG_SURFACE, height=2, highlightthickness=0, bd=0)
-    strip_canvas.pack(fill=tk.X)
+    strip_canvas.pack(fill=tk.X) # We keep this here for the loading animation hook, but hide it normally
     segment_id = strip_canvas.create_rectangle(0, 0, 0, 0, fill="#FFFFFF", outline="", state="hidden")
     
     card._strip_pos = 0  # type: ignore[attr-defined]
@@ -183,38 +191,47 @@ def request_student_erp_with_session_start(
     
     error_var = tk.StringVar(value="")
 
-    top_frame = tk.Frame(card, bg=_BG_SURFACE, padx=30, pady=20)
-    top_frame.pack(fill=tk.X)
-    tk.Label(top_frame, text="STEP 1", bg=_BG_SURFACE, fg=_NEON_CYAN, font=("Segoe UI", 9, "bold")).pack(anchor="w")
-    tk.Label(top_frame, text="Verify Your ERP", bg=_BG_SURFACE, fg=_TEXT_PRIMARY, font=("Segoe UI Semibold", 22)).pack(anchor="w", pady=(8, 0))
-    tk.Label(top_frame, text="Enter your 5-digit ERP to begin the exam session.", bg=_BG_SURFACE, fg=_TEXT_MUTED, font=("Segoe UI", 10)).pack(anchor="w", pady=(8, 0))
+    content = tk.Frame(card, bg=_BG_BASE, padx=40, pady=40)
+    content.pack(fill=tk.BOTH, expand=True)
 
-    panel = tk.Frame(card, bg=_BG_BASE, highlightbackground=_BORDER_SUBTLE, highlightthickness=1, padx=20, pady=20)
-    panel.pack(fill=tk.X, padx=25, pady=(0, 20))
+    tk.Label(content, text="STEP 1", bg=_BG_BASE, fg=_NEON_CYAN, font=("Segoe UI", 8, "bold")).pack(anchor="center", pady=(10, 0))
+    tk.Label(content, text="Verify Your ERP", bg=_BG_BASE, fg=_TEXT_PRIMARY, font=("Segoe UI Light", 24)).pack(anchor="center")
+    tk.Label(content, text="Enter your 5-digit ERP to begin the exam session.", bg=_BG_BASE, fg=_TEXT_MUTED, font=("Segoe UI", 9)).pack(anchor="center", pady=(5, 20))
 
-    tk.Label(panel, text="ERP NUMBER", bg=_BG_BASE, fg=_TEXT_SUBTITLE, font=("Segoe UI", 9, "bold")).pack(anchor="w")
+    entry_frame = tk.Frame(content, bg=_BG_BASE)
+    entry_frame.pack(fill=tk.X, padx=40)
 
-    entry_shell = tk.Frame(panel, bg=_BG_INPUT, highlightbackground=_BORDER_SUBTLE, highlightthickness=1)
-    entry_shell.pack(fill=tk.X, pady=(10, 0))
     entry = tk.Entry(
-        entry_shell,
+        entry_frame,
         font=("Consolas", 18, "bold"),
         justify="center",
-        bg=_BG_INPUT,
+        bg=_BG_BASE,
         fg=_TEXT_PRIMARY,
         insertbackground=_NEON_CYAN,
-        disabledbackground=_BG_INPUT,
+        disabledbackground=_BG_BASE,
         disabledforeground=_TEXT_MUTED,
-        readonlybackground=_BG_INPUT,
+        readonlybackground=_BG_BASE,
         relief=tk.FLAT,
         bd=0,
         highlightthickness=0,
     )
-    entry.pack(fill=tk.X, padx=18, pady=12, ipady=4)
+    entry.pack(fill=tk.X, pady=(5, 5))
+    
+    line = tk.Frame(entry_frame, bg="#333333", height=1)
+    line.pack(fill=tk.X)
+    
+    def on_focus_in(e):
+        line.configure(bg=_NEON_CYAN, height=2)
+    def on_focus_out(e):
+        line.configure(bg="#333333", height=1)
+
+    entry.bind("<FocusIn>", on_focus_in)
+    entry.bind("<FocusOut>", on_focus_out)
+    
     entry.focus_set()
 
-    error_label = tk.Label(panel, textvariable=error_var, bg=_BG_BASE, fg=_TEXT_STATUS, font=("Segoe UI", 9))
-    error_label.pack(anchor=tk.W, pady=(8, 0))
+    error_label = tk.Label(content, textvariable=error_var, bg=_BG_BASE, fg=_TEXT_STATUS, font=("Segoe UI", 9))
+    error_label.pack(anchor="center", pady=(8, 0))
 
     def set_busy(busy: bool) -> None:
         if state["closing"] and busy:
@@ -333,51 +350,53 @@ def request_consent_confirmation() -> bool:
 
     _add_close_button(card, exit_app)
 
-    strip_canvas = tk.Canvas(card, bg=_BG_SURFACE, height=2, highlightthickness=0, bd=0)
-    strip_canvas.pack(fill=tk.X)
-    strip_canvas.create_rectangle(0, 0, 9999, 2, fill=_NEON_CYAN, outline="")
+    content = tk.Frame(card, bg=_BG_BASE, padx=40, pady=40)
+    content.pack(fill=tk.BOTH, expand=True)
+
+    tk.Label(content, text="STEP 2", bg=_BG_BASE, fg=_NEON_CYAN, font=("Segoe UI", 8, "bold")).pack(anchor="center", pady=(10, 0))
+    tk.Label(content, text="Academic Integrity", bg=_BG_BASE, fg=_TEXT_PRIMARY, font=("Segoe UI Light", 24)).pack(anchor="center")
     
-    error_var = tk.StringVar(value="")
+    msg_frame = tk.Frame(content, bg=_BG_BASE)
+    msg_frame.pack(pady=30)
+    tk.Label(msg_frame, text="I pledge on my honour that I will not give or receive any unauthorized assistance during this examination.", bg=_BG_BASE, fg=_TEXT_PRIMARY, font=("Segoe UI", 10, "italic"), wraplength=400, justify=tk.CENTER).pack()
+    tk.Label(msg_frame, text="Violation of IBA's Academic Integrity Policy results in disciplinary action.", bg=_BG_BASE, fg=_TEXT_MUTED, font=("Segoe UI", 9), wraplength=400, justify=tk.CENTER).pack(pady=(15, 0))
 
-    top_frame = tk.Frame(card, bg=_BG_SURFACE, padx=30, pady=15)
-    top_frame.pack(fill=tk.X)
-    tk.Label(top_frame, text="STEP 2", bg=_BG_SURFACE, fg=_NEON_CYAN, font=("Segoe UI", 8, "bold")).pack(anchor="center")
-    tk.Label(top_frame, text="Academic Integrity", bg=_BG_SURFACE, fg=_TEXT_PRIMARY, font=("Segoe UI Semibold", 24)).pack(anchor="center", pady=(4, 0))
-    tk.Label(top_frame, text="Accept the pledge to begin monitoring.", bg=_BG_SURFACE, fg=_TEXT_MUTED, font=("Segoe UI", 10), justify=tk.CENTER).pack(anchor="center")
+    entry_frame = tk.Frame(content, bg=_BG_BASE)
+    entry_frame.pack(fill=tk.X, padx=80)
 
-    pledge_box = tk.Frame(top_frame, bg=_BG_SURFACE, bd=0, pady=10)
-    pledge_box.pack(fill=tk.X)
-    
-    tk.Label(pledge_box, text="I pledge on my honour that I will not give or receive any unauthorized assistance during this examination.", bg=_BG_SURFACE, fg=_TEXT_PRIMARY, font=("Segoe UI", 11, "italic"), wraplength=400, justify=tk.CENTER).pack(anchor="center")
-    tk.Label(pledge_box, text="Violation of IBA's Academic Integrity Policy results in disciplinary action.", bg=_BG_SURFACE, fg=_TEXT_PRIMARY, font=("Segoe UI", 11, "italic"), wraplength=400, justify=tk.CENTER).pack(anchor="center", pady=(8, 0))
-    tk.Label(pledge_box, text="Type YES to continue. Type NO to exit.", bg=_BG_SURFACE, fg=_TEXT_MUTED, font=("Segoe UI", 10), wraplength=400, justify=tk.CENTER).pack(anchor="center", pady=(8, 0))
-
-    panel = tk.Frame(card, bg=_BG_BASE, highlightbackground=_BORDER_SUBTLE, highlightthickness=1, padx=20, pady=15)
-    panel.pack(fill=tk.X, padx=25, pady=(0, 20))
-
-    tk.Label(panel, text="CONFIRM (YES/NO)", bg=_BG_BASE, fg=_TEXT_SUBTITLE, font=("Segoe UI", 8, "bold")).pack(anchor="w")
-
-    entry_shell = tk.Frame(panel, bg=_BG_INPUT, highlightbackground=_BORDER_SUBTLE, highlightthickness=1)
-    entry_shell.pack(fill=tk.X, pady=(8, 0))
     entry = tk.Entry(
-        entry_shell,
+        entry_frame,
         font=("Consolas", 14, "bold"),
         justify="center",
-        bg=_BG_INPUT,
+        bg=_BG_BASE,
         fg=_TEXT_PRIMARY,
         insertbackground=_NEON_CYAN,
-        disabledbackground=_BG_INPUT,
+        disabledbackground=_BG_BASE,
         disabledforeground=_TEXT_MUTED,
-        readonlybackground=_BG_INPUT,
+        readonlybackground=_BG_BASE,
         relief=tk.FLAT,
         bd=0,
         highlightthickness=0,
     )
-    entry.pack(fill=tk.X, padx=15, pady=10, ipady=2)
+    entry.pack(fill=tk.X, pady=(5, 5))
+    
+    line = tk.Frame(entry_frame, bg="#333333", height=1)
+    line.pack(fill=tk.X)
+    
+    def on_focus_in(e):
+        line.configure(bg=_NEON_CYAN, height=2)
+    def on_focus_out(e):
+        line.configure(bg="#333333", height=1)
+
+    entry.bind("<FocusIn>", on_focus_in)
+    entry.bind("<FocusOut>", on_focus_out)
     entry.focus_set()
 
-    error_label = tk.Label(panel, textvariable=error_var, bg=_BG_BASE, fg=_TEXT_STATUS, font=("Segoe UI", 8))
-    error_label.pack(anchor=tk.W, pady=(4, 0))
+    tk.Label(content, text="Type YES to continue. Type NO to exit.", bg=_BG_BASE, fg="#555555", font=("Segoe UI", 8)).pack(pady=(10, 0))
+
+    error_var = tk.StringVar(value="")
+    error_label = tk.Label(content, textvariable=error_var, bg=_BG_BASE, fg=_TEXT_STATUS, font=("Segoe UI", 8))
+    error_label.pack(anchor="center", pady=(4, 0))
 
     def submit(_event=None) -> None:
         choice = entry.get().strip().upper()

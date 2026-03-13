@@ -21,9 +21,9 @@ from typing import Callable, Any
 
 _IS_MAC = platform.system() == "Darwin"
 _BG_BASE = "#000000"
-_BG_SURFACE = "#060606"
-_BG_INPUT = "#0A0A0A"
-_BORDER_SUBTLE = "#1C1C1C"
+_BG_SURFACE = "#000000"
+_BG_INPUT = "#000000"
+_BORDER_SUBTLE = "#111111"
 
 _NEON_CYAN = "#00B8D9"
 _NEON_ROSE = "#FF3366"
@@ -133,109 +133,62 @@ def _build_side_widget(
     on_drag_motion: Callable[[tk.Event], None],
     on_drag_release: Callable[[tk.Event], None],
 ) -> tuple[int, int]:
-    root.configure(bg=_BG_BASE)
-    
-    # --- Sophisticated Multi-Layer Border (The Glow Effect) ---
-    lighting_frame = tk.Frame(root, bg=_BORDER_SUBTLE, padx=1, pady=1) # Outer "light" edge
-    lighting_frame.pack(fill=tk.BOTH, expand=True)
-    
-    card = tk.Frame(lighting_frame, bg=_BG_SURFACE, bd=0)
+    card = tk.Frame(root, bg=_BG_BASE, highlightbackground=_BORDER_SUBTLE, highlightthickness=1)
     card.pack(fill=tk.BOTH, expand=True)
-    
-    # Integrated Neon Top Accent (Centered Pulse)
-    tk.Frame(card, bg=_NEON_CYAN, height=2).place(relx=0.5, rely=0.0, relwidth=0.35, anchor="n")
 
-    # --- Header Section (World-Class Typography) ---
-    header_frame = tk.Frame(card, bg=_BG_SURFACE)
-    header_frame.pack(fill=tk.X, padx=12, pady=(18, 0)) 
+    # Top neon line recreated per reference image
+    tk.Frame(card, bg=_NEON_CYAN, height=2).pack(fill=tk.X)
 
-    # Name: High-End Weight & Spacing
+    handle = tk.Frame(card, bg=_BG_BASE, cursor="fleur")
+    handle.pack(fill=tk.X, expand=True, pady=(10, 6))
+
     tk.Label(
-        header_frame, 
-        text=student_name.upper(), 
-        bg=_BG_SURFACE, 
+        handle, 
+        text=student_name, 
+        bg=_BG_BASE, 
         fg=_TEXT_PRIMARY, 
-        font=("Segoe UI Black", 8), # Heavy weight for primary impact
-        justify=tk.CENTER,
-        wraplength=135
-    ).pack()
+        font=("Segoe UI", 11, "bold"),
+        wraplength=180,
+        justify=tk.CENTER
+    ).pack(padx=15)
     
-    # ERP: Minimalist Subtext
     tk.Label(
-        header_frame, 
-        text=f"OFFICIAL ID {erp}", 
-        bg=_BG_SURFACE, 
+        handle, 
+        text=f"ERP - {erp}", 
+        bg=_BG_BASE, 
         fg=_TEXT_MUTED, 
-        font=("Segoe UI", 6, "bold"),
+        font=("Segoe UI", 8)
     ).pack(pady=(2, 0))
 
-    # --- Secure Access Panel (Sharp & Inset) ---
-    panel_container = tk.Frame(card, bg=_BG_SURFACE, pady=12)
-    panel_container.pack(fill=tk.X, padx=14)
+    # Access code panel box
+    panel = tk.Frame(card, bg=_BG_BASE, highlightbackground="#1A1A1A", highlightthickness=1)
+    panel.pack(fill=tk.X, padx=15, pady=(0, 10))
 
-    panel = tk.Frame(panel_container, bg="#111111", padx=1, pady=1) # Outer panel ring
-    panel.pack(fill=tk.X)
-    
-    content_area = tk.Frame(panel, bg="#050505", padx=8, pady=10) # Deeper inset
-    content_area.pack(fill=tk.BOTH)
-    
-    tk.Label(
-        content_area, 
-        text="SECURE SYSTEM ACCESS", 
-        bg="#050505", 
-        fg=_NEON_CYAN, # Accent color for label
-        font=("Segoe UI", 6, "bold")
-    ).pack()
-    
-    tk.Label(
-        content_area, 
-        text=access_code or "---", 
-        bg="#050505", 
-        fg=_TEXT_PRIMARY, 
-        font=("Consolas", 12, "bold"),
-    ).pack(pady=(4, 0))
+    tk.Label(panel, text="ACCESS CODE", bg=_BG_BASE, fg=_TEXT_MUTED, font=("Segoe UI", 7, "bold")).pack(pady=(6, 2))
+    tk.Label(panel, text=access_code or "---", bg=_BG_BASE, fg=_NEON_CYAN, font=("Consolas", 11, "bold")).pack(pady=(0, 6))
 
-    # --- Action Section (Premium Glass Action) ---
-    btn_frame = tk.Frame(card, bg=_BG_SURFACE, pady=15)
-    btn_frame.pack(fill=tk.X, padx=14)
-    
-    # Redesigned End Session Button
-    end_btn = tk.Button(
-        btn_frame,
-        text="TERM SESSION", # More professional label
-        font=("Segoe UI Black", 7),
-        bg=_BG_SURFACE, # Blend with card
-        fg=_NEON_ROSE,
-        activebackground=_NEON_ROSE,
-        activeforeground=_TEXT_PRIMARY,
-        highlightbackground=_NEON_ROSE,
-        highlightcolor=_NEON_ROSE,
-        highlightthickness=1,
-        bd=0,
-        relief=tk.FLAT,
-        cursor="hand2",
-        command=on_end_session,
-        padx=4,
-        pady=6
-    )
-    end_btn.pack(fill=tk.X)
+    if status_ref is not None:
+        status_ref["label"] = tk.Label(card)
 
-    # Hover Transition
-    def on_btn_enter(_e):
-        end_btn.configure(bg=_NEON_ROSE, fg=_TEXT_PRIMARY)
-    def on_btn_leave(_e):
-        end_btn.configure(bg=_BG_SURFACE, fg=_NEON_ROSE)
-        
-    end_btn.bind("<Enter>", on_btn_enter)
-    end_btn.bind("<Leave>", on_btn_leave)
+    # Dark background button
+    _DARK_ROSE_BG = "#2A0810"
+    end_btn = tk.Label(card, text="End Session", bg=_DARK_ROSE_BG, fg=_NEON_ROSE, font=("Segoe UI", 9, "bold"), cursor="hand2")
+    end_btn.pack(fill=tk.X, padx=15, pady=(0, 10), ipady=5)
 
-    # Drag Bindings
+    def on_enter(e):
+        end_btn.configure(fg="#ffffff", bg=_NEON_ROSE)
+    def on_leave(e):
+        end_btn.configure(fg=_NEON_ROSE, bg=_DARK_ROSE_BG)
+
+    end_btn.bind("<Enter>", on_enter)
+    end_btn.bind("<Leave>", on_leave)
+    end_btn.bind("<Button-1>", lambda _: on_end_session())
+
     _bind_drag(card, on_drag_start=on_drag_start, on_drag_motion=on_drag_motion, on_drag_release=on_drag_release)
-    _bind_drag(header_frame, on_drag_start=on_drag_start, on_drag_motion=on_drag_motion, on_drag_release=on_drag_release)
-    _bind_drag(lighting_frame, on_drag_start=on_drag_start, on_drag_motion=on_drag_motion, on_drag_release=on_drag_release)
+    _bind_drag(handle, on_drag_start=on_drag_start, on_drag_motion=on_drag_motion, on_drag_release=on_drag_release)
     
     root.update_idletasks()
-    return card.winfo_reqwidth() + 2, card.winfo_reqheight() + 2 # +2 for lighting border
+    return card.winfo_reqwidth(), card.winfo_reqheight()
 
 
 def _show_end_session_modal(
@@ -265,19 +218,19 @@ def _show_end_session_modal(
     y = max((screen_height - dialog_height) // 2, 0)
     dialog.geometry(f"{dialog_width}x{dialog_height}+{x}+{y}")
     
-    card = tk.Frame(dialog, bg=_BG_SURFACE, highlightbackground=_BORDER_SUBTLE, highlightthickness=1)
-    card.pack(fill=tk.BOTH, expand=True, padx=25, pady=25)
+    card = tk.Frame(dialog, bg=_BG_BASE, highlightbackground=_BORDER_SUBTLE, highlightthickness=1)
+    card.pack(fill=tk.BOTH, expand=True)
     
-    # Added themed '✕' close button for End Session Modal
+    # Added themed '×' close button for End Session Modal
     close_btn = tk.Label(
         card,
-        text="✕",
-        bg=_BG_SURFACE,
+        text="×",
+        bg=_BG_BASE,
         fg=_TEXT_MUTED,
-        font=("Segoe UI", 12),
+        font=("Segoe UI", 16),
         cursor="hand2",
     )
-    close_btn.place(relx=1.0, rely=0.0, anchor="ne", x=-10, y=10)
+    close_btn.place(relx=0.0, rely=0.0, anchor="nw", x=15, y=10)
 
     def on_close_click(_event=None):
         cancel()
@@ -286,42 +239,50 @@ def _show_end_session_modal(
     close_btn.bind("<Enter>", lambda _: close_btn.configure(fg=_TEXT_PRIMARY))
     close_btn.bind("<Leave>", lambda _: close_btn.configure(fg=_TEXT_MUTED))
 
-    tk.Frame(card, bg=_NEON_ROSE, height=2).pack(fill=tk.X)
+    content = tk.Frame(card, bg=_BG_BASE, padx=40, pady=40)
+    content.pack(fill=tk.BOTH, expand=True)
 
-    top_frame = tk.Frame(card, bg=_BG_SURFACE, padx=30, pady=25)
-    top_frame.pack(fill=tk.X)
-    tk.Label(top_frame, text="SECURITY CHECK", bg=_BG_SURFACE, fg=_NEON_ROSE, font=("Segoe UI", 9, "bold")).pack(anchor="w")
-    tk.Label(top_frame, text="End Session?", bg=_BG_SURFACE, fg=_TEXT_PRIMARY, font=("Segoe UI Semibold", 22)).pack(anchor="w", pady=(8, 0))
-    tk.Label(top_frame, text="This will end monitoring and remove the agent from this device. This action cannot be undone.", bg=_BG_SURFACE, fg=_TEXT_MUTED, font=("Segoe UI", 10), wraplength=340, justify=tk.LEFT).pack(anchor="w", pady=(8, 0))
+    tk.Label(content, text="SECURITY CHECK", bg=_BG_BASE, fg=_NEON_ROSE, font=("Segoe UI", 8, "bold")).pack(anchor="center", pady=(10, 0))
+    tk.Label(content, text="End Session?", bg=_BG_BASE, fg=_TEXT_PRIMARY, font=("Segoe UI Light", 24)).pack(anchor="center")
+    tk.Label(content, text="This will end monitoring and remove the agent from this device. This action cannot be undone.", bg=_BG_BASE, fg=_TEXT_MUTED, font=("Segoe UI", 9), wraplength=340, justify=tk.CENTER).pack(anchor="center", pady=(5, 20))
 
-    panel = tk.Frame(card, bg=_BG_BASE, highlightbackground=_BORDER_SUBTLE, highlightthickness=1, padx=20, pady=20)
-    panel.pack(fill=tk.X, padx=25, pady=(0, 25))
+    entry_frame = tk.Frame(content, bg=_BG_BASE)
+    entry_frame.pack(fill=tk.X, padx=50)
 
-    tk.Label(panel, text="CONFIRM WITH CODE", bg=_BG_BASE, fg=_TEXT_SUBTITLE, font=("Segoe UI", 9, "bold")).pack(anchor="w")
+    # Permanent label in between the title and the input line
+    tk.Label(entry_frame, text="ENTER ACCESS CODE", bg=_BG_BASE, fg="#555555", font=("Segoe UI", 8, "bold")).pack(anchor="center", pady=(0, 5))
 
-    entry_shell = tk.Frame(panel, bg=_BG_INPUT, highlightbackground=_BORDER_SUBTLE, highlightthickness=1)
-    entry_shell.pack(fill=tk.X, pady=(10, 0))
     entry = tk.Entry(
-        entry_shell,
+        entry_frame,
         justify="center",
         font=("Consolas", 18, "bold"),
-        bg=_BG_INPUT,
+        bg=_BG_BASE,
         fg=_TEXT_PRIMARY,
         insertbackground=_NEON_ROSE,
-        disabledbackground=_BG_INPUT,
+        disabledbackground=_BG_BASE,
         disabledforeground=_TEXT_MUTED,
-        readonlybackground=_BG_INPUT,
+        readonlybackground=_BG_BASE,
         relief=tk.FLAT,
         bd=0,
         highlightthickness=0,
     )
-    entry.pack(fill=tk.X, padx=18, pady=12, ipady=4)
+    entry.pack(fill=tk.X, pady=(5, 5))
+    
+    line = tk.Frame(entry_frame, bg="#333333", height=1)
+    line.pack(fill=tk.X)
+    
+    def on_focus_in(e):
+        line.configure(bg=_NEON_ROSE, height=2)
+    def on_focus_out(e):
+        line.configure(bg="#333333", height=1)
 
-    error_label = tk.Label(panel, text="", bg=_BG_BASE, fg=_TEXT_ERROR, font=("Segoe UI", 9))
-    error_label.pack(anchor="w", pady=(8, 0))
+    entry.bind("<FocusIn>", on_focus_in)
+    entry.bind("<FocusOut>", on_focus_out)
 
-    action_row = tk.Frame(card, bg=_BG_SURFACE)
-    action_row.pack(fill=tk.X, padx=25, pady=(0, 25))
+    error_label = tk.Label(content, text="", bg=_BG_BASE, fg=_TEXT_ERROR, font=("Segoe UI", 9))
+    error_label.pack(anchor="center", pady=(8, 0))
+
+    # Action row not needed for minimalistic design
 
     def close_modal() -> None:
         try:
@@ -519,6 +480,7 @@ class MonitoringWidget:
         self._status_label: tk.Label | None = None
         self._status_text = "Monitoring Active"
         self._status_color = _NEON_CYAN
+        self._thread_command_queue: queue.Queue[dict[str, str]] = queue.Queue()
 
         self._start_x = 0
         self._start_y = 0
@@ -549,33 +511,21 @@ class MonitoringWidget:
             self._send_process_command("show")
             return
 
-        if self.root:
-            try:
-                self.root.after(0, self.root.deiconify)
-            except Exception:
-                pass
+        self._send_thread_command({"action": "show"})
 
     def hide(self) -> None:
         if self._uses_process_backend:
             self._send_process_command("hide")
             return
 
-        if self.root:
-            try:
-                self.root.after(0, self.root.withdraw)
-            except Exception:
-                pass
+        self._send_thread_command({"action": "hide"})
 
     def stop(self) -> None:
         if self._uses_process_backend:
             self._stop_process_widget()
             return
 
-        if self.root:
-            try:
-                self.root.after(0, self.root.destroy)
-            except Exception:
-                pass
+        self._send_thread_command({"action": "stop"})
         if self._thread and self._thread.is_alive() and threading.current_thread() is not self._thread:
             self._thread.join(timeout=2.5)
 
@@ -705,9 +655,42 @@ class MonitoringWidget:
         screen_width = self.root.winfo_screenwidth()
         self.root.geometry(f"{target_width}x{target_height}+{screen_width - target_width - 20}+20")
         self._ready_event.set()
+        self.root.after(100, self._poll_thread_commands)
         self.root.mainloop()
         self.root = None
         self._status_label = None
+
+    def _poll_thread_commands(self) -> None:
+        if not self.root:
+            return
+
+        try:
+            while True:
+                command = self._thread_command_queue.get_nowait()
+                action = command.get("action")
+                if action == "show":
+                    self.root.deiconify()
+                elif action == "hide":
+                    self.root.withdraw()
+                elif action == "stop":
+                    self.root.destroy()
+                    return
+                elif action == "set_status" and self._status_label:
+                    self._status_label.configure(
+                        text=str(command.get("text") or self._status_text),
+                        fg=str(command.get("color") or self._status_color),
+                    )
+        except queue.Empty:
+            pass
+
+        if self.root:
+            self.root.after(100, self._poll_thread_commands)
+
+    def _send_thread_command(self, command: dict[str, str]) -> None:
+        try:
+            self._thread_command_queue.put(command)
+        except Exception:
+            pass
 
     def _on_drag_start(self, event) -> None:
         self._start_x = event.x_root
@@ -764,10 +747,7 @@ class MonitoringWidget:
             return
 
         if self.root and self._status_label:
-            try:
-                self.root.after(0, lambda: self._status_label and self._status_label.configure(text=text, fg=color))
-            except Exception:
-                pass
+            self._send_thread_command({"action": "set_status", "text": text, "color": color})
 
     def set_online(self) -> None:
         self._apply_status("Monitoring Active", _NEON_CYAN)
