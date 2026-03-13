@@ -135,73 +135,79 @@ def _build_side_widget(
 ) -> tuple[int, int]:
     root.configure(bg=_BG_BASE)
     
-    card = tk.Frame(root, bg=_BG_SURFACE, highlightbackground=_BORDER_SUBTLE, highlightthickness=1)
-    card.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
+    # --- Sophisticated Multi-Layer Border (The Glow Effect) ---
+    lighting_frame = tk.Frame(root, bg=_BORDER_SUBTLE, padx=1, pady=1) # Outer "light" edge
+    lighting_frame.pack(fill=tk.BOTH, expand=True)
     
-    # --- Header Section (Compact Typography) ---
-    header_frame = tk.Frame(card, bg=_BG_SURFACE)
-    header_frame.pack(fill=tk.X, padx=12, pady=(15, 0)) 
+    card = tk.Frame(lighting_frame, bg=_BG_SURFACE, bd=0)
+    card.pack(fill=tk.BOTH, expand=True)
     
-    # Subtle accent top-strip for "vibe"
-    tk.Frame(card, bg=_NEON_CYAN, height=2).place(relx=0.5, rely=0.0, relwidth=0.4, anchor="n")
+    # Integrated Neon Top Accent (Centered Pulse)
+    tk.Frame(card, bg=_NEON_CYAN, height=2).place(relx=0.5, rely=0.0, relwidth=0.35, anchor="n")
 
-    # Name: Reduced font and added tight wrapping for the "badge" feel
+    # --- Header Section (World-Class Typography) ---
+    header_frame = tk.Frame(card, bg=_BG_SURFACE)
+    header_frame.pack(fill=tk.X, padx=12, pady=(18, 0)) 
+
+    # Name: High-End Weight & Spacing
     tk.Label(
         header_frame, 
         text=student_name.upper(), 
         bg=_BG_SURFACE, 
         fg=_TEXT_PRIMARY, 
-        font=("Segoe UI Semibold", 8), # Smaller font
+        font=("Segoe UI Black", 8), # Heavy weight for primary impact
         justify=tk.CENTER,
-        wraplength=130 # Narrow wrapping
+        wraplength=135
     ).pack()
     
+    # ERP: Minimalist Subtext
     tk.Label(
         header_frame, 
-        text=f"ERP {erp}", 
+        text=f"OFFICIAL ID {erp}", 
         bg=_BG_SURFACE, 
-        fg=_NEON_CYAN, 
-        font=("Segoe UI", 7, "bold"),
+        fg=_TEXT_MUTED, 
+        font=("Segoe UI", 6, "bold"),
     ).pack(pady=(2, 0))
 
-    # --- Secure Access Code Panel ---
-    panel = tk.Frame(card, bg="#000000", bd=0) # Pure black for depth
-    panel.pack(fill=tk.X, padx=12, pady=(12, 0))
+    # --- Secure Access Panel (Sharp & Inset) ---
+    panel_container = tk.Frame(card, bg=_BG_SURFACE, pady=12)
+    panel_container.pack(fill=tk.X, padx=14)
+
+    panel = tk.Frame(panel_container, bg="#111111", padx=1, pady=1) # Outer panel ring
+    panel.pack(fill=tk.X)
     
-    inner_border = tk.Frame(panel, bg="#111111", padx=1, pady=1) # Darker, subtle border
-    inner_border.pack(fill=tk.BOTH)
-    
-    content_area = tk.Frame(inner_border, bg="#050505", padx=10, pady=8)
+    content_area = tk.Frame(panel, bg="#050505", padx=8, pady=10) # Deeper inset
     content_area.pack(fill=tk.BOTH)
     
     tk.Label(
         content_area, 
-        text="SECURE CODE", # Shortened text for narrow space
-        bg="#000000", 
-        fg=_TEXT_MUTED, 
-        font=("Segoe UI", 6, "bold") # Smaller font
+        text="SECURE SYSTEM ACCESS", 
+        bg="#050505", 
+        fg=_NEON_CYAN, # Accent color for label
+        font=("Segoe UI", 6, "bold")
     ).pack()
     
     tk.Label(
         content_area, 
         text=access_code or "---", 
-        bg="#000000", 
+        bg="#050505", 
         fg=_TEXT_PRIMARY, 
-        font=("Consolas", 11, "bold"), # More compact font
-    ).pack(pady=(2, 0))
+        font=("Consolas", 12, "bold"),
+    ).pack(pady=(4, 0))
 
-    # --- Action Section ---
+    # --- Action Section (Premium Glass Action) ---
     btn_frame = tk.Frame(card, bg=_BG_SURFACE, pady=15)
-    btn_frame.pack(fill=tk.X, padx=12) # Tighter horizontal padding
+    btn_frame.pack(fill=tk.X, padx=14)
     
+    # Redesigned End Session Button
     end_btn = tk.Button(
         btn_frame,
-        text="END SESSION",
-        font=("Segoe UI", 7, "bold"), # Smaller font
-        bg="#0D0D0D",
+        text="TERM SESSION", # More professional label
+        font=("Segoe UI Black", 7),
+        bg=_BG_SURFACE, # Blend with card
         fg=_NEON_ROSE,
-        activebackground="#1A0D0F",
-        activeforeground=_NEON_ROSE,
+        activebackground=_NEON_ROSE,
+        activeforeground=_TEXT_PRIMARY,
         highlightbackground=_NEON_ROSE,
         highlightcolor=_NEON_ROSE,
         highlightthickness=1,
@@ -209,24 +215,27 @@ def _build_side_widget(
         relief=tk.FLAT,
         cursor="hand2",
         command=on_end_session,
-        padx=8,
+        padx=4,
         pady=6
     )
     end_btn.pack(fill=tk.X)
 
+    # Hover Transition
     def on_btn_enter(_e):
         end_btn.configure(bg=_NEON_ROSE, fg=_TEXT_PRIMARY)
     def on_btn_leave(_e):
-        end_btn.configure(bg="#0D0D0D", fg=_NEON_ROSE)
+        end_btn.configure(bg=_BG_SURFACE, fg=_NEON_ROSE)
         
     end_btn.bind("<Enter>", on_btn_enter)
     end_btn.bind("<Leave>", on_btn_leave)
 
+    # Drag Bindings
     _bind_drag(card, on_drag_start=on_drag_start, on_drag_motion=on_drag_motion, on_drag_release=on_drag_release)
     _bind_drag(header_frame, on_drag_start=on_drag_start, on_drag_motion=on_drag_motion, on_drag_release=on_drag_release)
+    _bind_drag(lighting_frame, on_drag_start=on_drag_start, on_drag_motion=on_drag_motion, on_drag_release=on_drag_release)
     
     root.update_idletasks()
-    return card.winfo_reqwidth(), card.winfo_reqheight()
+    return card.winfo_reqwidth() + 2, card.winfo_reqheight() + 2 # +2 for lighting border
 
 
 def _show_end_session_modal(
