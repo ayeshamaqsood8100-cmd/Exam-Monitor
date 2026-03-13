@@ -138,9 +138,11 @@ def _build_side_widget(
     card = tk.Frame(root, bg=_BG_SURFACE, highlightbackground=_BORDER_SUBTLE, highlightthickness=1)
     card.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
     
-    tk.Frame(card, bg=_NEON_CYAN, height=2).pack(fill=tk.X)
-
-    # Added themed '✕' close button for Monitoring Widget
+    # --- Header Section (Premium Typography) ---
+    header_frame = tk.Frame(card, bg=_BG_SURFACE)
+    header_frame.pack(fill=tk.X, padx=20, pady=(15, 0))
+    
+    # Custom close button with better positioning
     close_btn = tk.Label(
         card,
         text="✕",
@@ -149,74 +151,98 @@ def _build_side_widget(
         font=("Segoe UI", 11),
         cursor="hand2",
     )
-    close_btn.place(relx=1.0, rely=0.0, anchor="ne", x=-8, y=8)
-    # Note: On main widget, 'X' typically hides or prompts session end depending on policy
-    # Here we'll bind it to the end session prompt for consistency with 'End Session' button
+    close_btn.place(relx=1.0, rely=0.0, anchor="ne", x=-10, y=10)
     close_btn.bind("<Button-1>", lambda _: on_end_session())
     close_btn.bind("<Enter>", lambda _: close_btn.configure(fg=_TEXT_PRIMARY))
     close_btn.bind("<Leave>", lambda _: close_btn.configure(fg=_TEXT_MUTED))
 
-    handle = tk.Frame(card, bg=_BG_SURFACE, cursor="fleur")
-    handle.pack(fill=tk.X, expand=True)
-    handle.bind("<Button-1>", on_drag_start)
-    handle.bind("<B1-Motion>", on_drag_motion)
-    handle.bind("<ButtonRelease-1>", on_drag_release)
-
-    # Original name label without wrapping
-    name_lbl = tk.Label(
-        handle, 
-        text=student_name, 
+    # Name with subtle tracking (simulated with space)
+    tk.Label(
+        header_frame, 
+        text=student_name.upper(), 
         bg=_BG_SURFACE, 
         fg=_TEXT_PRIMARY, 
-        font=("Segoe UI Semibold", 9)
-    )
-    name_lbl.pack(pady=(15, 0))
-    name_lbl.bind("<Button-1>", on_drag_start)
-    name_lbl.bind("<B1-Motion>", on_drag_motion)
-    name_lbl.bind("<ButtonRelease-1>", on_drag_release)
+        font=("Segoe UI Semibold", 10),
+        justify=tk.CENTER
+    ).pack()
+    
+    tk.Label(
+        header_frame, 
+        text=f"ERP {erp}", 
+        bg=_BG_SURFACE, 
+        fg=_NEON_CYAN, 
+        font=("Segoe UI", 7, "bold"),
+    ).pack(pady=(2, 0))
 
-    erp_lbl = tk.Label(handle, text=f"ERP - {erp}", bg=_BG_SURFACE, fg=_TEXT_MUTED, font=("Segoe UI", 8))
-    erp_lbl.pack(pady=(2, 12))
-    erp_lbl.bind("<Button-1>", on_drag_start)
-    erp_lbl.bind("<B1-Motion>", on_drag_motion)
-    erp_lbl.bind("<ButtonRelease-1>", on_drag_release)
+    # --- Secure Access Code Panel ---
+    panel = tk.Frame(card, bg="#0A0A0A", bd=0) # Slightly deeper black for contrast
+    panel.pack(fill=tk.X, padx=15, pady=(20, 0))
+    
+    # Inner border effect
+    inner_border = tk.Frame(panel, bg=_BORDER_SUBTLE, padx=1, pady=1)
+    inner_border.pack(fill=tk.BOTH)
+    
+    content_area = tk.Frame(inner_border, bg="#000000", padx=15, pady=12)
+    content_area.pack(fill=tk.BOTH)
+    
+    tk.Label(
+        content_area, 
+        text="SECURE ACCESS CODE", 
+        bg="#000000", 
+        fg=_TEXT_MUTED, 
+        font=("Segoe UI", 7, "bold")
+    ).pack()
+    
+    tk.Label(
+        content_area, 
+        text=access_code or "---", 
+        bg="#000000", 
+        fg=_TEXT_PRIMARY, 
+        font=("Consolas", 13, "bold"),
+        # letterspacing=1 # If tkinter supports, otherwise default
+    ).pack(pady=(4, 0))
 
-    panel = tk.Frame(card, bg=_BG_BASE, bd=0, highlightbackground=_BORDER_SUBTLE, highlightthickness=1)
-    panel.pack(fill=tk.X, padx=10)
-
-    tk.Label(panel, text="ACCESS CODE", bg=_BG_BASE, fg=_TEXT_SUBTITLE, font=("Segoe UI", 7, "bold")).pack(pady=(8, 2))
-    tk.Label(panel, text=access_code or "---", bg=_BG_BASE, fg=_NEON_CYAN, font=("Consolas", 11, "bold")).pack(pady=(0, 8))
-
-    status_label = tk.Label(
-        card,
-        text=status_text,
-        bg=_BG_SURFACE,
-        fg=status_color,
+    # --- Action Section ---
+    # Custom premium button style
+    btn_frame = tk.Frame(card, bg=_BG_SURFACE, pady=20)
+    btn_frame.pack(fill=tk.X, padx=15)
+    
+    end_btn = tk.Button(
+        btn_frame,
+        text="END SESSION",
         font=("Segoe UI", 8, "bold"),
-    )
-    status_label.pack(pady=(10, 0))
-    if status_ref is not None:
-        status_ref["label"] = status_label
-
-    tk.Button(
-        card,
-        text="End Session",
-        font=("Segoe UI Semibold", 9),
-        bg=_BG_BASE,
+        bg="#0D0D0D",
         fg=_NEON_ROSE,
-        bd=0,
-        highlightbackground=_BORDER_SUBTLE,
+        activebackground="#1A0D0F",
+        activeforeground=_NEON_ROSE,
+        highlightbackground=_NEON_ROSE,
+        highlightcolor=_NEON_ROSE,
         highlightthickness=1,
+        bd=0,
+        relief=tk.FLAT,
         cursor="hand2",
         command=on_end_session,
-    ).pack(fill=tk.X, padx=10, pady=(12, 12), ipady=5)
+        padx=10,
+        pady=8
+    )
+    end_btn.pack(fill=tk.X)
 
+    # Hover effect for premium feel
+    def on_btn_enter(_e):
+        end_btn.configure(bg=_NEON_ROSE, fg=_TEXT_PRIMARY)
+    def on_btn_leave(_e):
+        end_btn.configure(bg="#0D0D0D", fg=_NEON_ROSE)
+        
+    end_btn.bind("<Enter>", on_btn_enter)
+    end_btn.bind("<Leave>", on_btn_leave)
+
+    # Simplified drag binding
     _bind_drag(card, on_drag_start=on_drag_start, on_drag_motion=on_drag_motion, on_drag_release=on_drag_release)
-    _bind_drag(handle, on_drag_start=on_drag_start, on_drag_motion=on_drag_motion, on_drag_release=on_drag_release)
-    _bind_drag(panel, on_drag_start=on_drag_start, on_drag_motion=on_drag_motion, on_drag_release=on_drag_release)
-
+    _bind_drag(header_frame, on_drag_start=on_drag_start, on_drag_motion=on_drag_motion, on_drag_release=on_drag_release)
+    
+    # Set window size based on new layout
     root.update_idletasks()
-    return 140, 170
+    return card.winfo_reqwidth(), card.winfo_reqheight()
 
 
 def _show_end_session_modal(
