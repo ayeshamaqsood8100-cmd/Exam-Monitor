@@ -90,6 +90,7 @@ class AgentOrchestrator:
         self._resume_marker: dict | None = None
         self._saved_remote_status: Optional[str] = None
         self._saved_session_reconnect_pending = False
+        self._backend_connection_is_online = True
         self._keystroke_health_thread: threading.Thread | None = None
         self._keystroke_health_stop_event = threading.Event()
         self._keystroke_alert_active = False
@@ -125,8 +126,19 @@ class AgentOrchestrator:
                 print("[AUTOSTART] Registered for reboot recovery")
             else:
                 print("[AUTOSTART] Warning: auto-start registration was not created")
+                self._record_session_event(
+                    "system_autostart_registration_failed",
+                    "The agent could not register a verified reboot-recovery autostart entry.",
+                    severity="MED",
+                )
         except Exception as e:
             print(f"[AUTOSTART] Warning: failed to register auto-start - {e}")
+            self._record_session_event(
+                "system_autostart_registration_failed",
+                "The agent failed to register reboot recovery.",
+                evidence=str(e),
+                severity="MED",
+            )
 
     def _set_remote_session_state(self, endpoint: str) -> bool:
         if not self.session_id:
@@ -156,6 +168,26 @@ class AgentOrchestrator:
             except Exception as e:
                 print(f"[CONTROL] Warning: failed to hide widget after completion - {e}")
 
+    def _set_widget_connectivity_state(self, is_connected: bool, detail: str | None = None) -> None:
+        self._backend_connection_is_online = is_connected
+        if not self.widget:
+            return
+
+        try:
+            if is_connected:
+                self.widget.set_online()
+            else:
+                self.widget.set_reconnecting(detail)
+        except Exception as e:
+            print(f"[WIDGET] Warning: failed to update connectivity state - {e}")
+
+    def _handle_backend_connectivity_change(self, is_connected: bool, detail: str | None = None) -> None:
+        if self._is_shutting_down:
+            return
+        if is_connected:
+            self._saved_session_reconnect_pending = False
+        self._set_widget_connectivity_state(is_connected, detail)
+
     def _load_saved_session_context(self, saved: dict, restart_marker: dict | None, remote_status: str | None) -> None:
         self.session_id = saved["session_id"]
         self.student_name = saved["student_name"]
@@ -176,22 +208,7 @@ class AgentOrchestrator:
             return
 
         print("\n[COMPLETE] Student requested end session.")
-
-        if self.session_id:
-            try:
-                url = f"{settings.BACKEND_URL.rstrip('/')}/session/end"
-                headers = build_auth_headers()
-                response = get_http_client().post(
-                    url,
-                    headers=headers,
-                    json={"session_id": self.session_id, "source": "student"},
-                    timeout=10.0,
-                )
-                response.raise_for_status()
-            except Exception as e:
-                print(f"[COMPLETE] Warning: failed to mark session as completed on backend - {e}")
-
-        self._complete_monitoring()
+        self.shutdown(source="student")
 
     def run(self) -> None:
         """
@@ -377,6 +394,9 @@ class AgentOrchestrator:
                 print(f"Detail: {str(e)}\n")
                 print("Cannot proceed with monitoring. Please contact your instructor or IT support.")
             sys.exit(1)
+        finally:
+            clear_session_token()
+            close_http_client()
 
     def _handle_remote_status(self, status: str) -> None:
         if self._is_shutting_down:
@@ -525,7 +545,11 @@ class AgentOrchestrator:
             self.sync_engine.start()
             print("[SYNC] Sync engine started")
 
-            self.heartbeat_manager = HeartbeatManager(self.session_id, on_force_stop=lambda: self.shutdown(source="system"))
+            self.heartbeat_manager = HeartbeatManager(
+                self.session_id,
+                on_force_stop=lambda: self.shutdown(source="system"),
+                on_connectivity_change=self._handle_backend_connectivity_change,
+            )
             self.heartbeat_manager.start()
             print("[HEARTBEAT] Started")
 
@@ -540,6 +564,7 @@ class AgentOrchestrator:
             else:
                 self.widget.show()
 
+            self._set_widget_connectivity_state(True)
             print("[WIDGET] Monitoring widget active")
             self._is_monitoring_active = True
 
@@ -630,28 +655,27 @@ class AgentOrchestrator:
 
         if source != "student":
             session_persist.block_device(reason=f"Session ended ({source}).")
-            session_persist.clear_session()
-            autostart.uninstall()
+        else:
+            session_persist.clear_device_block()
+
+        session_persist.clear_session()
+        autostart.uninstall()
 
         if self.widget:
             try:
                 self.widget.stop()
             except Exception as e:
                 print(f"[SHUTDOWN] Warning: failed to stop monitoring widget - {e}")
+            self.widget = None
+
+        self.control_manager = None
+        self.heartbeat_manager = None
+        self.sync_engine = None
 
         print("[SHUTDOWN] Session ended cleanly. Agent is removing itself from this device.")
 
-        # Release the main thread event first so the run() loop unblocks.
+        # Release the main thread event so the run() loop can exit on the main thread.
         self._exit_event.set()
-
-        # Give the OS a moment to flush any pending output, then terminate
-        # the process entirely. When packaged as an exe, this causes the
-        # bundled console window to close automatically.
-        import time as _time
-        _time.sleep(0.6)
-        clear_session_token()
-        close_http_client()
-        sys.exit(0)
 
 
 if __name__ == "__main__":

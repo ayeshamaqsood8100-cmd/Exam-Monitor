@@ -4,10 +4,12 @@ Auto-start registration for Markaz Sentinel.
 Registers the watchdog to start automatically when the student logs into
 their computer, so the agent survives laptop reboots during exams.
 """
+from __future__ import annotations
+
 import os
+import platform
 import subprocess
 import sys
-import platform
 from pathlib import Path
 
 if platform.system() == "Windows":
@@ -15,32 +17,43 @@ if platform.system() == "Windows":
 
 
 _WINDOWS_TASK_NAME = "MarkazSentinel"
-_WINDOWS_RUN_KEY = r"HKCU\Software\Microsoft\Windows\CurrentVersion\Run"
+_WINDOWS_RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 _WINDOWS_HELPER_DIR = Path(os.environ.get("APPDATA", "")) / "MarkazSentinel"
 _WINDOWS_HELPER_BAT = _WINDOWS_HELPER_DIR / "launch_watchdog.bat"
 _WINDOWS_HELPER_VBS = _WINDOWS_HELPER_DIR / "launch_watchdog.vbs"
+_WINDOWS_STARTUP_BAT = (
+    Path(os.environ.get("APPDATA", ""))
+    / "Microsoft"
+    / "Windows"
+    / "Start Menu"
+    / "Programs"
+    / "Startup"
+    / "MarkazSentinel.bat"
+)
 
 
-def _get_working_directory():
+def _get_working_directory() -> str:
     if getattr(sys, "frozen", False):
         return os.path.dirname(sys.executable)
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-def _get_startup_dir() -> Path:
-    return Path(os.environ.get("APPDATA", "")) / "Microsoft" / "Windows" / "Start Menu" / "Programs" / "Startup"
+def _get_windows_launch_command() -> str:
+    return f'wscript.exe "{_WINDOWS_HELPER_VBS}"'
 
 
 def _write_windows_helper() -> None:
     _WINDOWS_HELPER_DIR.mkdir(parents=True, exist_ok=True)
     cwd = _get_working_directory()
     python_path = sys.executable
+
     if getattr(sys, "frozen", False):
         bat_content = f'@echo off\ncd /d "{cwd}"\n"{python_path}"\n'
         vbs_run_target = f'Chr(34) & "{python_path}" & Chr(34)'
     else:
         bat_content = f'@echo off\ncd /d "{cwd}"\n"{python_path}" -m agent.watchdog\n'
         vbs_run_target = f'Chr(34) & "{python_path}" & Chr(34) & " -m agent.watchdog"'
+
     _WINDOWS_HELPER_BAT.write_text(bat_content, encoding="utf-8")
     vbs_content = (
         'Set shell = CreateObject("WScript.Shell")\n'
@@ -50,59 +63,104 @@ def _write_windows_helper() -> None:
     _WINDOWS_HELPER_VBS.write_text(vbs_content, encoding="utf-8")
 
 
-def _remove_windows_startup_bat() -> None:
-    startup_bat = _get_startup_dir() / "MarkazSentinel.bat"
-    if startup_bat.exists():
-        startup_bat.unlink()
+def _verify_windows_task() -> bool:
+    result = subprocess.run(
+        ["schtasks", "/Query", "/TN", _WINDOWS_TASK_NAME],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    return result.returncode == 0
 
 
-def _install_windows():
+def _install_windows_task() -> bool:
+    result = subprocess.run(
+        [
+            "schtasks",
+            "/Create",
+            "/F",
+            "/SC",
+            "ONLOGON",
+            "/TN",
+            _WINDOWS_TASK_NAME,
+            "/TR",
+            _get_windows_launch_command(),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        print(f"[AUTOSTART] Scheduled task creation failed: {result.stderr.strip() or result.stdout.strip()}")
+        return False
+    return _verify_windows_task()
+
+
+def _verify_windows_run_entry() -> bool:
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, _WINDOWS_RUN_KEY, 0, winreg.KEY_READ) as key:
+            value, _ = winreg.QueryValueEx(key, _WINDOWS_TASK_NAME)
+        return str(value).strip() == _get_windows_launch_command()
+    except FileNotFoundError:
+        return False
+    except Exception as e:
+        print(f"[AUTOSTART] Failed to verify HKCU Run entry: {e}")
+        return False
+
+
+def _install_windows_run_entry() -> bool:
+    try:
+        with winreg.CreateKey(winreg.HKEY_CURRENT_USER, _WINDOWS_RUN_KEY) as key:
+            winreg.SetValueEx(key, _WINDOWS_TASK_NAME, 0, winreg.REG_SZ, _get_windows_launch_command())
+        return _verify_windows_run_entry()
+    except Exception as e:
+        print(f"[AUTOSTART] Failed to register HKCU Run fallback: {e}")
+        return False
+
+
+def _install_windows_startup_fallback() -> bool:
+    try:
+        _WINDOWS_STARTUP_BAT.parent.mkdir(parents=True, exist_ok=True)
+        _WINDOWS_STARTUP_BAT.write_text(
+            f'@echo off\nstart "" /min {_get_windows_launch_command()}\n',
+            encoding="utf-8",
+        )
+        return _WINDOWS_STARTUP_BAT.exists()
+    except Exception as e:
+        print(f"[AUTOSTART] Failed to write Startup fallback: {e}")
+        return False
+
+
+def _remove_windows_startup_fallback() -> None:
+    if _WINDOWS_STARTUP_BAT.exists():
+        _WINDOWS_STARTUP_BAT.unlink()
+
+
+def _install_windows() -> bool:
     try:
         _write_windows_helper()
-        _remove_windows_startup_bat()
+        _remove_windows_startup_fallback()
 
-        task_result = subprocess.run(
-            [
-                "schtasks",
-                "/Create",
-                "/F",
-                "/SC",
-                "ONLOGON",
-                "/TN",
-                _WINDOWS_TASK_NAME,
-                "/TR",
-                f'wscript.exe "{_WINDOWS_HELPER_VBS}"',
-            ],
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-        if task_result.returncode == 0:
+        if _install_windows_task():
             print(f"[AUTOSTART] Registered scheduled task: {_WINDOWS_TASK_NAME}")
             return True
 
-        try:
-            with winreg.OpenKey(
-                winreg.HKEY_CURRENT_USER,
-                r"Software\Microsoft\Windows\CurrentVersion\Run",
-                0,
-                winreg.KEY_SET_VALUE,
-            ) as key:
-                winreg.SetValueEx(key, _WINDOWS_TASK_NAME, 0, winreg.REG_SZ, f'wscript.exe "{_WINDOWS_HELPER_VBS}"')
+        if _install_windows_run_entry():
             print("[AUTOSTART] Scheduled task unavailable; registered HKCU Run fallback")
             return True
-        except Exception as reg_error:
-            print(
-                "[AUTOSTART] Failed to register autostart: "
-                f"{task_result.stderr.strip() or task_result.stdout.strip()} | {reg_error}"
-            )
+
+        if _install_windows_startup_fallback():
+            print("[AUTOSTART] Scheduled task and Run entry unavailable; registered Startup-folder fallback")
+            return True
+
+        print("[AUTOSTART] Failed to register any verified Windows autostart mechanism.")
         return False
     except Exception as e:
         print(f"[AUTOSTART] Failed to register on Windows: {e}")
         return False
 
 
-def _uninstall_windows():
+def _uninstall_windows() -> bool:
     success = True
 
     try:
@@ -117,12 +175,7 @@ def _uninstall_windows():
         success = False
 
     try:
-        with winreg.OpenKey(
-            winreg.HKEY_CURRENT_USER,
-            r"Software\Microsoft\Windows\CurrentVersion\Run",
-            0,
-            winreg.KEY_SET_VALUE,
-        ) as key:
+        with winreg.CreateKey(winreg.HKEY_CURRENT_USER, _WINDOWS_RUN_KEY) as key:
             try:
                 winreg.DeleteValue(key, _WINDOWS_TASK_NAME)
             except FileNotFoundError:
@@ -132,7 +185,7 @@ def _uninstall_windows():
         success = False
 
     try:
-        _remove_windows_startup_bat()
+        _remove_windows_startup_fallback()
         if _WINDOWS_HELPER_BAT.exists():
             _WINDOWS_HELPER_BAT.unlink()
         if _WINDOWS_HELPER_VBS.exists():
@@ -151,7 +204,7 @@ def _uninstall_windows():
 _MACOS_PLIST_NAME = "com.markaz.sentinel.plist"
 
 
-def _install_mac():
+def _install_mac() -> bool:
     launch_agents_dir = Path.home() / "Library" / "LaunchAgents"
     launch_agents_dir.mkdir(parents=True, exist_ok=True)
     plist_file = launch_agents_dir / _MACOS_PLIST_NAME
@@ -193,7 +246,7 @@ def _install_mac():
         return False
 
 
-def _uninstall_mac():
+def _uninstall_mac() -> bool:
     plist_file = Path.home() / "Library" / "LaunchAgents" / _MACOS_PLIST_NAME
 
     try:
@@ -207,7 +260,7 @@ def _uninstall_mac():
         return False
 
 
-def install():
+def install() -> bool:
     system = platform.system()
     if system == "Windows":
         return _install_windows()
@@ -217,7 +270,7 @@ def install():
     return False
 
 
-def uninstall():
+def uninstall() -> bool:
     system = platform.system()
     if system == "Windows":
         return _uninstall_windows()

@@ -22,6 +22,7 @@ $BuildVenvPath = Join-Path $RepoRoot ".build-venv-windows"
 $BuildDir = Join-Path $RepoRoot "build"
 $DistDir = Join-Path $RepoRoot "dist"
 $ReleaseDir = Join-Path $RepoRoot "release"
+$SupportSourceDir = Join-Path $RepoRoot "packaging\windows-support"
 $SafeLabel = ($OutputLabel -replace "[^A-Za-z0-9_-]", "-").Trim("-")
 
 if ([string]::IsNullOrWhiteSpace($SafeLabel)) {
@@ -122,6 +123,15 @@ try {
 
 if (-not (Test-Path $ExecutableOutputPath)) {
     throw "Build did not produce the expected executable at $ExecutableOutputPath"
+}
+
+if (Test-Path $SupportSourceDir) {
+    $SupportTargetRoot = if ($BundleMode -eq "onefile") { Split-Path -Parent $ExecutableOutputPath } else { $BundleDir }
+    $SupportTargetDir = Join-Path $SupportTargetRoot "Support"
+    if (Test-Path $SupportTargetDir) {
+        Remove-Item $SupportTargetDir -Recurse -Force
+    }
+    Copy-Item -Path $SupportSourceDir -Destination $SupportTargetDir -Recurse
 }
 
 Compress-Archive -Path $BuildTargetPath -DestinationPath $ZipPath -Force

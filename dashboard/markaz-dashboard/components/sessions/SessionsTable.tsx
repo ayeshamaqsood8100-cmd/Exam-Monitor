@@ -6,8 +6,8 @@ import SessionRow from "./SessionRow";
 
 interface SessionsTableProps {
     sessions: SessionWithStudent[];
-    onForceStop: (sessionId: string) => void;
-    onAcknowledge: (sessionId: string) => void;
+    onForceStop: (sessionId: string) => Promise<void>;
+    onAcknowledge: (sessionId: string) => Promise<void>;
     stoppingIds: Set<string>;
     acknowledgingIds: Set<string>;
 }

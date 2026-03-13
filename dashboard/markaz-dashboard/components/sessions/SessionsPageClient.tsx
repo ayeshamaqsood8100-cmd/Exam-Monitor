@@ -117,6 +117,7 @@ export default function SessionsPageClient({ examId, initialSessions, exam, onFo
     const [isTerminating, setIsTerminating] = useState(false);
     const [terminateResult, setTerminateResult] = useState<string | null>(null);
     const [acknowledgingIds, setAcknowledgingIds] = useState<Set<string>>(new Set());
+    const [sessionActionResult, setSessionActionResult] = useState<string | null>(null);
 
     useEffect(() => {
         setIsMounted(true);
@@ -130,11 +131,17 @@ export default function SessionsPageClient({ examId, initialSessions, exam, onFo
     const studentUpsertSql = buildStudentUpsertSql();
 
     const handleForceStop = async (sessionId: string) => {
+        const previousSession = sessions.find((session) => session.id === sessionId);
+        if (!previousSession) {
+            return;
+        }
+
         setStoppingIds(prev => {
             const next = new Set(prev);
             next.add(sessionId);
             return next;
         });
+        setSessionActionResult(null);
 
         // Optimistic UI update
         setSessions(prev => prev.map(s =>
@@ -149,7 +156,13 @@ export default function SessionsPageClient({ examId, initialSessions, exam, onFo
                 } : s
         ));
 
-        await onForceStopSession(sessionId);
+        const result = await onForceStopSession(sessionId);
+        if (result.error) {
+            setSessions(prev => prev.map(s => (s.id === sessionId ? previousSession : s)));
+            setSessionActionResult(`Error: ${result.error}`);
+        } else {
+            setSessionActionResult("OK Session ended");
+        }
 
         setStoppingIds(prev => {
             const next = new Set(prev);
@@ -159,18 +172,30 @@ export default function SessionsPageClient({ examId, initialSessions, exam, onFo
     };
 
     const handleAcknowledge = async (sessionId: string) => {
+        const previousSession = sessions.find((session) => session.id === sessionId);
+        if (!previousSession) {
+            return;
+        }
+
         setAcknowledgingIds(prev => {
             const next = new Set(prev);
             next.add(sessionId);
             return next;
         });
+        setSessionActionResult(null);
 
         // Optimistic UI update
         setSessions(prev => prev.map(s =>
             s.id === sessionId ? { ...s, needs_attention: false, attention_reason: null } : s
         ));
 
-        await onAcknowledgeSession(sessionId);
+        const result = await onAcknowledgeSession(sessionId);
+        if (result.error) {
+            setSessions(prev => prev.map(s => (s.id === sessionId ? previousSession : s)));
+            setSessionActionResult(`Error: ${result.error}`);
+        } else {
+            setSessionActionResult("OK Attention cleared");
+        }
 
         setAcknowledgingIds(prev => {
             const next = new Set(prev);
@@ -281,6 +306,12 @@ export default function SessionsPageClient({ examId, initialSessions, exam, onFo
             {terminateResult && (
                 <div className={`mb-4 text-sm font-medium px-4 py-2.5 rounded-lg inline-block ${terminateResult.startsWith("✓") ? 'text-[#06b6d4] bg-[#06b6d4]/10 border border-[#06b6d4]/30' : 'text-[#ef4444] bg-[#ef4444]/10 border border-[#ef4444]/30'}`}>
                     {terminateResult}
+                </div>
+            )}
+
+            {sessionActionResult && (
+                <div className={`mb-4 ml-3 text-sm font-medium px-4 py-2.5 rounded-lg inline-block ${sessionActionResult.startsWith("OK") ? 'text-[#06b6d4] bg-[#06b6d4]/10 border border-[#06b6d4]/30' : 'text-[#ef4444] bg-[#ef4444]/10 border border-[#ef4444]/30'}`}>
+                    {sessionActionResult}
                 </div>
             )}
 

@@ -5,7 +5,7 @@ import sys
 import threading
 import tkinter as tk
 from tkinter import messagebox
-from typing import Callable
+from typing import Callable, Any
 
 
 _BG_BASE = "#000000"
@@ -26,7 +26,6 @@ def is_windows_packaged_runtime() -> bool:
     return platform.system() == "Windows" and bool(getattr(sys, "frozen", False))
 
 def is_gui_mode() -> bool:
-    # Enable GUI for both platforms to ensure consistent experience
     return True
 
 
@@ -55,10 +54,13 @@ def _add_close_button(parent: tk.Widget, cancel_cmd: Callable[[], None]) -> None
 
 
 def _center_window(root: tk.Tk, w: int, h: int) -> None:
-    """Perfectly centers a window on the primary screen."""
+    """Perfectly centers a window on the primary screen, accounting for decorations and DPI."""
     root.update_idletasks()
     sw = root.winfo_screenwidth()
     sh = root.winfo_screenheight()
+    
+    # If not packaged (has title bar), we might need to adjust for window decorations
+    # but winfo_screenwidth/height usually work for geometry strings.
     x = max((sw - w) // 2, 0)
     y = max((sh - h) // 2, 0)
     root.geometry(f"{w}x{h}+{x}+{y}")
@@ -75,8 +77,8 @@ def request_student_erp() -> str | None:
     root.configure(bg=_BG_BASE)
     root.attributes("-topmost", True)
     
-    # Increased height to ensure buttons are visible when title bar is present
-    w, h = 460, 450
+    # Reverted to compact height
+    w, h = 460, 380
     _center_window(root, w, h)
     root.lift()
     root.focus_force()
@@ -129,8 +131,7 @@ def request_student_erp() -> str | None:
     error_label = tk.Label(panel, textvariable=error_var, bg=_BG_BASE, fg=_TEXT_ERROR, font=("Segoe UI", 9))
     error_label.pack(anchor=tk.W, pady=(8, 0))
 
-    button_row = tk.Frame(card, bg=_BG_SURFACE)
-    button_row.pack(fill=tk.X, padx=25, pady=(0, 25))
+    # Action buttons removed per user request
 
     def submit(_event=None) -> None:
         erp = entry.get().strip()
@@ -139,11 +140,6 @@ def request_student_erp() -> str | None:
             root.destroy()
             return
         error_var.set("ERP must be exactly 5 digits.")
-
-    exit_button = tk.Button(button_row, text="Exit", font=("Segoe UI", 10), bg=_BG_BASE, fg=_TEXT_PRIMARY, bd=0, highlightbackground=_BORDER_SUBTLE, highlightthickness=1, padx=18, pady=10, width=10, cursor="hand2", command=cancel)
-    exit_button.pack(side=tk.LEFT)
-    continue_button = tk.Button(button_row, text="Confirm", font=("Segoe UI Semibold", 10), bg=_BG_BASE, fg=_NEON_CYAN, bd=0, highlightbackground=_BORDER_SUBTLE, highlightthickness=1, padx=18, pady=10, width=14, cursor="hand2", command=submit)
-    continue_button.pack(side=tk.RIGHT)
 
     root.bind("<Return>", submit)
     root.bind("<Escape>", lambda _event: cancel())
@@ -167,8 +163,7 @@ def request_student_erp_with_session_start(
     root.configure(bg=_BG_BASE)
     root.attributes("-topmost", True)
     
-    # Increased height to ensure buttons are visible when title bar is present
-    w, h = 460, 450
+    w, h = 460, 380
     _center_window(root, w, h)
     root.lift()
     root.focus_force()
@@ -230,16 +225,13 @@ def request_student_erp_with_session_start(
     error_label = tk.Label(panel, textvariable=error_var, bg=_BG_BASE, fg=_TEXT_ERROR, font=("Segoe UI", 9))
     error_label.pack(anchor=tk.W, pady=(8, 0))
 
-    button_row = tk.Frame(card, bg=_BG_SURFACE)
-    button_row.pack(fill=tk.X, padx=25, pady=(0, 25))
+    # Action buttons removed per user request
 
     def set_busy(busy: bool) -> None:
         if state["closing"] and busy:
             return
         state["busy"] = busy
         entry.configure(state=tk.DISABLED if busy else tk.NORMAL)
-        continue_button.configure(text="Connecting..." if busy else "Confirm", state=tk.DISABLED if busy else tk.NORMAL)
-        exit_button.configure(text="Close" if busy else "Exit", state=tk.NORMAL)
         
         # Stop existing animation
         job = getattr(card, "_strip_job", None)
@@ -316,11 +308,6 @@ def request_student_erp_with_session_start(
         threading.Thread(target=worker, daemon=True).start()
         return "break"
 
-    exit_button = tk.Button(button_row, text="Exit", font=("Segoe UI", 10), bg=_BG_BASE, fg=_TEXT_PRIMARY, bd=0, highlightbackground=_BORDER_SUBTLE, highlightthickness=1, padx=18, pady=10, width=10, cursor="hand2", command=cancel)
-    exit_button.pack(side=tk.LEFT)
-    continue_button = tk.Button(button_row, text="Confirm", font=("Segoe UI Semibold", 10), bg=_BG_BASE, fg=_NEON_CYAN, bd=0, highlightbackground=_BORDER_SUBTLE, highlightthickness=1, padx=18, pady=10, width=14, cursor="hand2", command=submit)
-    continue_button.pack(side=tk.RIGHT)
-
     root.bind("<Return>", submit)
     root.bind("<Escape>", lambda _event: cancel())
     root.protocol("WM_DELETE_WINDOW", cancel)
@@ -340,8 +327,8 @@ def request_consent_confirmation() -> bool:
     root.configure(bg=_BG_BASE)
     root.attributes("-topmost", True)
     
-    # Increased height to accommodate all text and buttons comfortably
-    w, h = 480, 580
+    # Compact height restored
+    w, h = 480, 520
     _center_window(root, w, h)
     root.lift()
     root.focus_force()
@@ -402,8 +389,7 @@ def request_consent_confirmation() -> bool:
     error_label = tk.Label(panel, textvariable=error_var, bg=_BG_BASE, fg=_TEXT_ERROR, font=("Segoe UI", 9))
     error_label.pack(anchor=tk.W, pady=(8, 0))
 
-    button_row = tk.Frame(card, bg=_BG_SURFACE)
-    button_row.pack(fill=tk.X, padx=25, pady=(0, 25))
+    # Action buttons removed per user request
 
     def submit(_event=None) -> None:
         choice = entry.get().strip().upper()
@@ -416,9 +402,6 @@ def request_consent_confirmation() -> bool:
             exit_app()
             return
         error_var.set("Type YES to continue or NO to exit.")
-
-    tk.Button(button_row, text="Exit", font=("Segoe UI", 10), bg=_BG_BASE, fg=_TEXT_PRIMARY, bd=0, highlightbackground=_BORDER_SUBTLE, highlightthickness=1, padx=18, pady=10, width=10, cursor="hand2", command=exit_app).pack(side=tk.LEFT)
-    tk.Button(button_row, text="Confirm", font=("Segoe UI Semibold", 10), bg=_BG_BASE, fg=_NEON_CYAN, bd=0, highlightbackground=_BORDER_SUBTLE, highlightthickness=1, padx=18, pady=10, width=14, cursor="hand2", command=submit).pack(side=tk.RIGHT)
 
     root.bind("<Return>", submit)
     root.protocol("WM_DELETE_WINDOW", exit_app)

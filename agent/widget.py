@@ -16,7 +16,7 @@ import queue
 import threading
 import time
 import tkinter as tk
-from typing import Callable
+from typing import Callable, Any
 
 
 _IS_MAC = platform.system() == "Darwin"
@@ -27,6 +27,7 @@ _BORDER_SUBTLE = "#1C1C1C"
 
 _NEON_CYAN = "#00B8D9"
 _NEON_ROSE = "#FF3366"
+_NEON_AMBER = "#FFD166"
 
 _TEXT_PRIMARY = "#FFFFFF"
 _TEXT_MUTED = "#888888"
@@ -124,6 +125,9 @@ def _build_side_widget(
     student_name: str,
     erp: str,
     access_code: str,
+    status_text: str,
+    status_color: str,
+    status_ref: dict[str, tk.Label] | None,
     on_end_session: Callable[[], None],
     on_drag_start: Callable[[tk.Event], None],
     on_drag_motion: Callable[[tk.Event], None],
@@ -168,6 +172,17 @@ def _build_side_widget(
 
     tk.Label(panel, text="ACCESS CODE", bg=_BG_BASE, fg=_TEXT_SUBTITLE, font=("Segoe UI", 7, "bold")).pack(pady=(8, 2))
     tk.Label(panel, text=access_code or "---", bg=_BG_BASE, fg=_NEON_CYAN, font=("Consolas", 11, "bold")).pack(pady=(0, 8))
+
+    status_label = tk.Label(
+        card,
+        text=status_text,
+        bg=_BG_SURFACE,
+        fg=status_color,
+        font=("Segoe UI", 8, "bold"),
+    )
+    status_label.pack(pady=(10, 0))
+    if status_ref is not None:
+        status_ref["label"] = status_label
 
     tk.Button(
         card,
@@ -303,13 +318,7 @@ def _show_end_session_modal(
         entry.focus_set()
         return "break"
 
-    tk.Button(
-        action_row, text="Cancel", font=("Segoe UI", 10), bg=_BG_BASE, fg=_TEXT_PRIMARY, bd=0, highlightbackground=_BORDER_SUBTLE, highlightthickness=1, padx=18, pady=10, width=12, cursor="hand2", command=lambda: cancel()
-    ).pack(side=tk.LEFT)
-    
-    tk.Button(
-        action_row, text="Confirm End", font=("Segoe UI Semibold", 10), bg=_BG_BASE, fg=_NEON_ROSE, bd=0, highlightbackground=_BORDER_SUBTLE, highlightthickness=1, padx=18, pady=10, width=14, cursor="hand2", command=lambda: submit()
-    ).pack(side=tk.RIGHT)
+    # Action buttons removed per user request
 
     dialog.bind("<Return>", submit)
     dialog.bind("<KP_Enter>", submit)
@@ -332,6 +341,7 @@ def _run_widget_process(
 ) -> None:
     end_requested = False
     root = None
+    status_label_ref: dict[str, tk.Label] = {}
 
     try:
         root = tk.Tk()
@@ -389,6 +399,11 @@ def _run_widget_process(
 
             root.after(0, lambda: _show_end_session_modal(root, access_code=access_code or "", on_confirm=confirm))
 
+        def update_status(text: str, color: str) -> None:
+            label = status_label_ref.get("label")
+            if label:
+                label.configure(text=text, fg=color)
+
         def poll_commands() -> None:
             try:
                 while True:
@@ -398,6 +413,8 @@ def _run_widget_process(
                         root.deiconify()
                     elif action == "hide":
                         root.withdraw()
+                    elif action == "set_status":
+                        update_status(str(command.get("text") or "Monitoring Active"), str(command.get("color") or _NEON_CYAN))
                     elif action == "stop":
                         root.destroy()
                         return
@@ -411,6 +428,9 @@ def _run_widget_process(
             student_name=student_name,
             erp=erp,
             access_code=access_code,
+            status_text="Monitoring Active",
+            status_color=_NEON_CYAN,
+            status_ref=status_label_ref,
             on_end_session=prompt_end_session,
             on_drag_start=on_drag_start,
             on_drag_motion=on_drag_motion,
@@ -463,6 +483,9 @@ class MonitoringWidget:
         self._listener_thread: threading.Thread | None = None
         self._uses_process_backend = False
         self._startup_error_message: str | None = None
+        self._status_label: tk.Label | None = None
+        self._status_text = "Monitoring Active"
+        self._status_color = _NEON_CYAN
 
         self._start_x = 0
         self._start_y = 0
@@ -630,22 +653,28 @@ class MonitoringWidget:
     def _run_app(self) -> None:
         self.root = tk.Tk()
         _configure_floating_window(self.root, "Markaz Sentinel")
+        status_label_ref: dict[str, tk.Label] = {}
 
         target_width, target_height = _build_side_widget(
             self.root,
             student_name=self.student_name,
             erp=self.erp,
             access_code=self.access_code,
+            status_text=self._status_text,
+            status_color=self._status_color,
+            status_ref=status_label_ref,
             on_end_session=self._prompt_end_session,
             on_drag_start=self._on_drag_start,
             on_drag_motion=self._on_drag_motion,
             on_drag_release=self._on_drag_release,
         )
+        self._status_label = status_label_ref.get("label")
         screen_width = self.root.winfo_screenwidth()
         self.root.geometry(f"{target_width}x{target_height}+{screen_width - target_width - 20}+20")
         self._ready_event.set()
         self.root.mainloop()
         self.root = None
+        self._status_label = None
 
     def _on_drag_start(self, event) -> None:
         self._start_x = event.x_root
@@ -689,3 +718,29 @@ class MonitoringWidget:
 
         if self.root:
             self.root.after(0, lambda: _show_end_session_modal(self.root, access_code=self.access_code or "", on_confirm=confirm))
+
+    def _apply_status(self, text: str, color: str) -> None:
+        self._status_text = text
+        self._status_color = color
+        if self._uses_process_backend:
+            if self._command_queue and self._process and self._process.is_alive():
+                try:
+                    self._command_queue.put({"action": "set_status", "text": text, "color": color})
+                except Exception:
+                    pass
+            return
+
+        if self.root and self._status_label:
+            try:
+                self.root.after(0, lambda: self._status_label and self._status_label.configure(text=text, fg=color))
+            except Exception:
+                pass
+
+    def set_online(self) -> None:
+        self._apply_status("Monitoring Active", _NEON_CYAN)
+
+    def set_reconnecting(self, detail: str | None = None) -> None:
+        message = "Offline / Reconnecting"
+        if detail and "timed out" in detail.lower():
+            message = "Offline / Reconnecting"
+        self._apply_status(message, _NEON_AMBER)

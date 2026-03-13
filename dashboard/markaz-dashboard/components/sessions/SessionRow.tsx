@@ -6,8 +6,8 @@ import { type SessionWithStudent } from "@/lib/sessions";
 
 interface SessionRowProps {
     session: SessionWithStudent;
-    onForceStop: (sessionId: string) => void;
-    onAcknowledge: (sessionId: string) => void;
+    onForceStop: (sessionId: string) => Promise<void>;
+    onAcknowledge: (sessionId: string) => Promise<void>;
     isStopping: boolean;
     isAcknowledging: boolean;
 }
@@ -78,7 +78,7 @@ export default function SessionRow({ session, onForceStop, onAcknowledge, isStop
                     </div>
                     {needsAttention && (
                         <button
-                            onClick={() => onAcknowledge(session.id)}
+                            onClick={() => void onAcknowledge(session.id)}
                             disabled={isAcknowledging}
                             title="Acknowledge/Dismiss Alert"
                             className={`flex items-center justify-center p-1 rounded-md border border-[#ef4444]/30 text-[#ef4444] hover:bg-[#ef4444]/20 transition-all ${isAcknowledging ? 'opacity-50 cursor-wait' : 'cursor-pointer'}`}
@@ -147,7 +147,7 @@ export default function SessionRow({ session, onForceStop, onAcknowledge, isStop
                         <button
                             onClick={() => {
                                 if (confirm("End & remove this student's agent now? This cannot be restarted.")) {
-                                    onForceStop(session.id);
+                                    void onForceStop(session.id);
                                 }
                             }}
                             disabled={isStopping}
