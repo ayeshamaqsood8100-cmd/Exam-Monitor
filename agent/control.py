@@ -7,7 +7,7 @@ from .http_client import get_http_client
 
 
 class SessionControlManager:
-    def __init__(self, session_id: str, on_status_change: Callable[[str], None], poll_interval_seconds: float = 10.0) -> None:
+    def __init__(self, session_id: str, on_status_change: Callable[[str], None], poll_interval_seconds: float = 3.0) -> None:
         self.session_id = session_id
         self._on_status_change = on_status_change
         self._poll_interval_seconds = poll_interval_seconds

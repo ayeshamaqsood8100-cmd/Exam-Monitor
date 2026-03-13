@@ -599,7 +599,7 @@ class AgentOrchestrator:
             except Exception as e:
                 print(f"[SHUTDOWN] Warning: failed to mark session as complete on backend - {e}")
 
-        if source != "student":
+        if source == "student":
             session_persist.block_device(reason=f"Session ended ({source}).")
             session_persist.clear_session()
             autostart.uninstall()
