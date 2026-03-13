@@ -140,6 +140,22 @@ def _build_side_widget(
     
     tk.Frame(card, bg=_NEON_CYAN, height=2).pack(fill=tk.X)
 
+    # Added themed '✕' close button for Monitoring Widget
+    close_btn = tk.Label(
+        card,
+        text="✕",
+        bg=_BG_SURFACE,
+        fg=_TEXT_MUTED,
+        font=("Segoe UI", 11),
+        cursor="hand2",
+    )
+    close_btn.place(relx=1.0, rely=0.0, anchor="ne", x=-8, y=8)
+    # Note: On main widget, 'X' typically hides or prompts session end depending on policy
+    # Here we'll bind it to the end session prompt for consistency with 'End Session' button
+    close_btn.bind("<Button-1>", lambda _: on_end_session())
+    close_btn.bind("<Enter>", lambda _: close_btn.configure(fg=_TEXT_PRIMARY))
+    close_btn.bind("<Leave>", lambda _: close_btn.configure(fg=_TEXT_MUTED))
+
     handle = tk.Frame(card, bg=_BG_SURFACE, cursor="fleur")
     handle.pack(fill=tk.X, expand=True)
     handle.bind("<Button-1>", on_drag_start)
@@ -233,7 +249,23 @@ def _show_end_session_modal(
     card = tk.Frame(dialog, bg=_BG_SURFACE, highlightbackground=_BORDER_SUBTLE, highlightthickness=1)
     card.pack(fill=tk.BOTH, expand=True, padx=25, pady=25)
     
-    # OS Title bar used for closing per user preference
+    # Added themed '✕' close button for End Session Modal
+    close_btn = tk.Label(
+        card,
+        text="✕",
+        bg=_BG_SURFACE,
+        fg=_TEXT_MUTED,
+        font=("Segoe UI", 12),
+        cursor="hand2",
+    )
+    close_btn.place(relx=1.0, rely=0.0, anchor="ne", x=-10, y=10)
+
+    def on_close_click(_event=None):
+        cancel()
+
+    close_btn.bind("<Button-1>", on_close_click)
+    close_btn.bind("<Enter>", lambda _: close_btn.configure(fg=_TEXT_PRIMARY))
+    close_btn.bind("<Leave>", lambda _: close_btn.configure(fg=_TEXT_MUTED))
 
     tk.Frame(card, bg=_NEON_ROSE, height=2).pack(fill=tk.X)
 

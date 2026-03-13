@@ -39,6 +39,21 @@ def show_error_dialog(title: str, message: str) -> None:
     root.destroy()
 
 
+def _add_close_button(parent: tk.Widget, cancel_cmd: Callable[[], None]) -> None:
+    btn = tk.Label(
+        parent,
+        text="✕",
+        bg=_BG_SURFACE,
+        fg=_TEXT_MUTED,
+        font=("Segoe UI", 12),
+        cursor="hand2",
+    )
+    btn.place(relx=1.0, rely=0.0, anchor="ne", x=-10, y=10)
+    btn.bind("<Button-1>", lambda _: cancel_cmd())
+    btn.bind("<Enter>", lambda _: btn.configure(fg=_TEXT_PRIMARY))
+    btn.bind("<Leave>", lambda _: btn.configure(fg=_TEXT_MUTED))
+
+
 def _center_window(root: tk.Tk, w: int, h: int) -> None:
     """Perfectly centers a window on the primary screen, accounting for decorations and DPI."""
     root.update_idletasks()
@@ -70,6 +85,8 @@ def request_student_erp() -> str | None:
     def cancel() -> None:
         result["erp"] = None
         root.destroy()
+
+    _add_close_button(card, cancel)
 
     strip_canvas = tk.Canvas(card, bg=_BG_SURFACE, height=2, highlightthickness=0, bd=0)
     strip_canvas.pack(fill=tk.X)
@@ -154,6 +171,8 @@ def request_student_erp_with_session_start(
         result["session"] = None
         if root.winfo_exists():
             root.destroy()
+
+    _add_close_button(card, cancel)
 
     strip_canvas = tk.Canvas(card, bg=_BG_SURFACE, height=2, highlightthickness=0, bd=0)
     strip_canvas.pack(fill=tk.X)
@@ -311,6 +330,8 @@ def request_consent_confirmation() -> bool:
         result["submitted"] = True
         result["accepted"] = False
         root.destroy()
+
+    _add_close_button(card, exit_app)
 
     strip_canvas = tk.Canvas(card, bg=_BG_SURFACE, height=2, highlightthickness=0, bd=0)
     strip_canvas.pack(fill=tk.X)
