@@ -146,15 +146,13 @@ def _build_side_widget(
     handle.bind("<B1-Motion>", on_drag_motion)
     handle.bind("<ButtonRelease-1>", on_drag_release)
 
-    # Support two-line wrapping for long student names
+    # Original name label without wrapping
     name_lbl = tk.Label(
         handle, 
         text=student_name, 
         bg=_BG_SURFACE, 
         fg=_TEXT_PRIMARY, 
-        font=("Segoe UI Semibold", 9),
-        wraplength=120,
-        justify=tk.CENTER
+        font=("Segoe UI Semibold", 9)
     )
     name_lbl.pack(pady=(15, 0))
     name_lbl.bind("<Button-1>", on_drag_start)

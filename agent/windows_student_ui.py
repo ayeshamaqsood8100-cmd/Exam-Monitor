@@ -15,6 +15,8 @@ _BORDER_SUBTLE = "#1C1C1C"
 
 _NEON_CYAN = "#00B8D9"
 _NEON_ROSE = "#FF3366"
+_REQUEST_TIMEOUT_MS = 15000
+_TEXT_STATUS = "#FFD166"
 
 _TEXT_PRIMARY = "#FFFFFF"
 _TEXT_MUTED = "#888888"
@@ -55,16 +57,15 @@ def request_student_erp() -> str | None:
     root.title("Markaz Sentinel")
     root.configure(bg=_BG_BASE)
     root.attributes("-topmost", True)
+    root.overrideredirect(True) # Restore frameless original state
     
-    # Standard OS title bar is restored (overrideredirect removed)
-    
-    w, h = 460, 360
+    w, h = 460, 320 # restored original compact height
     _center_window(root, w, h)
     root.lift()
     root.focus_force()
     
     card = tk.Frame(root, bg=_BG_SURFACE, highlightbackground=_BORDER_SUBTLE, highlightthickness=1)
-    card.pack(fill=tk.BOTH, expand=True, padx=25, pady=25)
+    card.pack(fill=tk.BOTH, expand=True, padx=0, pady=0) # reduced padding for frameless look
 
     def cancel() -> None:
         result["erp"] = None
@@ -106,7 +107,7 @@ def request_student_erp() -> str | None:
     entry.pack(fill=tk.X, padx=18, pady=12, ipady=4)
     entry.focus_set()
 
-    error_label = tk.Label(panel, textvariable=error_var, bg=_BG_BASE, fg=_TEXT_ERROR, font=("Segoe UI", 9))
+    error_label = tk.Label(panel, textvariable=error_var, bg=_BG_BASE, fg=_TEXT_STATUS, font=("Segoe UI", 9))
     error_label.pack(anchor=tk.W, pady=(8, 0))
 
     def submit(_event=None) -> None:
@@ -135,14 +136,15 @@ def request_student_erp_with_session_start(
     root.title("Markaz Sentinel")
     root.configure(bg=_BG_BASE)
     root.attributes("-topmost", True)
+    root.overrideredirect(True) # Restore frameless original state
     
-    w, h = 460, 360
+    w, h = 460, 320 # restored original compact height
     _center_window(root, w, h)
     root.lift()
     root.focus_force()
     
     card = tk.Frame(root, bg=_BG_SURFACE, highlightbackground=_BORDER_SUBTLE, highlightthickness=1)
-    card.pack(fill=tk.BOTH, expand=True, padx=25, pady=25)
+    card.pack(fill=tk.BOTH, expand=True, padx=0, pady=0) # reduced padding for frameless look
 
     def cancel() -> None:
         state["closing"] = True
@@ -192,7 +194,7 @@ def request_student_erp_with_session_start(
     entry.pack(fill=tk.X, padx=18, pady=12, ipady=4)
     entry.focus_set()
 
-    error_label = tk.Label(panel, textvariable=error_var, bg=_BG_BASE, fg=_TEXT_ERROR, font=("Segoe UI", 9))
+    error_label = tk.Label(panel, textvariable=error_var, bg=_BG_BASE, fg=_TEXT_STATUS, font=("Segoe UI", 9))
     error_label.pack(anchor=tk.W, pady=(8, 0))
 
     def set_busy(busy: bool) -> None:
@@ -241,16 +243,29 @@ def request_student_erp_with_session_start(
         state["request_id"] += 1
         current_request_id = int(state["request_id"])
 
+        def handle_timeout() -> None:
+            if state["closing"] or current_request_id != state["request_id"] or not state["busy"]:
+                return
+            complete_error(current_request_id, "Session start timed out. Check your internet or try another ERP.")
+
+        root.after(_REQUEST_TIMEOUT_MS, handle_timeout)
+
         def worker() -> None:
             try:
                 session_info = start_session(erp)
                 if state["closing"] or current_request_id != state["request_id"]:
                     return
-                root.after(0, lambda: complete_success(current_request_id, erp, session_info))
+                try:
+                    root.after(0, lambda: complete_success(current_request_id, erp, session_info))
+                except RuntimeError:
+                    pass
             except Exception as exc:
                 if state["closing"] or current_request_id != state["request_id"]:
                     return
-                root.after(0, lambda: complete_error(current_request_id, str(exc)))
+                try:
+                    root.after(0, lambda: complete_error(current_request_id, str(exc)))
+                except RuntimeError:
+                    pass
 
         def complete_success(request_id: int, erp: str, session_info: tuple[str, str, str]) -> None:
             if not root.winfo_exists() or request_id != state["request_id"]: return
@@ -281,15 +296,16 @@ def request_consent_confirmation() -> bool:
     root.title("Markaz Sentinel")
     root.configure(bg=_BG_BASE)
     root.attributes("-topmost", True)
+    root.overrideredirect(True) # Restore frameless original state
     
     # Very compact size for the pledge
-    w, h = 480, 480
+    w, h = 480, 420 # restored original compact height
     _center_window(root, w, h)
     root.lift()
     root.focus_force()
     
     card = tk.Frame(root, bg=_BG_SURFACE, highlightbackground=_BORDER_SUBTLE, highlightthickness=1)
-    card.pack(fill=tk.BOTH, expand=True, padx=25, pady=25)
+    card.pack(fill=tk.BOTH, expand=True, padx=0, pady=0) # reduced padding for frameless look
 
     def exit_app() -> None:
         result["submitted"] = True
@@ -339,7 +355,7 @@ def request_consent_confirmation() -> bool:
     entry.pack(fill=tk.X, padx=15, pady=10, ipady=2)
     entry.focus_set()
 
-    error_label = tk.Label(panel, textvariable=error_var, bg=_BG_BASE, fg=_TEXT_ERROR, font=("Segoe UI", 8))
+    error_label = tk.Label(panel, textvariable=error_var, bg=_BG_BASE, fg=_TEXT_STATUS, font=("Segoe UI", 8))
     error_label.pack(anchor=tk.W, pady=(4, 0))
 
     def submit(_event=None) -> None:
@@ -355,6 +371,7 @@ def request_consent_confirmation() -> bool:
         error_var.set("Type YES or NO.")
 
     root.bind("<Return>", submit)
+    root.bind("<Escape>", lambda _event: exit_app())
     root.protocol("WM_DELETE_WINDOW", exit_app)
     root.deiconify()
     root.mainloop()

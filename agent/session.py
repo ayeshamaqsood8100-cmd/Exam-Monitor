@@ -72,8 +72,15 @@ class SessionManager:
                 error_detail = e.response.json().get('detail', e.response.text)
             except Exception:
                 error_detail = e.response.text
-                
-            raise ValueError(f"Backend rejected the session request (HTTP {e.response.status_code}): {error_detail}") from e
+
+            normalized_detail = str(error_detail).strip()
+            if e.response.status_code == 400 and normalized_detail.lower() == "invalid request.":
+                raise ValueError(
+                    "This ERP cannot start a new session for this exam right now. "
+                    "Please use a fresh ERP or ask the invigilator to reset the session."
+                ) from e
+
+            raise ValueError(f"Backend rejected the session request (HTTP {e.response.status_code}): {normalized_detail}") from e
             
         except httpx.RequestError as e:
             raise RuntimeError(f"An unexpected underlying network error occurred: {str(e)}") from e
