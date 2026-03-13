@@ -138,32 +138,32 @@ def _build_side_widget(
     card = tk.Frame(root, bg=_BG_SURFACE, highlightbackground=_BORDER_SUBTLE, highlightthickness=1)
     card.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
     
-    # --- Header Section (Premium Typography) ---
+    # --- Header Section (Compact Typography) ---
     header_frame = tk.Frame(card, bg=_BG_SURFACE)
-    header_frame.pack(fill=tk.X, padx=20, pady=(15, 0))
+    header_frame.pack(fill=tk.X, padx=12, pady=(15, 0)) # Tighter horizontal padding
     
-    # Custom close button with better positioning
     close_btn = tk.Label(
         card,
         text="✕",
         bg=_BG_SURFACE,
         fg=_TEXT_MUTED,
-        font=("Segoe UI", 11),
+        font=("Segoe UI", 10), # Slightly smaller
         cursor="hand2",
     )
-    close_btn.place(relx=1.0, rely=0.0, anchor="ne", x=-10, y=10)
+    close_btn.place(relx=1.0, rely=0.0, anchor="ne", x=-8, y=8) # Tighter positioning
     close_btn.bind("<Button-1>", lambda _: on_end_session())
     close_btn.bind("<Enter>", lambda _: close_btn.configure(fg=_TEXT_PRIMARY))
     close_btn.bind("<Leave>", lambda _: close_btn.configure(fg=_TEXT_MUTED))
 
-    # Name with subtle tracking (simulated with space)
+    # Name: Reduced font and added tight wrapping for the "badge" feel
     tk.Label(
         header_frame, 
         text=student_name.upper(), 
         bg=_BG_SURFACE, 
         fg=_TEXT_PRIMARY, 
-        font=("Segoe UI Semibold", 10),
-        justify=tk.CENTER
+        font=("Segoe UI Semibold", 8), # Smaller font
+        justify=tk.CENTER,
+        wraplength=130 # Narrow wrapping
     ).pack()
     
     tk.Label(
@@ -174,23 +174,22 @@ def _build_side_widget(
         font=("Segoe UI", 7, "bold"),
     ).pack(pady=(2, 0))
 
-    # --- Secure Access Code Panel ---
-    panel = tk.Frame(card, bg="#0A0A0A", bd=0) # Slightly deeper black for contrast
-    panel.pack(fill=tk.X, padx=15, pady=(20, 0))
+    # --- Secure Access Code Panel (Narrower) ---
+    panel = tk.Frame(card, bg="#0A0A0A", bd=0)
+    panel.pack(fill=tk.X, padx=12, pady=(15, 0)) # Tighter horizontal padding
     
-    # Inner border effect
     inner_border = tk.Frame(panel, bg=_BORDER_SUBTLE, padx=1, pady=1)
     inner_border.pack(fill=tk.BOTH)
     
-    content_area = tk.Frame(inner_border, bg="#000000", padx=15, pady=12)
+    content_area = tk.Frame(inner_border, bg="#000000", padx=10, pady=10) # Reduced padding
     content_area.pack(fill=tk.BOTH)
     
     tk.Label(
         content_area, 
-        text="SECURE ACCESS CODE", 
+        text="SECURE CODE", # Shortened text for narrow space
         bg="#000000", 
         fg=_TEXT_MUTED, 
-        font=("Segoe UI", 7, "bold")
+        font=("Segoe UI", 6, "bold") # Smaller font
     ).pack()
     
     tk.Label(
@@ -198,19 +197,17 @@ def _build_side_widget(
         text=access_code or "---", 
         bg="#000000", 
         fg=_TEXT_PRIMARY, 
-        font=("Consolas", 13, "bold"),
-        # letterspacing=1 # If tkinter supports, otherwise default
-    ).pack(pady=(4, 0))
+        font=("Consolas", 11, "bold"), # More compact font
+    ).pack(pady=(2, 0))
 
     # --- Action Section ---
-    # Custom premium button style
-    btn_frame = tk.Frame(card, bg=_BG_SURFACE, pady=20)
-    btn_frame.pack(fill=tk.X, padx=15)
+    btn_frame = tk.Frame(card, bg=_BG_SURFACE, pady=15)
+    btn_frame.pack(fill=tk.X, padx=12) # Tighter horizontal padding
     
     end_btn = tk.Button(
         btn_frame,
         text="END SESSION",
-        font=("Segoe UI", 8, "bold"),
+        font=("Segoe UI", 7, "bold"), # Smaller font
         bg="#0D0D0D",
         fg=_NEON_ROSE,
         activebackground="#1A0D0F",
@@ -222,12 +219,11 @@ def _build_side_widget(
         relief=tk.FLAT,
         cursor="hand2",
         command=on_end_session,
-        padx=10,
-        pady=8
+        padx=8,
+        pady=6
     )
     end_btn.pack(fill=tk.X)
 
-    # Hover effect for premium feel
     def on_btn_enter(_e):
         end_btn.configure(bg=_NEON_ROSE, fg=_TEXT_PRIMARY)
     def on_btn_leave(_e):
@@ -236,11 +232,9 @@ def _build_side_widget(
     end_btn.bind("<Enter>", on_btn_enter)
     end_btn.bind("<Leave>", on_btn_leave)
 
-    # Simplified drag binding
     _bind_drag(card, on_drag_start=on_drag_start, on_drag_motion=on_drag_motion, on_drag_release=on_drag_release)
     _bind_drag(header_frame, on_drag_start=on_drag_start, on_drag_motion=on_drag_motion, on_drag_release=on_drag_release)
     
-    # Set window size based on new layout
     root.update_idletasks()
     return card.winfo_reqwidth(), card.winfo_reqheight()
 
