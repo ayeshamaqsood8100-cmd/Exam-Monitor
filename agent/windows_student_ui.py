@@ -298,16 +298,16 @@ def request_consent_confirmation() -> bool:
 
     top_frame = tk.Frame(card, bg=_BG_SURFACE, padx=30, pady=15)
     top_frame.pack(fill=tk.X)
-    tk.Label(top_frame, text="STEP 2", bg=_BG_SURFACE, fg=_NEON_CYAN, font=("Segoe UI", 9, "bold")).pack(anchor="w")
-    tk.Label(top_frame, text="Academic Integrity", bg=_BG_SURFACE, fg=_TEXT_PRIMARY, font=("Segoe UI Semibold", 20)).pack(anchor="w", pady=(4, 0))
-    tk.Label(top_frame, text="Accept the pledge to begin monitoring.", bg=_BG_SURFACE, fg=_TEXT_MUTED, font=("Segoe UI", 9)).pack(anchor="w")
+    tk.Label(top_frame, text="STEP 2", bg=_BG_SURFACE, fg=_NEON_CYAN, font=("Segoe UI", 9, "bold")).pack(anchor="center")
+    tk.Label(top_frame, text="Academic Integrity", bg=_BG_SURFACE, fg=_TEXT_PRIMARY, font=("Segoe UI Semibold", 20)).pack(anchor="center", pady=(4, 0))
+    tk.Label(top_frame, text="Accept the pledge to begin monitoring.", bg=_BG_SURFACE, fg=_TEXT_MUTED, font=("Segoe UI", 9), justify=tk.CENTER).pack(anchor="center")
 
     pledge_box = tk.Frame(top_frame, bg=_BG_SURFACE, bd=0, pady=10)
     pledge_box.pack(fill=tk.X)
     
-    tk.Label(pledge_box, text="I pledge on my honour that I will not give or receive any unauthorized assistance during this examination.", bg=_BG_SURFACE, fg=_TEXT_PRIMARY, font=("Segoe UI", 10, "italic"), wraplength=400, justify=tk.CENTER).pack(anchor="center")
-    tk.Label(pledge_box, text="Violation of IBA's Academic Integrity Policy results in disciplinary action.", bg=_BG_SURFACE, fg=_TEXT_PRIMARY, font=("Segoe UI", 10, "italic"), wraplength=400, justify=tk.CENTER).pack(anchor="center", pady=(8, 0))
-    tk.Label(pledge_box, text="Type YES to continue. Type NO to exit.", bg=_BG_SURFACE, fg=_TEXT_MUTED, font=("Segoe UI", 9), wraplength=400, justify=tk.CENTER).pack(anchor="center", pady=(8, 0))
+    tk.Label(pledge_box, text="I pledge on my honour that I will not give or receive any unauthorized assistance during this examination.", bg=_BG_SURFACE, fg=_TEXT_PRIMARY, font=("Segoe UI", 10, "italic"), wraplength=340, justify=tk.CENTER).pack(anchor="center")
+    tk.Label(pledge_box, text="Violation of IBA's Academic Integrity Policy results in disciplinary action.", bg=_BG_SURFACE, fg=_TEXT_PRIMARY, font=("Segoe UI", 10, "italic"), wraplength=340, justify=tk.CENTER).pack(anchor="center", pady=(8, 0))
+    tk.Label(pledge_box, text="Type YES to continue. Type NO to exit.", bg=_BG_SURFACE, fg=_TEXT_MUTED, font=("Segoe UI", 9), wraplength=340, justify=tk.CENTER).pack(anchor="center", pady=(8, 0))
 
     panel = tk.Frame(card, bg=_BG_BASE, highlightbackground=_BORDER_SUBTLE, highlightthickness=1, padx=20, pady=15)
     panel.pack(fill=tk.X, padx=25, pady=(0, 20))
