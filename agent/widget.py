@@ -140,20 +140,10 @@ def _build_side_widget(
     
     # --- Header Section (Compact Typography) ---
     header_frame = tk.Frame(card, bg=_BG_SURFACE)
-    header_frame.pack(fill=tk.X, padx=12, pady=(15, 0)) # Tighter horizontal padding
+    header_frame.pack(fill=tk.X, padx=12, pady=(15, 0)) 
     
-    close_btn = tk.Label(
-        card,
-        text="✕",
-        bg=_BG_SURFACE,
-        fg=_TEXT_MUTED,
-        font=("Segoe UI", 10), # Slightly smaller
-        cursor="hand2",
-    )
-    close_btn.place(relx=1.0, rely=0.0, anchor="ne", x=-8, y=8) # Tighter positioning
-    close_btn.bind("<Button-1>", lambda _: on_end_session())
-    close_btn.bind("<Enter>", lambda _: close_btn.configure(fg=_TEXT_PRIMARY))
-    close_btn.bind("<Leave>", lambda _: close_btn.configure(fg=_TEXT_MUTED))
+    # Subtle accent top-strip for "vibe"
+    tk.Frame(card, bg=_NEON_CYAN, height=2).place(relx=0.5, rely=0.0, relwidth=0.4, anchor="n")
 
     # Name: Reduced font and added tight wrapping for the "badge" feel
     tk.Label(
@@ -174,14 +164,14 @@ def _build_side_widget(
         font=("Segoe UI", 7, "bold"),
     ).pack(pady=(2, 0))
 
-    # --- Secure Access Code Panel (Narrower) ---
-    panel = tk.Frame(card, bg="#0A0A0A", bd=0)
-    panel.pack(fill=tk.X, padx=12, pady=(15, 0)) # Tighter horizontal padding
+    # --- Secure Access Code Panel ---
+    panel = tk.Frame(card, bg="#000000", bd=0) # Pure black for depth
+    panel.pack(fill=tk.X, padx=12, pady=(12, 0))
     
-    inner_border = tk.Frame(panel, bg=_BORDER_SUBTLE, padx=1, pady=1)
+    inner_border = tk.Frame(panel, bg="#111111", padx=1, pady=1) # Darker, subtle border
     inner_border.pack(fill=tk.BOTH)
     
-    content_area = tk.Frame(inner_border, bg="#000000", padx=10, pady=10) # Reduced padding
+    content_area = tk.Frame(inner_border, bg="#050505", padx=10, pady=8)
     content_area.pack(fill=tk.BOTH)
     
     tk.Label(
