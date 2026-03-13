@@ -37,30 +37,12 @@ def show_error_dialog(title: str, message: str) -> None:
     root.destroy()
 
 
-def _add_close_button(parent: tk.Widget, cancel_cmd: Callable[[], None]) -> None:
-    """Adds the standardized unanimous 'X' close button to popups."""
-    btn = tk.Label(
-        parent,
-        text="✕",
-        bg=_BG_SURFACE,
-        fg=_TEXT_MUTED,
-        font=("Segoe UI", 12),
-        cursor="hand2",
-    )
-    btn.place(relx=1.0, rely=0.0, anchor="ne", x=-10, y=10)
-    btn.bind("<Button-1>", lambda _: cancel_cmd())
-    btn.bind("<Enter>", lambda _: btn.configure(fg=_TEXT_PRIMARY))
-    btn.bind("<Leave>", lambda _: btn.configure(fg=_TEXT_MUTED))
-
-
 def _center_window(root: tk.Tk, w: int, h: int) -> None:
     """Perfectly centers a window on the primary screen, accounting for decorations and DPI."""
     root.update_idletasks()
     sw = root.winfo_screenwidth()
     sh = root.winfo_screenheight()
     
-    # If not packaged (has title bar), we might need to adjust for window decorations
-    # but winfo_screenwidth/height usually work for geometry strings.
     x = max((sw - w) // 2, 0)
     y = max((sh - h) // 2, 0)
     root.geometry(f"{w}x{h}+{x}+{y}")
@@ -71,14 +53,12 @@ def request_student_erp() -> str | None:
     
     root = tk.Tk()
     root.title("Markaz Sentinel")
-    root.withdraw()
-    if is_windows_packaged_runtime():
-        root.overrideredirect(True)
     root.configure(bg=_BG_BASE)
     root.attributes("-topmost", True)
     
-    # Reverted to compact height
-    w, h = 460, 380
+    # Standard OS title bar is restored (overrideredirect removed)
+    
+    w, h = 460, 360
     _center_window(root, w, h)
     root.lift()
     root.focus_force()
@@ -90,22 +70,20 @@ def request_student_erp() -> str | None:
         result["erp"] = None
         root.destroy()
 
-    _add_close_button(card, cancel)
-
     strip_canvas = tk.Canvas(card, bg=_BG_SURFACE, height=2, highlightthickness=0, bd=0)
     strip_canvas.pack(fill=tk.X)
     strip_canvas.create_rectangle(0, 0, 9999, 2, fill=_NEON_CYAN, outline="")
     
     error_var = tk.StringVar(value="")
 
-    top_frame = tk.Frame(card, bg=_BG_SURFACE, padx=30, pady=25)
+    top_frame = tk.Frame(card, bg=_BG_SURFACE, padx=30, pady=20)
     top_frame.pack(fill=tk.X)
     tk.Label(top_frame, text="STEP 1", bg=_BG_SURFACE, fg=_NEON_CYAN, font=("Segoe UI", 9, "bold")).pack(anchor="w")
     tk.Label(top_frame, text="Verify Your ERP", bg=_BG_SURFACE, fg=_TEXT_PRIMARY, font=("Segoe UI Semibold", 22)).pack(anchor="w", pady=(8, 0))
     tk.Label(top_frame, text="Enter your 5-digit ERP to begin the exam session.", bg=_BG_SURFACE, fg=_TEXT_MUTED, font=("Segoe UI", 10)).pack(anchor="w", pady=(8, 0))
 
     panel = tk.Frame(card, bg=_BG_BASE, highlightbackground=_BORDER_SUBTLE, highlightthickness=1, padx=20, pady=20)
-    panel.pack(fill=tk.X, padx=25, pady=(0, 25))
+    panel.pack(fill=tk.X, padx=25, pady=(0, 20))
 
     tk.Label(panel, text="ERP NUMBER", bg=_BG_BASE, fg=_TEXT_SUBTITLE, font=("Segoe UI", 9, "bold")).pack(anchor="w")
 
@@ -118,9 +96,6 @@ def request_student_erp() -> str | None:
         bg=_BG_INPUT,
         fg=_TEXT_PRIMARY,
         insertbackground=_NEON_CYAN,
-        disabledbackground=_BG_INPUT,
-        disabledforeground=_TEXT_MUTED,
-        readonlybackground=_BG_INPUT,
         relief=tk.FLAT,
         bd=0,
         highlightthickness=0,
@@ -130,8 +105,6 @@ def request_student_erp() -> str | None:
 
     error_label = tk.Label(panel, textvariable=error_var, bg=_BG_BASE, fg=_TEXT_ERROR, font=("Segoe UI", 9))
     error_label.pack(anchor=tk.W, pady=(8, 0))
-
-    # Action buttons removed per user request
 
     def submit(_event=None) -> None:
         erp = entry.get().strip()
@@ -157,13 +130,10 @@ def request_student_erp_with_session_start(
     
     root = tk.Tk()
     root.title("Markaz Sentinel")
-    root.withdraw()
-    if is_windows_packaged_runtime():
-        root.overrideredirect(True)
     root.configure(bg=_BG_BASE)
     root.attributes("-topmost", True)
     
-    w, h = 460, 380
+    w, h = 460, 360
     _center_window(root, w, h)
     root.lift()
     root.focus_force()
@@ -180,11 +150,8 @@ def request_student_erp_with_session_start(
         if root.winfo_exists():
             root.destroy()
 
-    _add_close_button(card, cancel)
-
     strip_canvas = tk.Canvas(card, bg=_BG_SURFACE, height=2, highlightthickness=0, bd=0)
     strip_canvas.pack(fill=tk.X)
-    base_id = strip_canvas.create_rectangle(0, 0, 9999, 2, fill=_NEON_CYAN, outline="")
     segment_id = strip_canvas.create_rectangle(0, 0, 0, 0, fill="#FFFFFF", outline="", state="hidden")
     
     card._strip_pos = 0  # type: ignore[attr-defined]
@@ -192,14 +159,14 @@ def request_student_erp_with_session_start(
     
     error_var = tk.StringVar(value="")
 
-    top_frame = tk.Frame(card, bg=_BG_SURFACE, padx=30, pady=25)
+    top_frame = tk.Frame(card, bg=_BG_SURFACE, padx=30, pady=20)
     top_frame.pack(fill=tk.X)
     tk.Label(top_frame, text="STEP 1", bg=_BG_SURFACE, fg=_NEON_CYAN, font=("Segoe UI", 9, "bold")).pack(anchor="w")
     tk.Label(top_frame, text="Verify Your ERP", bg=_BG_SURFACE, fg=_TEXT_PRIMARY, font=("Segoe UI Semibold", 22)).pack(anchor="w", pady=(8, 0))
     tk.Label(top_frame, text="Enter your 5-digit ERP to begin the exam session.", bg=_BG_SURFACE, fg=_TEXT_MUTED, font=("Segoe UI", 10)).pack(anchor="w", pady=(8, 0))
 
     panel = tk.Frame(card, bg=_BG_BASE, highlightbackground=_BORDER_SUBTLE, highlightthickness=1, padx=20, pady=20)
-    panel.pack(fill=tk.X, padx=25, pady=(0, 25))
+    panel.pack(fill=tk.X, padx=25, pady=(0, 20))
 
     tk.Label(panel, text="ERP NUMBER", bg=_BG_BASE, fg=_TEXT_SUBTITLE, font=("Segoe UI", 9, "bold")).pack(anchor="w")
 
@@ -212,9 +179,6 @@ def request_student_erp_with_session_start(
         bg=_BG_INPUT,
         fg=_TEXT_PRIMARY,
         insertbackground=_NEON_CYAN,
-        disabledbackground=_BG_INPUT,
-        disabledforeground=_TEXT_MUTED,
-        readonlybackground=_BG_INPUT,
         relief=tk.FLAT,
         bd=0,
         highlightthickness=0,
@@ -225,15 +189,12 @@ def request_student_erp_with_session_start(
     error_label = tk.Label(panel, textvariable=error_var, bg=_BG_BASE, fg=_TEXT_ERROR, font=("Segoe UI", 9))
     error_label.pack(anchor=tk.W, pady=(8, 0))
 
-    # Action buttons removed per user request
-
     def set_busy(busy: bool) -> None:
         if state["closing"] and busy:
             return
         state["busy"] = busy
         entry.configure(state=tk.DISABLED if busy else tk.NORMAL)
         
-        # Stop existing animation
         job = getattr(card, "_strip_job", None)
         if job:
             strip_canvas.after_cancel(job)
@@ -259,19 +220,6 @@ def request_student_erp_with_session_start(
             strip_canvas.itemconfigure(segment_id, state="hidden")
             entry.focus_set()
 
-    def complete_success(request_id: int, erp: str, session_info: tuple[str, str, str]) -> None:
-        if state["closing"] or request_id != state["request_id"] or not root.winfo_exists():
-            return
-        result["erp"] = erp
-        result["session"] = session_info
-        root.destroy()
-
-    def complete_error(request_id: int, message: str) -> None:
-        if state["closing"] or request_id != state["request_id"] or not root.winfo_exists():
-            return
-        set_busy(False)
-        error_var.set(message or "Unable to start session.")
-
     def submit(_event=None) -> str:
         if state["busy"]:
             return "break"
@@ -290,20 +238,24 @@ def request_student_erp_with_session_start(
         def worker() -> None:
             try:
                 session_info = start_session(erp)
+                if state["closing"] or current_request_id != state["request_id"]:
+                    return
+                root.after(0, lambda: complete_success(current_request_id, erp, session_info))
             except Exception as exc:
                 if state["closing"] or current_request_id != state["request_id"]:
                     return
-                try:
-                    root.after(0, lambda: complete_error(current_request_id, str(exc)))
-                except RuntimeError:
-                    pass
-                return
-            if state["closing"] or current_request_id != state["request_id"]:
-                return
-            try:
-                root.after(0, lambda: complete_success(current_request_id, erp, session_info))
-            except RuntimeError:
-                pass
+                root.after(0, lambda: complete_error(current_request_id, str(exc)))
+
+        def complete_success(request_id: int, erp: str, session_info: tuple[str, str, str]) -> None:
+            if not root.winfo_exists() or request_id != state["request_id"]: return
+            result["erp"] = erp
+            result["session"] = session_info
+            root.destroy()
+
+        def complete_error(request_id: int, message: str) -> None:
+            if not root.winfo_exists() or request_id != state["request_id"]: return
+            set_busy(False)
+            error_var.set(message or "Unable to start session.")
 
         threading.Thread(target=worker, daemon=True).start()
         return "break"
@@ -321,14 +273,11 @@ def request_consent_confirmation() -> bool:
     
     root = tk.Tk()
     root.title("Markaz Sentinel")
-    root.withdraw()
-    if is_windows_packaged_runtime():
-        root.overrideredirect(True)
     root.configure(bg=_BG_BASE)
     root.attributes("-topmost", True)
     
-    # Compact height restored
-    w, h = 480, 520
+    # Very compact size for the pledge
+    w, h = 480, 480
     _center_window(root, w, h)
     root.lift()
     root.focus_force()
@@ -341,34 +290,32 @@ def request_consent_confirmation() -> bool:
         result["accepted"] = False
         root.destroy()
 
-    _add_close_button(card, exit_app)
-
     strip_canvas = tk.Canvas(card, bg=_BG_SURFACE, height=2, highlightthickness=0, bd=0)
     strip_canvas.pack(fill=tk.X)
     strip_canvas.create_rectangle(0, 0, 9999, 2, fill=_NEON_CYAN, outline="")
     
     error_var = tk.StringVar(value="")
 
-    top_frame = tk.Frame(card, bg=_BG_SURFACE, padx=30, pady=25)
+    top_frame = tk.Frame(card, bg=_BG_SURFACE, padx=30, pady=15)
     top_frame.pack(fill=tk.X)
     tk.Label(top_frame, text="STEP 2", bg=_BG_SURFACE, fg=_NEON_CYAN, font=("Segoe UI", 9, "bold")).pack(anchor="w")
-    tk.Label(top_frame, text="Academic Integrity Pledge", bg=_BG_SURFACE, fg=_TEXT_PRIMARY, font=("Segoe UI Semibold", 22)).pack(anchor="w", pady=(8, 0))
-    tk.Label(top_frame, text="Type YES to accept the pledge and begin monitoring.", bg=_BG_SURFACE, fg=_TEXT_MUTED, font=("Segoe UI", 10)).pack(anchor="w", pady=(8, 0))
+    tk.Label(top_frame, text="Academic Integrity", bg=_BG_SURFACE, fg=_TEXT_PRIMARY, font=("Segoe UI Semibold", 20)).pack(anchor="w", pady=(4, 0))
+    tk.Label(top_frame, text="Accept the pledge to begin monitoring.", bg=_BG_SURFACE, fg=_TEXT_MUTED, font=("Segoe UI", 9)).pack(anchor="w")
 
-    pledge_box = tk.Frame(top_frame, bg=_BG_SURFACE, bd=0, padx=0, pady=16)
-    pledge_box.pack(fill=tk.X, pady=(10, 0))
+    pledge_box = tk.Frame(top_frame, bg=_BG_SURFACE, bd=0, pady=10)
+    pledge_box.pack(fill=tk.X)
     
-    tk.Label(pledge_box, text="I pledge on my honour that I will not give or receive any unauthorized assistance during this examination.", bg=_BG_SURFACE, fg=_TEXT_PRIMARY, font=("Segoe UI", 11, "italic"), wraplength=400, justify=tk.LEFT).pack(anchor="w")
-    tk.Label(pledge_box, text="I understand that any violation of IBA's Academic Integrity Policy may result in serious disciplinary action.", bg=_BG_SURFACE, fg=_TEXT_PRIMARY, font=("Segoe UI", 11, "italic"), wraplength=400, justify=tk.LEFT).pack(anchor="w", pady=(14, 0))
-    tk.Label(pledge_box, text="Type YES to continue. Type NO to exit.", bg=_BG_SURFACE, fg=_TEXT_MUTED, font=("Segoe UI", 10, "italic"), wraplength=400, justify=tk.LEFT).pack(anchor="w", pady=(14, 0))
+    tk.Label(pledge_box, text="I pledge on my honour that I will not give or receive any unauthorized assistance during this examination.", bg=_BG_SURFACE, fg=_TEXT_PRIMARY, font=("Segoe UI", 10), wraplength=380, justify=tk.LEFT).pack(anchor="w")
+    tk.Label(pledge_box, text="Violation of IBA's Academic Integrity Policy results in disciplinary action.", bg=_BG_SURFACE, fg=_TEXT_PRIMARY, font=("Segoe UI", 10), wraplength=380, justify=tk.LEFT).pack(anchor="w", pady=(8, 0))
+    tk.Label(pledge_box, text="Type YES to continue. Type NO to exit.", bg=_BG_SURFACE, fg=_TEXT_MUTED, font=("Segoe UI", 9), wraplength=380, justify=tk.LEFT).pack(anchor="w", pady=(8, 0))
 
-    panel = tk.Frame(card, bg=_BG_BASE, highlightbackground=_BORDER_SUBTLE, highlightthickness=1, padx=20, pady=20)
-    panel.pack(fill=tk.X, padx=25, pady=(0, 25))
+    panel = tk.Frame(card, bg=_BG_BASE, highlightbackground=_BORDER_SUBTLE, highlightthickness=1, padx=20, pady=15)
+    panel.pack(fill=tk.X, padx=25, pady=(0, 20))
 
-    tk.Label(panel, text="TYPE YES TO CONTINUE", bg=_BG_BASE, fg=_TEXT_SUBTITLE, font=("Segoe UI", 9, "bold")).pack(anchor="w")
+    tk.Label(panel, text="CONFIRM (YES/NO)", bg=_BG_BASE, fg=_TEXT_SUBTITLE, font=("Segoe UI", 8, "bold")).pack(anchor="w")
 
     entry_shell = tk.Frame(panel, bg=_BG_INPUT, highlightbackground=_BORDER_SUBTLE, highlightthickness=1)
-    entry_shell.pack(fill=tk.X, pady=(10, 0))
+    entry_shell.pack(fill=tk.X, pady=(8, 0))
     entry = tk.Entry(
         entry_shell,
         font=("Consolas", 14, "bold"),
@@ -376,20 +323,15 @@ def request_consent_confirmation() -> bool:
         bg=_BG_INPUT,
         fg=_TEXT_PRIMARY,
         insertbackground=_NEON_CYAN,
-        disabledbackground=_BG_INPUT,
-        disabledforeground=_TEXT_MUTED,
-        readonlybackground=_BG_INPUT,
         relief=tk.FLAT,
         bd=0,
         highlightthickness=0,
     )
-    entry.pack(fill=tk.X, padx=18, pady=12, ipady=4)
+    entry.pack(fill=tk.X, padx=15, pady=10, ipady=2)
     entry.focus_set()
 
-    error_label = tk.Label(panel, textvariable=error_var, bg=_BG_BASE, fg=_TEXT_ERROR, font=("Segoe UI", 9))
-    error_label.pack(anchor=tk.W, pady=(8, 0))
-
-    # Action buttons removed per user request
+    error_label = tk.Label(panel, textvariable=error_var, bg=_BG_BASE, fg=_TEXT_ERROR, font=("Segoe UI", 8))
+    error_label.pack(anchor=tk.W, pady=(4, 0))
 
     def submit(_event=None) -> None:
         choice = entry.get().strip().upper()
@@ -401,7 +343,7 @@ def request_consent_confirmation() -> bool:
         if choice == "NO":
             exit_app()
             return
-        error_var.set("Type YES to continue or NO to exit.")
+        error_var.set("Type YES or NO.")
 
     root.bind("<Return>", submit)
     root.protocol("WM_DELETE_WINDOW", exit_app)
