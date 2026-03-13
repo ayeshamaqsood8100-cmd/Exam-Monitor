@@ -33,10 +33,11 @@ def process_session_start(payload: SessionStartModel):
             
     except HTTPException:
         raise
-    except Exception:
+    except Exception as e:
+        import traceback
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred while starting the session."
+            detail=f"DEBUG: {type(e).__name__}: {e}"
         )
 
 @router.post("/session/end")
